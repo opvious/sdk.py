@@ -17,4 +17,5 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
-__version__ = '0.1.0'
+from .client import Client
+from .data import *
