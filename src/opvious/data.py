@@ -19,13 +19,15 @@ with the License.  You may obtain a copy of the License at
 
 import dataclasses
 import pandas as pd
-from typing import Optional, Union
+from typing import Mapping, Optional, Union
 
 KeyItem = Union[float, str]
 
+Key = tuple[KeyItem, ...]
+
 @dataclasses.dataclass
 class ParameterEntry:
-  key: list[KeyItem]
+  key: Key
   value: float
 
 @dataclasses.dataclass
@@ -76,7 +78,7 @@ class FailedOutcome:
 @dataclasses.dataclass
 class IndexedVariable:
   label: str
-  value: pd.Series
+  value: Mapping[Key, float]
 
 @dataclasses.dataclass
 class ScalarVariable:

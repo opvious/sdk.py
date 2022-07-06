@@ -83,7 +83,7 @@ def pyodide_executor(url, auth):
         body=json.dumps({'query': query, 'variables': variables})
       )
       body = await res.js_response.text()
-      return json.loads(body)
+      return (res.headers.get('operation'), json.loads(body))
 
   return PyodideExecutor()
 
@@ -99,7 +99,8 @@ def aiohttp_executor(url, auth):
       data = {'query': query, 'variables': variables}
       async with aiohttp.ClientSession(headers=headers) as session:
         async with session.post(url, json=data) as res:
-          return await res.json()
+          data = await res.json()
+          return (res.headers.get('operation'), data)
 
   return AiohttpExecutor()
 
@@ -113,25 +114,29 @@ class Client:
       self._executor = pyodide_executor(self.api_url, self.authorization_header)
     else:
       self._executor = aiohttp_executor(self.api_url, self.authorization_header)
+    self.latest_operation = None
 
-  async def compile_specification(self, source_text):
-    res = await self._executor.execute(_COMPILE_SPECIFICATION_QUERY, {
-      'sourceText': source_text,
-    })
+  async def _execute(self, query, variables):
+    op, res = await self._executor.execute(query, variables)
+    self.latest_operation = op
     if res.get('errors'):
       raise Exception(json.dumps(res['errors']))
-    return res['data']['compileSpecification']
+    return res['data']
+
+  async def compile_specification(self, source_text):
+    data = await self._execute(_COMPILE_SPECIFICATION_QUERY, {
+      'sourceText': source_text,
+    })
+    return data['compileSpecification']
 
   async def register_specification(self, formulation_name, source_text):
-    res = await self._executor.execute(REGISTER_SPECIFICATION_QUERY, {
+    data = await self._execute(REGISTER_SPECIFICATION_QUERY, {
       'input': {
         'formulationName': formulation_name,
         'sourceText': source_text,
       }
     })
-    if res.get('errors'):
-      raise Exception(json.dumps(res['errors']))
-    return res['data']['registerSpecification']
+    return data['registerSpecification']
 
   async def run_attempt(
     self,
@@ -142,7 +147,7 @@ class Client:
     primal_value_epsilon=None,
     solve_timeout_millis=None,
   ):
-    res = await self._executor.execute(_RUN_ATTEMPT_QUERY, {
+    data = await self._execute(_RUN_ATTEMPT_QUERY, {
       'input': {
         'formulationName': formulation_name,
         'collections': [c.to_input() for c in collections] if collections else [],
@@ -154,14 +159,12 @@ class Client:
         },
       }
     })
-    if res.get('errors'):
-      raise Exception(json.dumps(res['errors']))
-    data = res['data']['runAttempt']['outcome']
-    typename = data['__typename']
+    outcome = data['runAttempt']['outcome']
+    typename = outcome['__typename']
     if typename == 'FailedOutcome':
-      return _failed_outcome(data)
+      return _failed_outcome(outcome)
     if typename == 'FeasibleOutcome':
-      return _feasible_outcome(data)
+      return _feasible_outcome(outcome)
     if typename == 'InfeasibleOutcome':
       return InfeasibleOutcome()
     if typename == 'UnboundedOutcome':
@@ -183,6 +186,8 @@ def _variable(data):
   results = data['results']
   if len(results) == 1 and not results[0]['key']:
     return ScalarVariable(label=label, value=results[0]['primalValue'])
-  index = [tuple(r['key']) for r in results]
-  data = [r['primalValue'] for r in results]
-  return IndexedVariable(label=label, value=pd.Series(data=data, index=index))
+  value = {}
+  for res in results:
+    key = res['key']
+    value[tuple(key) if len(key) > 1 else key[0]] = res['primalValue']
+  return IndexedVariable(label=label, value=value)
