@@ -26,21 +26,20 @@ _FORMULATION_URL_PREFIX = 'https://console.opvious.dev/formulations/'
 
 def save_specification(client, formulation_name):
   """
-  Aggregates all Markdown cells in the notebook and registers the combined
-  content as a specification.
+  Aggregates all MathJax rendered equations in the currently active notebook and
+  registers the combined content as a specification.
   """
-  # This implementation is a big hack to work around the inability to access
-  # notebook cells from Python.
-  # TODO: Improve output (particularly any errors...)
+  # This implementation is a (brittle...) hack to work around the inability to
+  # access notebook cells from Python.
   src = f"""
     (async () => {{
-      const source = [...document.getElementsByClassName('jp-MarkdownCell')]
-        .map(
-          (e) => [...e.querySelectorAll('.CodeMirror-line')]
-            .map((l) => l.textContent)
-            .join(' ')
-          )
-        .join(' ');
+      const notebookId = document
+        .querySelector('li[data-type="document-title"][aria-selected="true"]')
+        .getAttribute('data-id');
+      const renderedCells = document
+        .getElementById(notebookId)
+        .querySelectorAll('script[type^="math/tex"]');
+      const source = [...renderedCells].map((e) => e.textContent).join(' ');
       const res = await fetch(
         {json.dumps(client.api_url)},
         {{
@@ -62,17 +61,38 @@ def save_specification(client, formulation_name):
       );
       const body = await res.json();
       if (body.errors) {{
+        if (
+          body.errors.length !== 1 ||
+          body.errors[0].extensions?.status !== 'INVALID_ARGUMENT' ||
+          !body.errors[0].extensions.exception?.tags?.reason
+        ) {{
+          reportFailure(body.errors);
+          return;
+        }}
         element.innerHTML = `
-          <pre>${{JSON.stringify(body.errors, null, 2)}}</pre>
+          This specification is invalid, please fix the following error before
+          attempting to register it again:
+          <p style="color: red; margin-top:2px;">
+            ${{body.errors[0].extensions.exception.tags.reason}}
+          </p>
         `;
         return;
       }}
-      const spec = body.data.registerSpecification;
-      const specUrl = {json.dumps(_FORMULATION_URL_PREFIX)} + spec.formulation.name;
+      const {{formulation}} = body.data.registerSpecification;
+      const surl = {json.dumps(_FORMULATION_URL_PREFIX)} + formulation.name;
       element.innerHTML = `
         Specification successfully created:
-        <a href="${{specUrl}}" target="_blank">${{specUrl}}</a>
+        <a href="${{surl}}" target="_blank" style="text-decoration: underline;">
+          ${{surl}}
+        </a>
       `;
-    }})().catch(console.error);
+    }})().catch(reportFailure);
+
+    function reportFailure(arg) {{
+      element.innerHTML = `
+        An unexpected error occurred. Please see console for more information.
+      `;
+      console.error(arg);
+    }}
   """
   return Javascript(src)

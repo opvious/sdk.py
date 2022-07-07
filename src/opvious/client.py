@@ -83,7 +83,8 @@ def pyodide_executor(url, auth):
         body=json.dumps({'query': query, 'variables': variables})
       )
       body = await res.js_response.text()
-      return (res.headers.get('operation'), json.loads(body))
+      headers = res.js_response.headers # TODO: This doesn't work.
+      return (headers.get('operation'), json.loads(body))
 
   return PyodideExecutor()
 
