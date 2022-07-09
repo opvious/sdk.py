@@ -60,13 +60,13 @@ class Parameter:
     return Parameter(label=label, entries=entries)
 
 @dataclasses.dataclass
-class Collection:
+class Dimension:
   label: str
   items: list[KeyItem]
 
   @classmethod
   def iterable(cls, label, iterable):
-    return Collection(label=label, items=list(iterable))
+    return Dimension(label=label, items=list(iterable))
 
   def to_input(self):
     return dataclasses.asdict(self)
@@ -90,8 +90,8 @@ Variable = Union[ScalarVariable, IndexedVariable]
 @dataclasses.dataclass
 class FeasibleOutcome:
   is_optimal: bool
-  objective_value: float
-  relative_gap: float
+  objective_value: Optional[float]
+  relative_gap: Optional[float]
   variables: list[Variable]
 
 @dataclasses.dataclass

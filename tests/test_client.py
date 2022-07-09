@@ -3,13 +3,13 @@ import os
 import pandas as pd
 import pytest
 
-API_TOKEN = os.environ.get('API_TOKEN')
+ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 
 @pytest.fixture
 def client():
-  return opvious.Client(API_TOKEN)
+  return opvious.Client(ACCESS_TOKEN)
 
-@pytest.mark.skipif(not API_TOKEN, reason='No API token detected')
+@pytest.mark.skipif(not ACCESS_TOKEN, reason='No access token detected')
 class TestClient:
   async def test_compile_valid_spec(self, client):
     assembly = await client.compile_specification(
@@ -89,9 +89,9 @@ class TestClient:
     }
     outcome = await client.run_attempt(
       formulation_name=name,
-      collections=[
-        opvious.Collection.iterable('nutrients', minimal_nutrients),
-        opvious.Collection.iterable('recipes', cost_per_recipe),
+      dimensions=[
+        opvious.Dimension.iterable('nutrients', minimal_nutrients),
+        opvious.Dimension.iterable('recipes', cost_per_recipe),
       ],
       parameters=[
         opvious.Parameter.indexed('minimalNutrients', minimal_nutrients),

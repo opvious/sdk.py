@@ -142,7 +142,7 @@ class Client:
   async def run_attempt(
     self,
     formulation_name,
-    collections=None,
+    dimensions=None,
     parameters=None,
     relative_gap=None,
     primal_value_epsilon=None,
@@ -151,7 +151,7 @@ class Client:
     data = await self._execute(_RUN_ATTEMPT_QUERY, {
       'input': {
         'formulationName': formulation_name,
-        'collections': [c.to_input() for c in collections] if collections else [],
+        'dimensions': [d.to_input() for d in dimensions] if dimensions else [],
         'parameters': [p.to_input() for p in parameters] if parameters else [],
         'options': {
           'relativeGap': relative_gap,
