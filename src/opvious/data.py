@@ -21,6 +21,15 @@ import dataclasses
 import pandas as pd
 from typing import Mapping, Optional, Union
 
+@dataclasses.dataclass
+class Formulation:
+  name: str
+  display_name: str
+  description: str
+  url: Optional[str]
+  created_at: str
+  last_specified_at: str
+
 KeyItem = Union[float, str]
 
 Key = tuple[KeyItem, ...]

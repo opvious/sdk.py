@@ -47,11 +47,11 @@ def save_specification(client, formulation_name, tags=None):
             'content-type': 'application/json',
           }},
           body: JSON.stringify({{
-            query: '@RegisterSpecification'
+            query: '@RegisterSpecification',
             variables: {{
               input: {{
                 formulationName: {json.dumps(formulation_name)},
-                sourceText: source.replace(/\s+/g, ' ')
+                sourceText: source.replace(/\s+/g, ' '),
                 tags: {json.dumps(tags or [])},
               }}
             }}
@@ -64,7 +64,7 @@ def save_specification(client, formulation_name, tags=None):
         if (err?.extensions?.status === 'UNAUTHORIZED') {{
           element.innerHTML = `
             The request failed due to an authorization error, please check that
-            the access token is valid.
+            the client's access token is valid.
           `;
           return;
         }}

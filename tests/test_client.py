@@ -24,6 +24,35 @@ class TestClient:
     )
     assert spec.get('assembly')
 
+  async def test_get_formulation(self, client):
+    name = 'get-test'
+    await client.register_specification(
+      formulation_name=name,
+      source_text="""
+        \\S^p_p: a \\in \\mathbb{N}
+        \\S^v_v: \\alpha \\in \\mathbb{N}
+        \\S^c_c: \\alpha \\leq a
+        \\S^o: \\max \\alpha
+      """
+    )
+    formulation = await client.get_formulation(name)
+    assert formulation.name == name
+
+  async def test_delete_formulation(self, client):
+    name = 'delete-test'
+    await client.register_specification(
+      formulation_name=name,
+      source_text="""
+        \\S^p_p: a \\in \\mathbb{N}
+        \\S^v_v: \\alpha \\in \\mathbb{N}
+        \\S^c_c: \\alpha \\leq a
+        \\S^o: \\max \\alpha
+      """
+    )
+    await client.delete_formulation(name)
+    formulation = await client.get_formulation(name)
+    assert formulation is None
+
   async def test_run_simple_feasible_attempt(self, client):
     name = 'bounded'
     await client.register_specification(

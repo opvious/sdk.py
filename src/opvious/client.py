@@ -22,6 +22,7 @@ import numbers
 import sys
 import time
 
+from .common import preparing_keys
 from .data import *
 
 _DEFAULT_API_URL = 'https://api.opvious.dev/graphql'
@@ -92,18 +93,23 @@ class Client:
       raise Exception(f"Operation {op} failed: {json.dumps(res['errors'])}")
     return res['data']
 
-  async def compile_specification(self, source_text):
+  async def compile_specification(self, source_text: str):
     data = await self._execute('@CompileSpecification', {
       'sourceText': source_text,
     })
     return data['compileSpecification']
 
+  async def get_formulation(self, name: str) -> Formulation:
+    data = await self._execute('@FetchFormulation', {'name': name})
+    formulation = data['formulation']
+    return Formulation(**preparing_keys(formulation)) if formulation else None
+
   async def update_formulation(
     self,
-    name,
-    display_name=None,
-    description=None
-  ):
+    name: str,
+    display_name: Optional[str] = None,
+    description: Optional[str] = None
+  ) -> None:
     await self._execute('@UpdateFormulation', {
       'input': {
         'name': name,
@@ -115,20 +121,22 @@ class Client:
       }
     })
 
+  async def delete_formulation(self, name: str) -> None:
+    await self._execute('@DeleteFormulation', {'name': name})
+
   async def register_specification(
     self,
     formulation_name,
     source_text,
     tags=None
-  ):
-    data = await self._execute('@RegisterSpecification', {
+  ) -> None:
+    await self._execute('@RegisterSpecification', {
       'input': {
         'formulationName': formulation_name,
         'sourceText': source_text,
         'tags': tags,
       }
     })
-    return data['registerSpecification']
 
   async def start_attempt(
     self,
@@ -140,7 +148,7 @@ class Client:
     absolute_gap=None,
     primal_value_epsilon=None,
     solve_timeout_millis=None
-  ):
+  ) -> str:
     start_data = await self._execute('@StartAttempt', {
       'input': {
         'formulationName': formulation_name,
@@ -157,7 +165,7 @@ class Client:
     })
     return start_data['startAttempt']['uuid']
 
-  async def poll_attempt_outcome(self, uuid):
+  async def poll_attempt_outcome(self, uuid) -> Outcome:
     while True:
       time.sleep(1)
       poll_data = await self._execute('@PollAttempt', {'uuid': uuid})
@@ -173,7 +181,7 @@ class Client:
         return UnboundedOutcome()
       return _feasible_outcome(attempt['outcome'], attempt['outputs'])
 
-  async def get_attempt_parameters(self, uuid):
+  async def get_attempt_parameters(self, uuid: str) -> list[Parameter]:
     data = await self._execute('@FetchAttemptInputs', {'uuid': uuid})
     return [
       Parameter(
@@ -184,7 +192,7 @@ class Client:
       for p in data['attempt']['inputs']['parameters']
     ]
 
-  async def get_attempt_dimensions(self, uuid):
+  async def get_attempt_dimensions(self, uuid: str) -> list[Dimension]:
     data = await self._execute('@FetchAttemptInputs', {'uuid': uuid})
     return [
       Dimension(d['label'], d['items'])
@@ -193,21 +201,13 @@ class Client:
 
 def _failed_outcome(data):
   failure = data['failure']
-  return FailedOutcome(
-    status=failure['status'],
-    message=failure['message'],
-    code=failure['code'],
-    operation=failure['operation'],
-    tags=failure['tags']
-  )
+  return FailedOutcome(**preparing_keys(failure))
 
 def _feasible_outcome(outcome, outputs):
   return FeasibleOutcome(
-    is_optimal=outcome['isOptimal'],
-    objective_value=outcome['objectiveValue'],
-    absolute_gap=outcome['absoluteGap'],
     variable_results=[_result(r) for r in outputs['variableResults']],
-    constraint_results=[_result(r) for r in outputs['constraintResults']]
+    constraint_results=[_result(r) for r in outputs['constraintResults']],
+    **preparing_keys(outcome)
   )
 
 def _result(data):
