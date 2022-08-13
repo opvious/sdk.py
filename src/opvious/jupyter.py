@@ -20,8 +20,6 @@ with the License.  You may obtain a copy of the License at
 from IPython.display import Javascript
 import json
 
-from .client import REGISTER_SPECIFICATION_QUERY
-
 _FORMULATION_URL_PREFIX = 'https://console.opvious.dev/formulations/'
 
 def save_specification(client, formulation_name, tags=None):
@@ -49,12 +47,12 @@ def save_specification(client, formulation_name, tags=None):
             'content-type': 'application/json',
           }},
           body: JSON.stringify({{
-            query: `{REGISTER_SPECIFICATION_QUERY}`,
+            query: '@RegisterSpecification'
             variables: {{
               input: {{
                 formulationName: {json.dumps(formulation_name)},
-                tags: {json.dumps(tags or [])},
                 sourceText: source.replace(/\s+/g, ' ')
+                tags: {json.dumps(tags or [])},
               }}
             }}
           }}),
