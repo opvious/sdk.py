@@ -113,6 +113,8 @@ class TestClient:
         value={'pizza': 1, 'salad': 2},
       )
     ]
+    dims = await client.get_attempt_dimensions(uuid)
+    assert dims == input_dims
     params = await client.get_attempt_parameters(uuid)
     assert params == input_params
 

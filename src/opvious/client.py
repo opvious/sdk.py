@@ -184,6 +184,13 @@ class Client:
       for p in data['attempt']['inputs']['parameters']
     ]
 
+  async def get_attempt_dimensions(self, uuid):
+    data = await self._execute('@FetchAttemptInputs', {'uuid': uuid})
+    return [
+      Dimension(d['label'], d['items'])
+      for d in data['attempt']['inputs']['dimensions']
+    ]
+
 def _failed_outcome(data):
   failure = data['failure']
   return FailedOutcome(

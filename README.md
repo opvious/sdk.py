@@ -26,10 +26,13 @@ await client.register_specification(
 )
 
 # Attempt to solve a formulation
-outcome = await client.run_attempt(
+uuid = await client.start_attempt(
   formulation_name='my-model',
   # inputs...
 )
+
+# Wait for the attempt to complete
+outcome = await client.poll_attempt_outcome(uuid)
 ```
 
 ### Jupyter integration
