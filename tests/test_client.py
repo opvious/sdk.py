@@ -33,7 +33,8 @@ class TestClient:
         \\S^o: \\max 2 \\alpha
       """
     )
-    outcome = await client.run_attempt(formulation_name=name)
+    uuid = await client.start_attempt(formulation_name=name)
+    outcome = await client.poll_attempt_outcome(uuid)
     assert outcome.is_optimal
     assert outcome.objective_value == 2
 
@@ -46,7 +47,8 @@ class TestClient:
         \\S^c_n: \\alpha \\leq {-1}
       """
     )
-    outcome = await client.run_attempt(formulation_name=name)
+    uuid = await client.start_attempt(formulation_name=name)
+    outcome = await client.poll_attempt_outcome(uuid)
     assert isinstance(outcome, opvious.InfeasibleOutcome)
 
   async def test_run_simple_unbounded_attempt(self, client):
@@ -58,7 +60,8 @@ class TestClient:
         \\S^o: \\max \\alpha
       """
     )
-    outcome = await client.run_attempt(formulation_name=name)
+    uuid = await client.start_attempt(formulation_name=name)
+    outcome = await client.poll_attempt_outcome(uuid)
     assert isinstance(outcome, opvious.UnboundedOutcome)
 
   async def test_run_diet_attempt(self, client):
@@ -87,30 +90,54 @@ class TestClient:
         ('vitamins', 'caviar'): 3,
         ('fibers', 'salad'): 1,
     }
-    outcome = await client.run_attempt(
+    input_dims = [
+      opvious.Dimension.iterable('nutrients', minimal_nutrients),
+      opvious.Dimension.iterable('recipes', cost_per_recipe),
+    ]
+    input_params = [
+      opvious.Parameter.indexed('costPerRecipe', cost_per_recipe),
+      opvious.Parameter.indexed('minimalNutrients', minimal_nutrients),
+      opvious.Parameter.indexed('nutrientsPerRecipe', nutrients_per_recipe),
+    ]
+    uuid = await client.start_attempt(
       formulation_name=name,
-      dimensions=[
-        opvious.Dimension.iterable('nutrients', minimal_nutrients),
-        opvious.Dimension.iterable('recipes', cost_per_recipe),
-      ],
-      parameters=[
-        opvious.Parameter.indexed('minimalNutrients', minimal_nutrients),
-        opvious.Parameter.indexed('nutrientsPerRecipe', nutrients_per_recipe),
-        opvious.Parameter.indexed('costPerRecipe', cost_per_recipe),
-      ]
+      dimensions=input_dims,
+      parameters=input_params
     )
+    outcome = await client.poll_attempt_outcome(uuid)
     assert outcome.is_optimal
     assert outcome.objective_value == 33
-    assert outcome.variables == [
-      opvious.IndexedVariable(
+    assert outcome.variable_results == [
+      opvious.IndexedResult(
         label='quantityOfRecipe',
         value={'pizza': 1, 'salad': 2},
       )
     ]
+    params = await client.get_attempt_parameters(uuid)
+    assert params == input_params
 
   async def test_compile_diet_specification(self, client):
     assembly = await client.compile_specification(specification_source('diet'))
     assert assembly
+
+  async def test_run_simple_invalid_attempt(self, client):
+    name = 'invalid-test'
+    await client.register_specification(
+      formulation_name=name,
+      source_text="""
+        \\S^p_p: a \\in \\mathbb{N}
+        \\S^v_v: \\alpha \\in \\mathbb{N}
+        \\S^c_c: \\alpha \\leq a
+        \\S^o: \\max \\alpha
+      """
+    )
+    uuid = await client.start_attempt(
+      formulation_name=name,
+      parameters=[opvious.Parameter.scalar('p', 0.5)]
+    )
+    outcome = await client.poll_attempt_outcome(uuid)
+    assert isinstance(outcome, opvious.FailedOutcome)
+    assert outcome.status == 'INVALID_ARGUMENT'
 
 def specification_source(formulation_name):
   fname = formulation_name + '.md'

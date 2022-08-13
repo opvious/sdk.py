@@ -20,50 +20,11 @@ with the License.  You may obtain a copy of the License at
 import json
 import numbers
 import sys
+import time
 
 from .data import *
 
 _DEFAULT_API_URL = 'https://api.opvious.dev/graphql'
-
-_COMPILE_SPECIFICATION_QUERY = """
-  query CompileSpecification($sourceText: String!) {
-    compileSpecification(sourceText: $sourceText)
-  }
-"""
-
-REGISTER_SPECIFICATION_QUERY = """
-  mutation RegisterSpecification($input: RegisterSpecificationInput!) {
-    registerSpecification(input: $input) {
-      id
-      formulation {
-        name
-      }
-      assembly
-    }
-  }
-"""
-
-_RUN_ATTEMPT_QUERY = """
-  mutation RunAttempt($input:AttemptInput!) {
-    runAttempt(input:$input) {
-      outcome {
-        __typename
-        ...on FeasibleOutcome {
-          isOptimal
-          objectiveValue
-          relativeGap
-          variables {
-            label
-            results {
-              key
-              primalValue
-            }
-          }
-        }
-      }
-    }
-  }
-"""
 
 def is_using_pyodide():
   # https://pyodide.org/en/stable/usage/faq.html#how-to-detect-that-code-is-run-with-pyodide
@@ -121,74 +82,127 @@ class Client:
     op, res = await self._executor.execute(query, variables)
     self.latest_operation = op
     if res.get('errors'):
-      raise Exception(json.dumps(res['errors']))
+      raise Exception(f"Operation {op} failed: {json.dumps(res['errors'])}")
     return res['data']
 
   async def compile_specification(self, source_text):
-    data = await self._execute(_COMPILE_SPECIFICATION_QUERY, {
+    data = await self._execute('@CompileSpecification', {
       'sourceText': source_text,
     })
     return data['compileSpecification']
 
-  async def register_specification(self, formulation_name, source_text):
-    data = await self._execute(REGISTER_SPECIFICATION_QUERY, {
+  async def update_formulation(
+    self,
+    name,
+    display_name=None,
+    description=None
+  ):
+    await self._execute('@UpdateFormulation', {
+      'input': {
+        'name': name,
+        'patch': {
+          'displayName': display_name,
+          'description': description,
+          'url': url,
+        },
+      }
+    })
+
+  async def register_specification(
+    self,
+    formulation_name,
+    source_text,
+    tags=None
+  ):
+    data = await self._execute('@RegisterSpecification', {
       'input': {
         'formulationName': formulation_name,
         'sourceText': source_text,
+        'tags': tags,
       }
     })
     return data['registerSpecification']
 
-  async def run_attempt(
+  async def start_attempt(
     self,
     formulation_name,
+    specification_tag=None,
     dimensions=None,
     parameters=None,
     relative_gap=None,
+    absolute_gap=None,
     primal_value_epsilon=None,
-    solve_timeout_millis=None,
+    solve_timeout_millis=None
   ):
-    data = await self._execute(_RUN_ATTEMPT_QUERY, {
+    start_data = await self._execute('@StartAttempt', {
       'input': {
         'formulationName': formulation_name,
+        'specificationTag': specification_tag,
         'dimensions': [d.to_input() for d in dimensions] if dimensions else [],
         'parameters': [p.to_input() for p in parameters] if parameters else [],
         'options': {
+          'absoluteGap': absolute_gap,
           'relativeGap': relative_gap,
           'solveTimeoutMillis': solve_timeout_millis,
           'primalValueEpsilon': primal_value_epsilon,
         },
       }
     })
-    outcome = data['runAttempt']['outcome']
-    typename = outcome['__typename']
-    if typename == 'FailedOutcome':
-      return _failed_outcome(outcome)
-    if typename == 'FeasibleOutcome':
-      return _feasible_outcome(outcome)
-    if typename == 'InfeasibleOutcome':
-      return InfeasibleOutcome()
-    if typename == 'UnboundedOutcome':
-      return UnboundedOutcome()
+    return start_data['startAttempt']['uuid']
+
+  async def poll_attempt_outcome(self, uuid):
+    while True:
+      time.sleep(1)
+      poll_data = await self._execute('@PollAttempt', {'uuid': uuid})
+      attempt = poll_data['attempt']
+      status = attempt['status']
+      if status == 'PENDING':
+        continue
+      if status == 'FAILED':
+        return _failed_outcome(attempt['outcome'])
+      if status == 'INFEASIBLE':
+        return InfeasibleOutcome()
+      if status == 'UNBOUNDED':
+        return UnboundedOutcome()
+      return _feasible_outcome(attempt['outcome'], attempt['outputs'])
+
+  async def get_attempt_parameters(self, uuid):
+    data = await self._execute('@FetchAttemptInputs', {'uuid': uuid})
+    return [
+      Parameter(
+        p['label'],
+        [ParameterEntry(e['key'], e['value']) for e in p['entries']],
+        p['defaultValue']
+      )
+      for p in data['attempt']['inputs']['parameters']
+    ]
 
 def _failed_outcome(data):
-  return FailedOutcome(error_messages=[e['message'] for e in data['errors']])
-
-def _feasible_outcome(data):
-  return FeasibleOutcome(
-    is_optimal=data['isOptimal'],
-    objective_value=data['objectiveValue'],
-    relative_gap=data['relativeGap'],
-    variables=[_variable(v) for v in data['variables']]
+  failure = data['failure']
+  return FailedOutcome(
+    status=failure['status'],
+    message=failure['message'],
+    code=failure['code'],
+    operation=failure['operation'],
+    tags=failure['tags']
   )
 
-def _variable(data):
+def _feasible_outcome(outcome, outputs):
+  return FeasibleOutcome(
+    is_optimal=outcome['isOptimal'],
+    objective_value=outcome['objectiveValue'],
+    absolute_gap=outcome['absoluteGap'],
+    variable_results=[_result(r) for r in outputs['variableResults']],
+    constraint_results=[_result(r) for r in outputs['constraintResults']]
+  )
+
+def _result(data):
   label = data['label']
-  results = data['results']
-  if len(results) == 1 and not results[0]['key']:
-    return ScalarVariable(label=label, value=results[0]['primalValue'])
+  entries = data['entries']
+  if len(entries) == 1 and not entries[0]['key']:
+    return ScalarResult(label=label, value=entries[0]['primalValue'])
   value = {}
-  for res in results:
-    key = res['key']
-    value[tuple(key) if len(key) > 1 else key[0]] = res['primalValue']
-  return IndexedVariable(label=label, value=value)
+  for entry in entries:
+    key = entry['key']
+    value[tuple(key) if len(key) > 1 else key[0]] = entry['primalValue']
+  return IndexedResult(label=label, value=value)

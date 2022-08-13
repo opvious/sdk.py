@@ -30,6 +30,10 @@ class ParameterEntry:
   key: Key
   value: float
 
+  def __init__(self, key, value):
+    self.key = tuple(key) if isinstance(key, (list, tuple)) else (key,)
+    self.value = value
+
 @dataclasses.dataclass
 class Parameter:
   label: str
@@ -73,26 +77,31 @@ class Dimension:
 
 @dataclasses.dataclass
 class FailedOutcome:
-  error_messages: list[str]
+  status: str
+  message: str
+  code: Optional[str]
+  operation: str
+  tags: any
 
 @dataclasses.dataclass
-class IndexedVariable:
+class IndexedResult:
   label: str
   value: Mapping[Key, float]
 
 @dataclasses.dataclass
-class ScalarVariable:
+class ScalarResult:
   label: str
   value: float
 
-Variable = Union[ScalarVariable, IndexedVariable]
+Result = Union[ScalarResult, IndexedResult]
 
 @dataclasses.dataclass
 class FeasibleOutcome:
   is_optimal: bool
-  objective_value: Optional[float]
-  relative_gap: Optional[float]
-  variables: list[Variable]
+  objective_value: float
+  absolute_gap: Optional[float]
+  variable_results: list[Result]
+  constraint_results: list[Result]
 
 @dataclasses.dataclass
 class InfeasibleOutcome:

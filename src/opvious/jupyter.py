@@ -24,13 +24,13 @@ from .client import REGISTER_SPECIFICATION_QUERY
 
 _FORMULATION_URL_PREFIX = 'https://console.opvious.dev/formulations/'
 
-def save_specification(client, formulation_name):
+def save_specification(client, formulation_name, tags=None):
   """
   Aggregates all MathJax rendered equations in the currently active notebook and
   registers the combined content as a specification.
   """
-  # This implementation is a (brittle...) hack to work around the inability to
-  # access notebook cells from Python.
+  # The implementation below is a (brittle...) hack to work around the inability
+  # to access notebook cells from Python.
   src = f"""
     (async () => {{
       const notebookId = document
@@ -53,6 +53,7 @@ def save_specification(client, formulation_name):
             variables: {{
               input: {{
                 formulationName: {json.dumps(formulation_name)},
+                tags: {json.dumps(tags or [])},
                 sourceText: source.replace(/\s+/g, ' ')
               }}
             }}
@@ -61,25 +62,31 @@ def save_specification(client, formulation_name):
       );
       const body = await res.json();
       if (body.errors) {{
-        if (
-          body.errors.length !== 1 ||
-          body.errors[0].extensions?.status !== 'INVALID_ARGUMENT' ||
-          !body.errors[0].extensions.exception?.tags?.reason
-        ) {{
-          reportFailure(body.errors);
+        const err = body.errors.length === 1 ? body.errors[0] : undefined;
+        if (err?.extensions?.status === 'UNAUTHORIZED') {{
+          element.innerHTML = `
+            The request failed due to an authorization error, please check that
+            the access token is valid.
+          `;
           return;
         }}
-        element.innerHTML = `
-          This specification is invalid, please fix the following error before
-          attempting to register it again:
-          <p style="color: red; margin-top:2px;">
-            ${{body.errors[0].extensions.exception.tags.reason}}
-          </p>
-        `;
+        if (
+          err?.extensions?.status === 'INVALID_ARGUMENT' &&
+          !body.errors[0].extensions.exception?.tags?.reason
+        ) {{
+          element.innerHTML = `
+            This specification is invalid, please fix the following error before
+            attempting to register it again:
+            <p style="color: red; margin-top:2px;">
+              ${{body.errors[0].extensions.exception.tags.reason}}
+            </p>
+          `;
+          return;
+        }}
+        reportFailure(body.errors);
         return;
       }}
-      const {{formulation}} = body.data.registerSpecification;
-      const surl = {json.dumps(_FORMULATION_URL_PREFIX)} + formulation.name;
+      const surl = {json.dumps(_FORMULATION_URL_PREFIX + formulation_name)};
       element.innerHTML = `
         Specification successfully created:
         <a href="${{surl}}" target="_blank" style="text-decoration: underline;">
