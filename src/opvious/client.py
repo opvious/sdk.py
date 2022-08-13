@@ -40,7 +40,11 @@ def pyodide_executor(url, auth):
       res = await pyfetch(
         url,
         method='POST',
-        headers={'authorization': auth, 'content-type': 'application/json'},
+        headers={
+          'authorization': auth,
+          'content-type': 'application/json',
+          'opvious-client': 'Python SDK (pyodide)',
+        },
         body=json.dumps({'query': query, 'variables': variables})
       )
       body = await res.js_response.text()
@@ -52,7 +56,10 @@ def pyodide_executor(url, auth):
 def aiohttp_executor(url, auth):
   import aiohttp
 
-  headers = {'authorization': auth}
+  headers = {
+    'authorization': auth,
+    'opvious-client': 'Python SDK (aiohttp)',
+  }
 
   class AiohttpExecutor:
     """`aiohttp`-powered GraphQL executor"""
