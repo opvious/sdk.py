@@ -25,7 +25,9 @@ import time
 from .common import preparing_keys
 from .data import *
 
-_DEFAULT_API_URL = 'https://api.opvious.dev/graphql'
+_DEFAULT_API_URL = 'https://api.opvious.dev'
+_GRAPHQL_ENDPOINT = '/graphql'
+_SHARED_FORMULATION_ENDPOINT = '/shared/formulations/'
 
 def is_using_pyodide():
   # https://pyodide.org/en/stable/usage/faq.html#how-to-detect-that-code-is-run-with-pyodide
@@ -39,7 +41,7 @@ def pyodide_executor(url, auth):
 
     async def execute(self, query, variables):
       res = await pyfetch(
-        url,
+        url + _GRAPHQL_ENDPOINT,
         method='POST',
         headers={
           'authorization': auth,
@@ -68,7 +70,7 @@ def aiohttp_executor(url, auth):
     async def execute(self, query, variables):
       data = {'query': query, 'variables': variables}
       async with aiohttp.ClientSession(headers=headers) as session:
-        async with session.post(url, json=data) as res:
+        async with session.post(url + _GRAPHQL_ENDPOINT, json=data) as res:
           data = await res.json()
           return (res.headers.get('operation'), data)
 
@@ -93,11 +95,21 @@ class Client:
       raise Exception(f"Operation {op} failed: {json.dumps(res['errors'])}")
     return res['data']
 
-  async def compile_specification(self, source_text: str):
+  async def extract_definitions(self, sources: list[str]):
+    data = await self._execute('@ExtractDefinitions', {'sources': sources})
+    slices = data['extractDefinitions']['slices']
+    defs = []
+    for s in slices:
+      if s['__typename'] != 'ValidSourceSlice':
+        raise Exception(f"Invalid source: {json.dumps(slices)}")
+      defs.append(s['definition'])
+    return defs
+
+  async def compile_specification(self, definitions: list[Definition]):
     data = await self._execute('@CompileSpecification', {
-      'sourceText': source_text,
+      'definitions': definitions,
     })
-    return data['compileSpecification']
+    return data['compileSpecification']['assembly']
 
   async def get_formulation(self, name: str) -> Formulation:
     data = await self._execute('@FetchFormulation', {'name': name})
@@ -127,21 +139,40 @@ class Client:
   async def register_specification(
     self,
     formulation_name,
-    source_text,
-    tags=None
-  ) -> None:
-    await self._execute('@RegisterSpecification', {
+    definitions,
+    tag_names=None
+  ):
+    data = await self._execute('@RegisterSpecification', {
       'input': {
         'formulationName': formulation_name,
-        'sourceText': source_text,
-        'tags': tags,
+        'definitions': definitions,
+        'tagNames': tag_names,
       }
+    })
+    return data['registerSpecification']['assembly']
+
+  async def share_formulation(self, name: str, tag_name: str) -> str:
+    data = await self._execute('@StartSharingFormulation', {
+      'input': {
+        'name': name,
+        'tagName': tag_name,
+      },
+    })
+    slug = data['startSharingFormulation']['sharedVia']
+    return f'{self.api_url}{_SHARED_FORMULATION_ENDPOINT}{slug}'
+
+  async def unshare_formulation(self, name: str, tag_names = None) -> str:
+    await self._execute('@StopSharingFormulation', {
+      'input': {
+        'name': name,
+        'tagNames': tag_names,
+      },
     })
 
   async def start_attempt(
     self,
     formulation_name,
-    specification_tag=None,
+    tag_name=None,
     dimensions=None,
     parameters=None,
     relative_gap=None,
@@ -152,7 +183,7 @@ class Client:
     start_data = await self._execute('@StartAttempt', {
       'input': {
         'formulationName': formulation_name,
-        'specificationTag': specification_tag,
+        'tagName': tag_name,
         'dimensions': [d.to_input() for d in dimensions] if dimensions else [],
         'parameters': [p.to_input() for p in parameters] if parameters else [],
         'options': {

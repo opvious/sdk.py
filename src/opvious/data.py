@@ -22,6 +22,13 @@ import pandas as pd
 from typing import Mapping, Optional, Union
 
 @dataclasses.dataclass
+class Definition:
+  kind: str
+  source: str
+  label: Optional[str]
+  description: Optional[str]
+
+@dataclasses.dataclass
 class Formulation:
   name: str
   display_name: str

@@ -11,24 +11,35 @@ def client():
 
 @pytest.mark.skipif(not ACCESS_TOKEN, reason='No access token detected')
 class TestClient:
-  async def test_compile_valid_spec(self, client):
-    assembly = await client.compile_specification(
-      source_text="""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""
+  async def test_extract_definitions(self, client):
+    defs = await client.extract_definitions(
+      sources=["""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""]
     )
+    assert (len(defs)) == 2
+
+  async def test_compile_valid_spec(self, client):
+    defs = await client.extract_definitions(
+      sources=["""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""]
+    )
+    assembly = await client.compile_specification(definitions=defs)
     assert len(assembly['variables']) == 1
 
   async def test_register_valid_spec(self, client):
-    spec = await client.register_specification(
-      formulation_name='bounded-test',
-      source_text="""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""
+    defs = await client.extract_definitions(
+      sources=["""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""]
     )
-    assert spec.get('assembly')
+    assembly = await client.register_specification(
+      formulation_name='bounded-test',
+      definitions=defs
+    )
+    assert len(assembly['variables']) == 1
 
   async def test_get_formulation(self, client):
     name = 'get-test'
-    await client.register_specification(
+    await register_specification_from_source(
+      client=client,
       formulation_name=name,
-      source_text="""
+      source="""
         \\S^p_p: a \\in \\mathbb{N}
         \\S^v_v: \\alpha \\in \\mathbb{N}
         \\S^c_c: \\alpha \\leq a
@@ -40,9 +51,10 @@ class TestClient:
 
   async def test_delete_formulation(self, client):
     name = 'delete-test'
-    await client.register_specification(
+    await register_specification_from_source(
+      client=client,
       formulation_name=name,
-      source_text="""
+      source="""
         \\S^p_p: a \\in \\mathbb{N}
         \\S^v_v: \\alpha \\in \\mathbb{N}
         \\S^c_c: \\alpha \\leq a
@@ -55,9 +67,10 @@ class TestClient:
 
   async def test_run_simple_feasible_attempt(self, client):
     name = 'bounded'
-    await client.register_specification(
+    await register_specification_from_source(
+      client=client,
       formulation_name=name,
-      source_text="""
+      source="""
         \\S^{v}_{power}: \\alpha \\in \\{0,1\\}
         \\S^o: \\max 2 \\alpha
       """
@@ -69,9 +82,10 @@ class TestClient:
 
   async def test_run_simple_infeasible_attempt(self, client):
     name = 'infeasible-test'
-    await client.register_specification(
+    await register_specification_from_source(
+      client=client,
       formulation_name=name,
-      source_text="""
+      source="""
         \\S^v_a: \\alpha \\in \\{0,1\\}
         \\S^c_n: \\alpha \\leq {-1}
       """
@@ -82,9 +96,10 @@ class TestClient:
 
   async def test_run_simple_unbounded_attempt(self, client):
     name = 'unbounded-test'
-    await client.register_specification(
+    await register_specification_from_source(
+      client=client,
       formulation_name=name,
-      source_text="""
+      source="""
         \\S^v_a: \\alpha \\in \\mathbb{R}
         \\S^o: \\max \\alpha
       """
@@ -95,9 +110,10 @@ class TestClient:
 
   async def test_run_diet_attempt(self, client):
     name = 'diet-test'
-    await client.register_specification(
+    await register_specification_from_source(
+      client=client,
       formulation_name=name,
-      source_text=specification_source('diet')
+      source=specification_source('diet')
     )
     cost_per_recipe = {
         'lasagna': 12,
@@ -148,14 +164,16 @@ class TestClient:
     assert params == input_params
 
   async def test_compile_diet_specification(self, client):
-    assembly = await client.compile_specification(specification_source('diet'))
+    defs = await client.extract_definitions([specification_source('diet')])
+    assembly = await client.compile_specification(defs)
     assert assembly
 
   async def test_run_simple_invalid_attempt(self, client):
     name = 'invalid-test'
-    await client.register_specification(
+    await register_specification_from_source(
+      client=client,
       formulation_name=name,
-      source_text="""
+      source="""
         \\S^p_p: a \\in \\mathbb{N}
         \\S^v_v: \\alpha \\in \\mathbb{N}
         \\S^c_c: \\alpha \\leq a
@@ -175,3 +193,7 @@ def specification_source(formulation_name):
   fpath = os.path.join(os.path.dirname(__file__), 'specifications', fname)
   with open(fpath) as reader:
     return reader.read()
+
+async def register_specification_from_source(client, formulation_name, source):
+  defs = await client.extract_definitions([source])
+  return await client.register_specification(formulation_name, defs)
