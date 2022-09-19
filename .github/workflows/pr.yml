@@ -32,3 +32,4 @@ jobs:
         run: pytest
         env:
           OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_TOKEN }}
+          PYTHONPATH: src
