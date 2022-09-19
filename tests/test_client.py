@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import pytest
 
-ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
+ACCESS_TOKEN = os.environ.get('OPVIOUS_TOKEN')
 
 @pytest.fixture
 def client():
@@ -17,22 +17,12 @@ class TestClient:
     )
     assert (len(defs)) == 2
 
-  async def test_compile_valid_spec(self, client):
+  async def test_validate_definitions(self, client):
     defs = await client.extract_definitions(
       sources=["""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""]
     )
-    assembly = await client.compile_specification(definitions=defs)
-    assert len(assembly['variables']) == 1
-
-  async def test_register_valid_spec(self, client):
-    defs = await client.extract_definitions(
-      sources=["""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""]
-    )
-    assembly = await client.register_specification(
-      formulation_name='bounded-test',
-      definitions=defs
-    )
-    assert len(assembly['variables']) == 1
+    warnings = await client.validate_definitions(defs)
+    assert not warnings
 
   async def test_get_formulation(self, client):
     name = 'get-test'
@@ -158,15 +148,14 @@ class TestClient:
         value={'pizza': 1, 'salad': 2},
       )
     ]
-    dims = await client.get_attempt_dimensions(uuid)
-    assert dims == input_dims
-    params = await client.get_attempt_parameters(uuid)
-    assert params == input_params
+    tpl = await client.get_attempt_template(uuid)
+    assert tpl.dimensions == input_dims
+    assert tpl.parameters == input_params
 
-  async def test_compile_diet_specification(self, client):
+  async def test_validate_diet_specification(self, client):
     defs = await client.extract_definitions([specification_source('diet')])
-    assembly = await client.compile_specification(defs)
-    assert assembly
+    warnings = await client.validate_definitions(defs)
+    assert not warnings
 
   async def test_run_simple_invalid_attempt(self, client):
     name = 'invalid-test'

@@ -35,7 +35,6 @@ class Formulation:
   description: str
   url: Optional[str]
   created_at: str
-  last_specified_at: str
 
 KeyItem = Union[float, str]
 
@@ -54,23 +53,21 @@ class ParameterEntry:
 class Parameter:
   label: str
   entries: list[ParameterEntry]
-  default_value: Optional[float] = None
+  default_value: float = 0
 
   def to_input(self):
-    obj = {
+    return {
       'label': self.label,
       'entries': [dataclasses.asdict(e) for e in self.entries],
+      'defaultValue': self.default_value,
     }
-    if self.default_value is not None:
-      obj['defaultValue'] = self.default_value
-    return obj
 
   @classmethod
   def scalar(cls, label, value):
     return Parameter(label=label, entries=[ParameterEntry(key=[], value=value)])
 
   @classmethod
-  def indexed(cls, label, mapping, default_value=None):
+  def indexed(cls, label, mapping, default_value=0):
     entries = [ParameterEntry(key, value) for key, value in mapping.items()]
     return Parameter(label=label, entries=entries, default_value=default_value)
 
@@ -96,7 +93,6 @@ class FailedOutcome:
   status: str
   message: str
   code: Optional[str]
-  operation: str
   tags: any
 
 @dataclasses.dataclass
@@ -117,7 +113,6 @@ class FeasibleOutcome:
   objective_value: float
   absolute_gap: Optional[float]
   variable_results: list[Result]
-  constraint_results: list[Result]
 
 @dataclasses.dataclass
 class InfeasibleOutcome:
@@ -133,3 +128,8 @@ Outcome = Union[
   InfeasibleOutcome,
   UnboundedOutcome,
 ]
+
+@dataclasses.dataclass
+class AttemptTemplate:
+  dimensions: list[Dimension]
+  parameters: list[Parameter]

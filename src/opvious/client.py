@@ -22,10 +22,9 @@ import numbers
 import sys
 import time
 
-from .common import preparing_keys
 from .data import *
 
-_DEFAULT_API_URL = 'https://api.opvious.dev'
+API_URL = 'https://api.opvious.io'
 _GRAPHQL_ENDPOINT = '/graphql'
 _SHARED_FORMULATION_ENDPOINT = '/shared/formulations/'
 
@@ -52,7 +51,7 @@ def pyodide_executor(url, auth):
       )
       body = await res.js_response.text()
       headers = res.js_response.headers # TODO: This doesn't work.
-      return (headers.get('operation'), json.loads(body))
+      return (headers.get('opvious-trace'), json.loads(body))
 
   return PyodideExecutor()
 
@@ -72,7 +71,7 @@ def aiohttp_executor(url, auth):
       async with aiohttp.ClientSession(headers=headers) as session:
         async with session.post(url + _GRAPHQL_ENDPOINT, json=data) as res:
           data = await res.json()
-          return (res.headers.get('operation'), data)
+          return (res.headers.get('opvious-trace'), data)
 
   return AiohttpExecutor()
 
@@ -80,19 +79,19 @@ class Client:
   """Opvious API client"""
 
   def __init__(self, access_token, api_url=None):
-    self.api_url = api_url or _DEFAULT_API_URL
+    self.api_url = api_url or API_URL
     self.authorization_header = f'Bearer {access_token}'
     if is_using_pyodide():
       self._executor = pyodide_executor(self.api_url, self.authorization_header)
     else:
       self._executor = aiohttp_executor(self.api_url, self.authorization_header)
-    self.latest_operation = None
+    self.latest_trace = None
 
   async def _execute(self, query, variables):
-    op, res = await self._executor.execute(query, variables)
-    self.latest_operation = op
+    tid, res = await self._executor.execute(query, variables)
+    self.latest_trace = tid
     if res.get('errors'):
-      raise Exception(f"Operation {op} failed: {json.dumps(res['errors'])}")
+      raise Exception(f"Operation {tid} failed: {json.dumps(res['errors'])}")
     return res['data']
 
   async def extract_definitions(self, sources: list[str]):
@@ -105,22 +104,31 @@ class Client:
       defs.append(s['definition'])
     return defs
 
-  async def compile_specification(self, definitions: list[Definition]):
-    data = await self._execute('@CompileSpecification', {
+  async def validate_definitions(self, definitions: list[Definition]):
+    data = await self._execute('@ValidateDefinitions', {
       'definitions': definitions,
     })
-    return data['compileSpecification']['assembly']
+    return data['validateDefinitions']['warnings']
 
   async def get_formulation(self, name: str) -> Formulation:
     data = await self._execute('@FetchFormulation', {'name': name})
-    formulation = data['formulation']
-    return Formulation(**preparing_keys(formulation)) if formulation else None
+    form = data['formulation']
+    if not form:
+      return None
+    return Formulation(
+      name=form['name'],
+      display_name=form['displayName'],
+      description=form['description'],
+      url=form['url'],
+      created_at=form['createdAt'],
+    )
 
   async def update_formulation(
     self,
     name: str,
     display_name: Optional[str] = None,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    url: Optional[str] = None
   ) -> None:
     await self._execute('@UpdateFormulation', {
       'input': {
@@ -142,14 +150,13 @@ class Client:
     definitions,
     tag_names=None
   ):
-    data = await self._execute('@RegisterSpecification', {
+    await self._execute('@RegisterSpecification', {
       'input': {
         'formulationName': formulation_name,
         'definitions': definitions,
         'tagNames': tag_names,
       }
     })
-    return data['registerSpecification']['assembly']
 
   async def share_formulation(self, name: str, tag_name: str) -> str:
     data = await self._execute('@StartSharingFormulation', {
@@ -186,12 +193,10 @@ class Client:
         'tagName': tag_name,
         'dimensions': [d.to_input() for d in dimensions] if dimensions else [],
         'parameters': [p.to_input() for p in parameters] if parameters else [],
-        'options': {
-          'absoluteGap': absolute_gap,
-          'relativeGap': relative_gap,
-          'solveTimeoutMillis': solve_timeout_millis,
-          'primalValueEpsilon': primal_value_epsilon,
-        },
+        'absoluteGap': absolute_gap,
+        'relativeGap': relative_gap,
+        'solveTimeoutMillis': solve_timeout_millis,
+        'primalValueEpsilon': primal_value_epsilon,
       }
     })
     return start_data['startAttempt']['uuid']
@@ -205,40 +210,45 @@ class Client:
       if status == 'PENDING':
         continue
       if status == 'FAILED':
-        return _failed_outcome(attempt['outcome'])
+        return _failed_outcome(attempt['outcome']['failure'])
       if status == 'INFEASIBLE':
         return InfeasibleOutcome()
       if status == 'UNBOUNDED':
         return UnboundedOutcome()
-      return _feasible_outcome(attempt['outcome'], attempt['outputs'])
+      return _feasible_outcome(attempt['outcome'])
 
-  async def get_attempt_parameters(self, uuid: str) -> list[Parameter]:
-    data = await self._execute('@FetchAttemptInputs', {'uuid': uuid})
-    return [
-      Parameter(
-        p['label'],
-        [ParameterEntry(e['key'], e['value']) for e in p['entries']],
-        p['defaultValue']
-      )
-      for p in data['attempt']['inputs']['parameters']
-    ]
+  async def get_attempt_template(self, uuid: str) -> AttemptTemplate:
+    data = await self._execute('@FetchAttemptTemplate', {'uuid': uuid})
+    tpl = data['attempt']['template']
+    return AttemptTemplate(
+      parameters = [
+        Parameter(
+          p['label'],
+          [ParameterEntry(e['key'], e['value']) for e in p['entries']],
+          p['defaultValue']
+        )
+        for p in tpl['parameters']
+      ],
+      dimensions = [
+        Dimension(d['label'], d['items'])
+        for d in tpl['dimensions']
+      ]
+    )
 
-  async def get_attempt_dimensions(self, uuid: str) -> list[Dimension]:
-    data = await self._execute('@FetchAttemptInputs', {'uuid': uuid})
-    return [
-      Dimension(d['label'], d['items'])
-      for d in data['attempt']['inputs']['dimensions']
-    ]
+def _failed_outcome(failure):
+  return FailedOutcome(
+    status=failure['status'],
+    message=failure['message'],
+    code=failure.get('code'),
+    tags=failure.get('tags')
+  )
 
-def _failed_outcome(data):
-  failure = data['failure']
-  return FailedOutcome(**preparing_keys(failure))
-
-def _feasible_outcome(outcome, outputs):
+def _feasible_outcome(outcome):
   return FeasibleOutcome(
-    variable_results=[_result(r) for r in outputs['variableResults']],
-    constraint_results=[_result(r) for r in outputs['constraintResults']],
-    **preparing_keys(outcome)
+    variable_results=[_result(r) for r in outcome['variableResults']],
+    is_optimal=outcome['isOptimal'],
+    objective_value=outcome['objectiveValue'],
+    absolute_gap=outcome.get('absoluteGap')
   )
 
 def _result(data):
