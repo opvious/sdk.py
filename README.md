@@ -1,6 +1,6 @@
 # Opvious SDK
 
-https://opvious.ai
+https://www.opvious.io
 
 ## Quickstart
 
@@ -11,7 +11,7 @@ pip install opvious
 ```
 
 You'll then need an API access token. You can generate one at
-https://console.opvious.dev/authorizations. Once you have it, you can
+https://hub.opvious.io/authorizations. Once you have it, you can
 instantiate a client and call its method:
 
 ```py
