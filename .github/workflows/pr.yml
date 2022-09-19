@@ -31,4 +31,4 @@ jobs:
       - name: Test
         run: pytest
         env:
-          OPVIOUS_TOKEN: {{ secrets.OPVIOUS_TOKEN }}
+          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_TOKEN }}
