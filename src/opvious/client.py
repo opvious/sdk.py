@@ -51,7 +51,7 @@ def pyodide_executor(url, auth):
       )
       body = await res.js_response.text()
       headers = res.js_response.headers # TODO: This doesn't work.
-      return (headers.get('operation'), json.loads(body))
+      return (headers.get('opvious-trace'), json.loads(body))
 
   return PyodideExecutor()
 
@@ -71,7 +71,7 @@ def aiohttp_executor(url, auth):
       async with aiohttp.ClientSession(headers=headers) as session:
         async with session.post(url + _GRAPHQL_ENDPOINT, json=data) as res:
           data = await res.json()
-          return (res.headers.get('operation'), data)
+          return (res.headers.get('opvious-trace'), data)
 
   return AiohttpExecutor()
 
@@ -85,13 +85,13 @@ class Client:
       self._executor = pyodide_executor(self.api_url, self.authorization_header)
     else:
       self._executor = aiohttp_executor(self.api_url, self.authorization_header)
-    self.latest_operation = None
+    self.latest_trace = None
 
   async def _execute(self, query, variables):
-    op, res = await self._executor.execute(query, variables)
-    self.latest_operation = op
+    tid, res = await self._executor.execute(query, variables)
+    self.latest_trace = tid
     if res.get('errors'):
-      raise Exception(f"Operation {op} failed: {json.dumps(res['errors'])}")
+      raise Exception(f"Operation {tid} failed: {json.dumps(res['errors'])}")
     return res['data']
 
   async def extract_definitions(self, sources: list[str]):
