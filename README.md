@@ -7,7 +7,7 @@ https://www.opvious.io
 First, to install this package:
 
 ```sh
-pip install opvious
+pip install opvious[aio]
 ```
 
 You'll then need an API access token. You can generate one at
