@@ -3,58 +3,14 @@ import os
 import pandas as pd
 import pytest
 
-ACCESS_TOKEN = os.environ.get('OPVIOUS_TOKEN')
+AUTHORIZATION = os.environ.get('OPVIOUS_AUTHORIZATION')
 
 @pytest.fixture
 def client():
-  return opvious.Client(ACCESS_TOKEN)
+  return opvious.Client(AUTHORIZATION)
 
-@pytest.mark.skipif(not ACCESS_TOKEN, reason='No access token detected')
+@pytest.mark.skipif(not AUTHORIZATION, reason='No access token detected')
 class TestClient:
-  async def test_extract_definitions(self, client):
-    defs = await client.extract_definitions(
-      sources=["""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""]
-    )
-    assert (len(defs)) == 2
-
-  async def test_validate_definitions(self, client):
-    defs = await client.extract_definitions(
-      sources=["""\\S^v_a: \\alpha \\in [0,1]; \\S^o: \\max \\alpha"""]
-    )
-    warnings = await client.validate_definitions(defs)
-    assert not warnings
-
-  async def test_get_formulation(self, client):
-    name = 'get-test'
-    await register_specification_from_source(
-      client=client,
-      formulation_name=name,
-      source="""
-        \\S^p_p: a \\in \\mathbb{N}
-        \\S^v_v: \\alpha \\in \\mathbb{N}
-        \\S^c_c: \\alpha \\leq a
-        \\S^o: \\max \\alpha
-      """
-    )
-    formulation = await client.get_formulation(name)
-    assert formulation.name == name
-
-  async def test_delete_formulation(self, client):
-    name = 'delete-test'
-    await register_specification_from_source(
-      client=client,
-      formulation_name=name,
-      source="""
-        \\S^p_p: a \\in \\mathbb{N}
-        \\S^v_v: \\alpha \\in \\mathbb{N}
-        \\S^c_c: \\alpha \\leq a
-        \\S^o: \\max \\alpha
-      """
-    )
-    await client.delete_formulation(name)
-    formulation = await client.get_formulation(name)
-    assert formulation is None
-
   async def test_run_simple_feasible_attempt(self, client):
     name = 'bounded'
     await register_specification_from_source(
@@ -176,13 +132,3 @@ class TestClient:
     outcome = await client.poll_attempt_outcome(uuid)
     assert isinstance(outcome, opvious.FailedOutcome)
     assert outcome.status == 'INVALID_ARGUMENT'
-
-def specification_source(formulation_name):
-  fname = formulation_name + '.md'
-  fpath = os.path.join(os.path.dirname(__file__), 'specifications', fname)
-  with open(fpath) as reader:
-    return reader.read()
-
-async def register_specification_from_source(client, formulation_name, source):
-  defs = await client.extract_definitions([source])
-  return await client.register_specification(formulation_name, defs)

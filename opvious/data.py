@@ -32,8 +32,6 @@ class Definition:
 class Formulation:
   name: str
   display_name: str
-  description: str
-  url: Optional[str]
   created_at: str
 
 KeyItem = Union[float, str]

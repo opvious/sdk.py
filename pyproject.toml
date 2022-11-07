@@ -1,3 +1,24 @@
+[tool.poetry]
+name = "opvious"
+version = "0.3.0"
+description = "Opvious Python SDK"
+authors = ["Opvious Engineering <oss@opvious.io>"]
+readme = "README.md"
+repository = "https://github.com/opvious/sdk.py"
+packages = [{include = "opvious"}]
+
+[tool.poetry.dependencies]
+aiohttp = {version = "^3.8", optional = true}
+pandas = "^1.5"
+python = "^3.8"
+
+[tool.poetry.extras]
+aio = ["aiohttp"]
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+pytest-asyncio = "^0.18.3"
+
 [build-system]
-requires = ["setuptools>=42"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

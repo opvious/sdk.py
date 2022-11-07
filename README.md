@@ -1,6 +1,8 @@
-# Opvious SDK
+# Opvious Python SDK  [![CI](https://github.com/mtth/opvious/actions/workflows/ci.yml/badge.svg)](https://github.com/mtth/opvious/actions/workflows/ci.yml) [![Pypi badge](https://badge.fury.io/py/opvious.svg)](https://pypi.python.org/pypi/opvious/)
 
-https://www.opvious.io
+This package provides a lightweight client for interacting with the [Opvious
+API][]. This SDK's functionality is focused on running attempts; for other
+operations consider the [TypeScript CLI or SDK][].
 
 ## Quickstart
 
@@ -19,14 +21,8 @@ import opvious
 
 client = opvious.Client(ACCESS_TOKEN)
 
-# Create a new model formulation
-await client.register_specification(
-  formulation_name='my-model',
-  source_text='...'
-)
-
 # Attempt to solve a formulation
-uuid = await client.start_attempt(
+attempt = await client.start_attempt(
   formulation_name='my-model',
   # inputs...
 )
@@ -35,19 +31,5 @@ uuid = await client.start_attempt(
 outcome = await client.poll_attempt_outcome(uuid)
 ```
 
-### Jupyter integration
-
-Install the module as usual:
-
-```py
-import piplite
-await piplite.install('opvious')
-```
-
-You can then register a specification directly from all Markdown cells in the
-notebook:
-
-```py
-import opvious.jupyter
-opvious.jupyter.save_specification(client=client, formulation_name='my-model')
-```
+[Opvious API]: https://www.opvious.io/
+[Typescript SDK]: https://www.opvious.io/sdk.ts/

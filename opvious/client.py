@@ -25,8 +25,8 @@ import time
 from .data import *
 
 API_URL = 'https://api.opvious.io'
+
 _GRAPHQL_ENDPOINT = '/graphql'
-_SHARED_FORMULATION_ENDPOINT = '/shared/formulations/'
 
 def is_using_pyodide():
   # https://pyodide.org/en/stable/usage/faq.html#how-to-detect-that-code-is-run-with-pyodide
@@ -78,103 +78,14 @@ def aiohttp_executor(url, auth):
 class Client:
   """Opvious API client"""
 
-  def __init__(self, access_token, api_url=None):
+  def __init__(self, auth, api_url=None):
     self.api_url = api_url or API_URL
-    self.authorization_header = f'Bearer {access_token}'
+    self.authorization_header = auth if  ' ' in auth else f'Bearer {auth}'
     if is_using_pyodide():
       self._executor = pyodide_executor(self.api_url, self.authorization_header)
     else:
       self._executor = aiohttp_executor(self.api_url, self.authorization_header)
     self.latest_trace = None
-
-  async def _execute(self, query, variables):
-    tid, res = await self._executor.execute(query, variables)
-    self.latest_trace = tid
-    if res.get('errors'):
-      raise Exception(f"Operation {tid} failed: {json.dumps(res['errors'])}")
-    return res['data']
-
-  async def extract_definitions(self, sources: list[str]):
-    data = await self._execute('@ExtractDefinitions', {'sources': sources})
-    slices = data['extractDefinitions']['slices']
-    defs = []
-    for s in slices:
-      if s['__typename'] != 'ValidSourceSlice':
-        raise Exception(f"Invalid source: {json.dumps(slices)}")
-      defs.append(s['definition'])
-    return defs
-
-  async def validate_definitions(self, definitions: list[Definition]):
-    data = await self._execute('@ValidateDefinitions', {
-      'definitions': definitions,
-    })
-    return data['validateDefinitions']['warnings']
-
-  async def get_formulation(self, name: str) -> Formulation:
-    data = await self._execute('@FetchFormulation', {'name': name})
-    form = data['formulation']
-    if not form:
-      return None
-    return Formulation(
-      name=form['name'],
-      display_name=form['displayName'],
-      description=form['description'],
-      url=form['url'],
-      created_at=form['createdAt'],
-    )
-
-  async def update_formulation(
-    self,
-    name: str,
-    display_name: Optional[str] = None,
-    description: Optional[str] = None,
-    url: Optional[str] = None
-  ) -> None:
-    await self._execute('@UpdateFormulation', {
-      'input': {
-        'name': name,
-        'patch': {
-          'displayName': display_name,
-          'description': description,
-          'url': url,
-        },
-      }
-    })
-
-  async def delete_formulation(self, name: str) -> None:
-    await self._execute('@DeleteFormulation', {'name': name})
-
-  async def register_specification(
-    self,
-    formulation_name,
-    definitions,
-    tag_names=None
-  ):
-    await self._execute('@RegisterSpecification', {
-      'input': {
-        'formulationName': formulation_name,
-        'definitions': definitions,
-        'tagNames': tag_names,
-      }
-    })
-
-  async def share_formulation(self, name: str, tag_name: str) -> str:
-    data = await self._execute('@StartSharingFormulation', {
-      'input': {
-        'name': name,
-        'tagName': tag_name,
-      },
-    })
-    slug = data['startSharingFormulation']['sharedVia']
-    return f'{self.api_url}{_SHARED_FORMULATION_ENDPOINT}{slug}'
-
-  async def unshare_formulation(self, name: str, tag_names = None) -> str:
-    await self._execute('@StopSharingFormulation', {
-      'input': {
-        'name': name,
-        'tagNames': tag_names,
-      },
-    })
 
   async def start_attempt(
     self,
