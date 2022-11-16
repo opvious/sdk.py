@@ -17,16 +17,22 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      - name: Setup poetry
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: '1.2.2'
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install .[aio,test]
+        run: poetry install
+      - name: Register formulations
+        uses: opvious/register-specification-action@v0.1.2
+        with:
+          token: ${{ secrets.OPVIOUS_TOKEN }}
+          sources: tests/sources/*.md
       - name: Lint
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=80 --statistics
+          poetry run black . --check
+          poetry run flake8
       - name: Test
-        run: pytest
+        run: poetry run pytest
         env:
-          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_TOKEN }}
-          PYTHONPATH: src
+          OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_TOKEN }}
