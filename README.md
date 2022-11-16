@@ -16,19 +16,21 @@ You'll then need an API access token. You can generate one at
 https://hub.opvious.io/authorizations. Once you have it, you can
 instantiate a client and call its method:
 
-```py
+```python
 import opvious
 
-client = opvious.Client(ACCESS_TOKEN)
+# Instantiate an API client
+client = opvious.Client(TOKEN)
 
-# Attempt to solve a formulation
-attempt = await client.start_attempt(
-  formulation_name='my-model',
-  # inputs...
-)
+# Assemble problem inputs
+builder = await client.create_inputs_builder('my-formulation')
+# Add dimensions and parameters...
+
+# Start an attempt
+attempt = await client.start_attempt(builder.build())
 
 # Wait for the attempt to complete
-outcome = await client.poll_attempt_outcome(uuid)
+outcome = await attempt.wait_for_outcome()
 ```
 
 [Opvious API]: https://www.opvious.io/
