@@ -19,7 +19,7 @@ with the License.  You may obtain a copy of the License at
 
 import pandas as pd
 import time
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from .data import (
     FailedOutcome,
@@ -110,13 +110,14 @@ class Attempt:
         for var in outcome["variables"]:
             if var["label"] == label:
                 entries = var["entries"]
-                return pd.DataFrame(
+                df = pd.DataFrame(
                     data=(
                         {"value": e["value"], "dual_value": e["dualValue"]}
                         for e in entries
                     ),
                     index=pd.Index(tuple(e["key"]) for e in entries),
                 )
+                return df.dropna(axis=1)
         raise Exception(f"Unknown variable {label}")
 
 
@@ -125,8 +126,16 @@ class InputsBuilder:
         self.formulation_name = formulation_name
         self.tag_name = tag_name
         self._outline = outline
-        self._parameters = {}
-        self._dimensions = {}
+        self._parameters: Dict[Label, Any] = {}
+        self._dimensions: Dict[Label, Any] = {}
+
+    @property
+    def dimension_labels(self) -> list[Label]:
+        return [p["label"] for p in self._outline["dimensions"]]
+
+    @property
+    def parameter_labels(self) -> list[Label]:
+        return [p["label"] for p in self._outline["parameters"]]
 
     def _find(self, key: str, label: Label) -> Any:
         outline = self._outline
@@ -136,7 +145,14 @@ class InputsBuilder:
         """Set a parameter or dimension"""
         param_outline = self._find("parameters", label)
         if param_outline:
-            if _is_indicator(param_outline) and isinstance(data, pd.DataFrame):
+            is_indic = _is_indicator(param_outline)
+            if (
+                is_indic
+                and isinstance(data, pd.Series)
+                and not pd.api.types.is_numeric_dtype(data)
+            ):
+                data = data.reset_index()
+            if is_indic and isinstance(data, pd.DataFrame):
                 entries = [
                     {"key": key, "value": 1}
                     for key in data.itertuples(index=False, name=None)

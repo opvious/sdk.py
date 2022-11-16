@@ -17,7 +17,7 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
-from typing import Any, Mapping, Protocol
+from typing import Any, Mapping, Optional, Protocol
 
 
 class Executor(Protocol):
@@ -40,7 +40,9 @@ class ApiError(Exception):
         self.extensions = extensions
 
 
-def _extract_response_data(status: int, trace: str, body: Any) -> Any:
+def _extract_response_data(
+    status: int, trace: Optional[str], body: Any
+) -> Any:
     errors = body.get("errors")
     if status != 200 or errors:
         raise ApiError(status, trace, errors, body.get("extensions"))
