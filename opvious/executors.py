@@ -17,11 +17,7 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
-import logging
 from typing import Any, Mapping, Protocol
-
-
-logger = logging.getLogger(__name__)
 
 
 class Executor(Protocol):
@@ -70,8 +66,7 @@ def aiohttp_executor(url: str, auth: str) -> Executor:
                 endpoint = url + _GRAPHQL_ENDPOINT
                 async with session.post(endpoint, json=data) as res:
                     trace = res.headers.get(_TRACE_HEADER)
-                    logger.info("Trace: %s", trace)
                     body = await res.json()
-                    return _extract_response_data(res.status, body)
+                    return _extract_response_data(res.status, trace, body)
 
     return AiohttpExecutor()
