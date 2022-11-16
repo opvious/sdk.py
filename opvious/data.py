@@ -18,8 +18,7 @@ with the License.  You may obtain a copy of the License at
 """
 
 import dataclasses
-import pandas as pd
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 
 
 KeyItem = Union[float, str]

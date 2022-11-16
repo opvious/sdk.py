@@ -17,9 +17,7 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
-import json
 import logging
-import sys
 from typing import Any, Mapping, Protocol
 
 
@@ -31,41 +29,43 @@ class Executor(Protocol):
         pass
 
 
-_GRAPHQL_ENDPOINT = '/graphql'
+_GRAPHQL_ENDPOINT = "/graphql"
 
 
 class ApiError(Exception):
     def __init__(self, status, errors=None, extensions=None):
-        super().__init__(f'API call failed with status {status}')
+        super().__init__(f"API call failed with status {status}")
         self.status = status
         self.errors = errors
         self.extensions = extensions
 
 
 def _extract_response_data(status: int, body: Any) -> Any:
-    errors = body.get('errors')
+    errors = body.get("errors")
     if status != 200 or errors:
-        raise ApiError(status, errors, body.get('extensions'))
-    return body['data']
+        raise ApiError(status, errors, body.get("extensions"))
+    return body["data"]
 
 
 def aiohttp_executor(url: str, auth: str) -> Executor:
     import aiohttp
 
     headers = {
-        'authorization': auth,
-        'opvious-client': 'Python SDK (aiohttp)',
+        "authorization": auth,
+        "opvious-client": "Python SDK (aiohttp)",
     }
 
     class AiohttpExecutor:
         """`aiohttp`-powered GraphQL executor"""
 
-        async def execute(self, query: str, variables: Mapping[str, Any]) -> Any:
-            data = {'query': query, 'variables': variables}
+        async def execute(
+            self, query: str, variables: Mapping[str, Any]
+        ) -> Any:
+            data = {"query": query, "variables": variables}
             async with aiohttp.ClientSession(headers=headers) as session:
                 endpoint = url + _GRAPHQL_ENDPOINT
                 async with session.post(endpoint, json=data) as res:
-                    logger.info('Trace: %s', res.headers.get('opvious-trace'))
+                    logger.info("Trace: %s", res.headers.get("opvious-trace"))
                     body = await res.json()
                     return _extract_response_data(res.status, body)
 
