@@ -32,18 +32,22 @@ class Executor(Protocol):
 _GRAPHQL_ENDPOINT = "/graphql"
 
 
+_TRACE_HEADER = "opvious-trace"
+
+
 class ApiError(Exception):
-    def __init__(self, status, errors=None, extensions=None):
-        super().__init__(f"API call failed with status {status}")
+    def __init__(self, status, trace, errors=None, extensions=None):
+        super().__init__(f"API call failed with status {status} ({trace})")
         self.status = status
+        self.trace = trace
         self.errors = errors
         self.extensions = extensions
 
 
-def _extract_response_data(status: int, body: Any) -> Any:
+def _extract_response_data(status: int, trace: str, body: Any) -> Any:
     errors = body.get("errors")
     if status != 200 or errors:
-        raise ApiError(status, errors, body.get("extensions"))
+        raise ApiError(status, trace, errors, body.get("extensions"))
     return body["data"]
 
 
@@ -65,7 +69,8 @@ def aiohttp_executor(url: str, auth: str) -> Executor:
             async with aiohttp.ClientSession(headers=headers) as session:
                 endpoint = url + _GRAPHQL_ENDPOINT
                 async with session.post(endpoint, json=data) as res:
-                    logger.info("Trace: %s", res.headers.get("opvious-trace"))
+                    trace = res.headers.get(_TRACE_HEADER)
+                    logger.info("Trace: %s", trace)
                     body = await res.json()
                     return _extract_response_data(res.status, body)
 
