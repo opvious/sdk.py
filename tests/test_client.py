@@ -73,5 +73,21 @@ class TestClient:
         outcome = await attempt.wait_for_outcome()
         assert outcome.is_optimal
         assert outcome.objective_value == 33
-        optimal = await attempt.load_variable_result("quantityOfRecipe")
-        assert optimal["value"].to_dict() == {("pizza",): 1, ("salad",): 2}
+
+        quantities = await attempt.load_variable_result("quantityOfRecipe")
+        assert quantities["value"].to_dict() == {("pizza",): 1, ("salad",): 2}
+
+        costs = await attempt.load_parameter("costPerRecipe")
+        assert costs.to_dict() == {
+            ("lasagna",): 12,
+            ("pizza",): 15,
+            ("salad",): 9,
+            ("caviar",): 23,
+        }
+
+        nutrients = await attempt.load_constraint_result("enoughNutrients")
+        assert nutrients["slack"].to_dict() == {
+            ("carbs",): 0,
+            ("fibers",): 0,
+            ("vitamins",): 1,
+        }

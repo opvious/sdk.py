@@ -76,7 +76,9 @@ class Attempt:
                 return outcome
 
     async def _fetch_inputs(self):
-        data = await self._execute("@FetchAttemptInputs", {"uuid": self.uuid})
+        data = await self._executor.execute(
+            "@FetchAttemptInputs", {"uuid": self.uuid}
+        )
         return data["attempt"]
 
     async def load_dimension(self, label: Label) -> pd.Index:
@@ -87,26 +89,27 @@ class Attempt:
         raise Exception(f"Unknown dimension {label}")
 
     async def load_parameter(self, label: Label) -> pd.Series:
-        inputs = self._fetch_inputs()
+        inputs = await self._fetch_inputs()
         for param in inputs["parameters"]:
             if param["label"] == label:
                 entries = param["entries"]
                 return pd.Series(
                     data=(e["value"] for e in entries),
-                    index=pd.Index(e["key"] for e in entries),
+                    index=pd.Index(tuple(e["key"]) for e in entries),
                 )
         raise Exception(f"Unknown parameter {label}")
 
-    async def load_variable_result(self, label: Label) -> pd.Series:
+    async def _fetch_outputs(self):
         data = await self._executor.execute(
-            "@FetchAttemptOutputs",
-            {
-                "uuid": self.uuid,
-            },
+            "@FetchAttemptOutputs", {"uuid": self.uuid}
         )
         outcome = data["attempt"].get("outcome")
         if not outcome or outcome["__typename"] != "FeasibleOutcome":
             raise Exception("Missing or non-feasible attempt outcome")
+        return outcome
+
+    async def load_variable_result(self, label: Label) -> pd.DataFrame:
+        outcome = await self._fetch_outputs()
         for var in outcome["variables"]:
             if var["label"] == label:
                 entries = var["entries"]
@@ -119,6 +122,21 @@ class Attempt:
                 )
                 return df.dropna(axis=1)
         raise Exception(f"Unknown variable {label}")
+
+    async def load_constraint_result(self, label: Label) -> pd.DataFrame:
+        outcome = await self._fetch_outputs()
+        for var in outcome["constraints"]:
+            if var["label"] == label:
+                entries = var["entries"]
+                df = pd.DataFrame(
+                    data=(
+                        {"slack": e["value"], "dual_value": e["dualValue"]}
+                        for e in entries
+                    ),
+                    index=pd.Index(tuple(e["key"]) for e in entries),
+                )
+                return df.dropna(axis=1)
+        raise Exception(f"Unknown constraint {label}")
 
 
 class InputsBuilder:
