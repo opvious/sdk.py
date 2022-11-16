@@ -23,6 +23,11 @@ jobs:
           poetry-version: '1.2.2'
       - name: Install dependencies
         run: poetry install
+      - name: Register formulations
+        uses: opvious/register-specification-action@v0.1
+        with:
+          token: ${{ secrets.OPVIOUS_TOKEN }}
+          sources: tests/sources/*.md
       - name: Lint
         run: |
           poetry run black . --check
