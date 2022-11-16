@@ -59,6 +59,6 @@ jobs:
           version: ${{ steps.extract-version.outputs.version }}
       - name: Publish
         if: steps.check-version.outputs.exists == 'false'
-        run: poetry publish
+        run: poetry publish --build
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
