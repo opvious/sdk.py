@@ -19,115 +19,54 @@ with the License.  You may obtain a copy of the License at
 
 import dataclasses
 import pandas as pd
-from typing import Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
-@dataclasses.dataclass
-class Definition:
-  kind: str
-  source: str
-  label: Optional[str]
-  description: Optional[str]
-
-@dataclasses.dataclass
-class Formulation:
-  name: str
-  display_name: str
-  created_at: str
 
 KeyItem = Union[float, str]
 
+
 Key = tuple[KeyItem, ...]
 
-@dataclasses.dataclass
-class ParameterEntry:
-  key: Key
-  value: float
 
-  def __init__(self, key, value):
-    self.key = tuple(key) if isinstance(key, (list, tuple)) else (key,)
-    self.value = value
+Label = str
+
 
 @dataclasses.dataclass
-class Parameter:
-  label: str
-  entries: list[ParameterEntry]
-  default_value: float = 0
+class Inputs:
+    formulation_name: str
+    tag_name: str
+    dimensions: list[Any]
+    parameters: list[Any]
 
-  def to_input(self):
-    return {
-      'label': self.label,
-      'entries': [dataclasses.asdict(e) for e in self.entries],
-      'defaultValue': self.default_value,
-    }
-
-  @classmethod
-  def scalar(cls, label, value):
-    return Parameter(label=label, entries=[ParameterEntry(key=[], value=value)])
-
-  @classmethod
-  def indexed(cls, label, mapping, default_value=0):
-    entries = [ParameterEntry(key, value) for key, value in mapping.items()]
-    return Parameter(label=label, entries=entries, default_value=default_value)
-
-  @classmethod
-  def indicator(cls, label, keys):
-    entries = [ParameterEntry(key, 1) for key in keys]
-    return Parameter(label=label, entries=entries)
-
-@dataclasses.dataclass
-class Dimension:
-  label: str
-  items: list[KeyItem]
-
-  @classmethod
-  def iterable(cls, label, iterable):
-    return Dimension(label=label, items=list(iterable))
-
-  def to_input(self):
-    return dataclasses.asdict(self)
 
 @dataclasses.dataclass
 class FailedOutcome:
-  status: str
-  message: str
-  code: Optional[str]
-  tags: any
+    status: str
+    message: str
+    code: Optional[str]
+    tags: Any
 
-@dataclasses.dataclass
-class IndexedResult:
-  label: str
-  value: Mapping[Key, float]
-
-@dataclasses.dataclass
-class ScalarResult:
-  label: str
-  value: float
-
-Result = Union[ScalarResult, IndexedResult]
 
 @dataclasses.dataclass
 class FeasibleOutcome:
-  is_optimal: bool
-  objective_value: float
-  absolute_gap: Optional[float]
-  variable_results: list[Result]
+    is_optimal: bool
+    objective_value: float
+    relative_gap: Optional[float]
+
 
 @dataclasses.dataclass
 class InfeasibleOutcome:
-  pass
+    pass
+
 
 @dataclasses.dataclass
 class UnboundedOutcome:
-  pass
+    pass
+
 
 Outcome = Union[
-  FailedOutcome,
-  FeasibleOutcome,
-  InfeasibleOutcome,
-  UnboundedOutcome,
+    FailedOutcome,
+    FeasibleOutcome,
+    InfeasibleOutcome,
+    UnboundedOutcome,
 ]
-
-@dataclasses.dataclass
-class AttemptTemplate:
-  dimensions: list[Dimension]
-  parameters: list[Parameter]

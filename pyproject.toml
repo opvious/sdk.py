@@ -9,15 +9,18 @@ packages = [{include = "opvious"}]
 
 [tool.poetry.dependencies]
 aiohttp = {version = "^3.8", optional = true}
+backoff = "^2.2"
 pandas = "^1.5"
 python = "^3.8"
 
+[tool.poetry.group.dev.dependencies]
+aiohttp = "*"
+flake8 = "^4.0.1"
+pytest = "~7.1.2"
+pytest-asyncio = "^0.20.2"
+
 [tool.poetry.extras]
 aio = ["aiohttp"]
-
-[tool.poetry.dev-dependencies]
-pytest = "^7.1.2"
-pytest-asyncio = "^0.18.3"
 
 [build-system]
 requires = ["poetry-core"]

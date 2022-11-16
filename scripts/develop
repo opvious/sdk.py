@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -o nounset
+set -o errexit
+set -o pipefail
+shopt -s nullglob
+
+usage() {
+  local cmd="${0##*/}"
+  cat <<EOF
+Convenience development commands
+
+Usage:
+  $cmd lint # Lint code
+  $cmd test [...] # Run pytest
+EOF
+}
+
+fail() { # [MSG]
+  if (($# > 0)); then
+    echo "error: $1" >&2
+  fi
+  exit 2
+}
+
+run_test() {
+  poetry run pytest tests --asyncio-mode=strict
+}
+
+run_lint() {
+  poetry run flake8 . \
+    --max-complexity=10 \
+    --max-line-length=80 \
+    --show-source \
+    --statistics
+}
+
+main() {
+  if (($# == 0)); then
+    fail 'Missing subcommand'
+  fi
+  local subcmd="${1}"
+  shift
+
+  case $subcmd in
+    test) run_test ;;
+    lint) run_lint ;;
+    *) fail 'invalid subcommand' ;;
+  esac
+}
+
+main "$@"
