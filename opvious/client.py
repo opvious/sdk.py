@@ -25,6 +25,7 @@ from typing import Any, Dict, Mapping, Optional, Union
 
 from .data import (
     Attempt,
+    CancelledOutcome,
     InfeasibleOutcome,
     UnboundedOutcome,
     FailedOutcome,
@@ -185,6 +186,8 @@ class Client:
                 data=edges[0]["node"] if edges else None,
             )
         reached_at = datetime.fromisoformat(attempt_data["endedAt"])
+        if status == "CANCELLED":
+            return CancelledOutcome(reached_at)
         if status == "INFEASIBLE":
             return InfeasibleOutcome(reached_at)
         if status == "UNBOUNDED":

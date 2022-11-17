@@ -20,6 +20,7 @@ with the License.  You may obtain a copy of the License at
 from .client import Client
 from .data import (
     Attempt,
+    CancelledOutcome,
     Key,
     KeyItem,
     Value,
@@ -39,6 +40,7 @@ from .data import (
 
 __all__ = [
     "Attempt",
+    "CancelledOutcome",
     "Client",
     "DimensionArgument",
     "FailedOutcome",

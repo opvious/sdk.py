@@ -162,6 +162,11 @@ def _map_outlines(cls, data):
 
 
 @dataclasses.dataclass
+class CancelledOutcome:
+    reached_at: datetime
+
+
+@dataclasses.dataclass
 class FailedOutcome:
     reached_at: datetime
     status: str
