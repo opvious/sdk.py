@@ -20,6 +20,7 @@ with the License.  You may obtain a copy of the License at
 from __future__ import annotations
 
 import dataclasses
+from datetime import datetime
 import pandas as pd
 from typing import Any, Iterable, Mapping, Optional, Union
 
@@ -162,15 +163,17 @@ def _map_outlines(cls, data):
 
 @dataclasses.dataclass
 class FailedOutcome:
+    reached_at: datetime
     status: str
     message: str
     code: Optional[str]
     tags: Any
 
     @classmethod
-    def from_graphql(cls, data: Any) -> FailedOutcome:
+    def from_graphql(cls, reached_at: datetime, data: Any) -> FailedOutcome:
         failure = data["failure"]
         return FailedOutcome(
+            reached_at=reached_at,
             status=failure["status"],
             message=failure["message"],
             code=failure.get("code"),
@@ -180,13 +183,15 @@ class FailedOutcome:
 
 @dataclasses.dataclass
 class FeasibleOutcome:
+    reached_at: datetime
     is_optimal: bool
     objective_value: Value
     relative_gap: Optional[Value]
 
     @classmethod
-    def from_graphql(cls, data: Any) -> FeasibleOutcome:
+    def from_graphql(cls, reached_at: datetime, data: Any) -> FeasibleOutcome:
         return FeasibleOutcome(
+            reached_at=reached_at,
             is_optimal=data["isOptimal"],
             objective_value=data["objectiveValue"],
             relative_gap=data.get("relativeGap"),
@@ -195,12 +200,12 @@ class FeasibleOutcome:
 
 @dataclasses.dataclass
 class InfeasibleOutcome:
-    pass
+    reached_at: datetime
 
 
 @dataclasses.dataclass
 class UnboundedOutcome:
-    pass
+    reached_at: datetime
 
 
 Outcome = Union[
@@ -224,10 +229,28 @@ class Inputs:
 
 
 @dataclasses.dataclass
+class RelaxedConstraint:
+    label: Label
+    penalty: Optional[str]
+    cost: Optional[float]
+    bound: Optional[float]
+
+
+@dataclasses.dataclass
 class Attempt:
     uuid: str
+    started_at: datetime
     outline: Outline
     url: str
+
+    @classmethod
+    def from_graphql(cls, data: Any, outline: Outline, url: str):
+        return Attempt(
+            uuid=data["uuid"],
+            started_at=datetime.fromisoformat(data["startedAt"]),
+            outline=outline,
+            url=url,
+        )
 
 
 @dataclasses.dataclass

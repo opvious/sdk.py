@@ -18,6 +18,8 @@ with the License.  You may obtain a copy of the License at
 """
 
 import backoff
+from datetime import datetime, timezone
+import humanize
 import pandas as pd
 from typing import Any, Dict, Mapping, Optional, Union
 
@@ -35,6 +37,7 @@ from .data import (
     Outline,
     ParameterArgument,
     DimensionArgument,
+    RelaxedConstraint,
 )
 from .executors import aiohttp_executor
 
@@ -43,6 +46,9 @@ DEFAULT_API_URL = "https://api.opvious.io"
 
 
 DEFAULT_HUB_URL = "https://hub.opvious.io"
+
+
+_DEFAULT_PENALTY = "TOTAL_DEVIATION"
 
 
 class Client:
@@ -97,12 +103,29 @@ class Client:
     async def start_attempt(
         self,
         inputs: Inputs,
-        relative_gap_threshold=None,
-        absolute_gap_threshold=None,
-        primal_value_epsilon=None,
-        solve_timeout_millis=None,
-        # TODO: Relaxation
+        relative_gap_threshold: Optional[float] = None,
+        absolute_gap_threshold: Optional[float] = None,
+        primal_value_epsilon: Optional[float] = None,
+        solve_timeout_millis: Optional[float] = None,
+        relaxed_constraints: Optional[list[RelaxedConstraint]] = None,
     ) -> Attempt:
+        if relaxed_constraints:
+            relaxation = {
+                "penalty": _DEFAULT_PENALTY,
+                "constraints": [
+                    {
+                        "label": c.label,
+                        "penalty": c.penalty,
+                        "deficitCost": c.cost,
+                        "surplusCost": c.cost,
+                        "deficitBound": c.bound,
+                        "surplusBound": c.bound,
+                    }
+                    for c in relaxed_constraints
+                ],
+            }
+        else:
+            relaxation = None
         data = await self._executor.execute(
             "@StartAttempt",
             {
@@ -115,14 +138,15 @@ class Client:
                     "relativeGapThreshold": relative_gap_threshold,
                     "solveTimeoutMillis": solve_timeout_millis,
                     "primalValueEpsilon": primal_value_epsilon,
+                    "relaxation": relaxation,
                 }
             },
         )
-        uuid = data["startAttempt"]["uuid"]
-        return Attempt(
-            uuid=uuid,
+        attempt_data = data["startAttempt"]
+        return Attempt.from_graphql(
+            data=attempt_data,
             outline=inputs.outline,
-            url=self._attempt_url(uuid),
+            url=self._attempt_url(attempt_data["uuid"]),
         )
 
     async def load_attempt(self, uuid: str) -> Optional[Attempt]:
@@ -130,8 +154,8 @@ class Client:
         attempt = data["attempt"]
         if not attempt:
             return None
-        return Attempt(
-            uuid=attempt["uuid"],
+        return Attempt.from_graphql(
+            data=attempt,
             outline=Outline.from_graphql(attempt["outline"]),
             url=self._attempt_url(uuid),
         )
@@ -160,14 +184,15 @@ class Client:
                 dequeued=bool(attempt_data["dequeuedAt"]),
                 data=edges[0]["node"] if edges else None,
             )
+        reached_at = datetime.fromisoformat(attempt_data["endedAt"])
         if status == "INFEASIBLE":
-            return InfeasibleOutcome()
+            return InfeasibleOutcome(reached_at)
         if status == "UNBOUNDED":
-            return UnboundedOutcome()
+            return UnboundedOutcome(reached_at)
         outcome = attempt_data["outcome"]
         if status == "FAILED":
-            return FailedOutcome.from_graphql(outcome)
-        return FeasibleOutcome.from_graphql(outcome)
+            return FailedOutcome.from_graphql(reached_at, outcome)
+        return FeasibleOutcome.from_graphql(reached_at, outcome)
 
     @backoff.on_predicate(
         backoff.fibo, lambda ret: isinstance(ret, Notification), max_value=45
@@ -176,28 +201,41 @@ class Client:
         ret = await self.poll_attempt(attempt)
         if not silent:
             if isinstance(ret, Notification):
+                delta = datetime.now(timezone.utc) - attempt.started_at
+                elapsed = humanize.naturaldelta(
+                    delta, minimum_unit="milliseconds"
+                )
                 if ret.dequeued:
                     msg = "Attempt is running..."
-                    details = []
+                    details = [f"elapsed={elapsed}"]
                     if ret.relative_gap is not None:
                         details.append(f"gap={_percent(ret.relative_gap)}")
                     if ret.cut_count is not None:
-                        details.append(f"cut_count={ret.cut_count}")
+                        details.append(f"cuts={ret.cut_count}")
+                    if ret.lp_iteration_count is not None:
+                        details.append(f"iterations={ret.lp_iteration_count}")
                     if details:
                         msg += f" [{', '.join(details)}]"
                     print(msg)
                 else:
-                    print("Attempt is queued...")
+                    print(f"Attempt is queued... [elapsed={elapsed}]")
             else:
+                delta = ret.reached_at - attempt.started_at
+                elapsed = humanize.naturaldelta(
+                    delta, minimum_unit="milliseconds"
+                )
+                details = [f"elapsed={elapsed}"]
                 if isinstance(ret, InfeasibleOutcome):
-                    print("Attempt is infeasible.")
+                    print(f"Attempt is infeasible. [{', '.join(details)}]")
                 elif isinstance(ret, UnboundedOutcome):
-                    print("Attempt is unbounded.")
+                    print(f"Attempt is unbounded. [{', '.join(details)}]")
                 elif isinstance(ret, FailedOutcome):
-                    print(f"Attempt failed ({ret.status}): {ret.message}")
+                    details.append(f"status={ret.status}")
+                    details.append(f"message={ret.message}")
+                    print(f"Attempt failed. [{', '.join(details)}]")
                 else:
                     adj = "optimal" if ret.is_optimal else "feasible"
-                    details = [f"objective={ret.objective_value}"]
+                    details.append(f"objective={ret.objective_value}")
                     if ret.relative_gap is not None:
                         details.append(f"gap={_percent(ret.relative_gap)}")
                     print(f"Attempt is {adj}. [{', '.join(details)}]")
