@@ -236,9 +236,19 @@ class Inputs:
 @dataclasses.dataclass
 class RelaxedConstraint:
     label: Label
-    penalty: Optional[str]
-    cost: Optional[float]
-    bound: Optional[float]
+    penalty: Optional[str] = None
+    cost: Optional[float] = None
+    bound: Optional[float] = None
+
+    def to_graphql(self):
+        return {
+            "label": self.label,
+            "penalty": self.penalty,
+            "deficitCost": self.cost,
+            "surplusCost": self.cost,
+            "deficitBound": -self.bound,
+            "surplusBound": self.bound,
+        }
 
 
 @dataclasses.dataclass

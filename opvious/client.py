@@ -109,7 +109,9 @@ class Client:
         absolute_gap_threshold: Optional[float] = None,
         primal_value_epsilon: Optional[float] = None,
         solve_timeout_millis: Optional[float] = None,
-        relaxed_constraints: Optional[list[RelaxedConstraint]] = None,
+        relaxed_constraints: Optional[
+            list[Union[Label, RelaxedConstraint]]
+        ] = None,
         # TODO: pinned variables
     ) -> Attempt:
         """Starts a new attempt."""
@@ -117,14 +119,9 @@ class Client:
             relaxation = {
                 "penalty": _DEFAULT_PENALTY,
                 "constraints": [
-                    {
-                        "label": c.label,
-                        "penalty": c.penalty,
-                        "deficitCost": c.cost,
-                        "surplusCost": c.cost,
-                        "deficitBound": c.bound,
-                        "surplusBound": c.bound,
-                    }
+                    c.to_graphql()
+                    if isinstance(c, RelaxedConstraint)
+                    else {"label": c}
                     for c in relaxed_constraints
                 ],
             }

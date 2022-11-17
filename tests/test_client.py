@@ -90,3 +90,28 @@ class TestClient:
             ("fibers",): 0,
             ("vitamins",): 1,
         }
+
+    @pytest.mark.asyncio
+    async def test_run_relaxed_attempt(self, client):
+        inputs = await client.assemble_inputs(
+            formulation_name="bounded", parameters={"bound": 3}
+        )
+        attempt = await client.start_attempt(
+            inputs, relaxed_constraints=["greaterThanBound"]
+        )
+        outcome = await client.wait_for_outcome(attempt)
+        assert isinstance(outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_run_bounded_relaxed_attempt(self, client):
+        inputs = await client.assemble_inputs(
+            formulation_name="bounded", parameters={"bound": 3}
+        )
+        attempt = await client.start_attempt(
+            inputs,
+            relaxed_constraints=[
+                opvious.RelaxedConstraint(label="greaterThanBound", bound=0.5)
+            ],
+        )
+        outcome = await client.wait_for_outcome(attempt)
+        assert isinstance(outcome, opvious.InfeasibleOutcome)
