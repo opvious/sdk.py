@@ -22,7 +22,7 @@ jobs:
         with:
           poetry-version: '1.2.2'
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --all-extras
       - name: Register formulations
         uses: opvious/register-specification-action@v0.1.2
         with:
