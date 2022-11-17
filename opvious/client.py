@@ -74,6 +74,7 @@ class Client:
         tag_name: Optional[str] = None,
         infer_dimensions: bool = False,
     ) -> Inputs:
+        """ "Assembles and validates inputs."""
         data = await self._executor.execute(
             "@FetchOutline",
             {
@@ -109,7 +110,9 @@ class Client:
         primal_value_epsilon: Optional[float] = None,
         solve_timeout_millis: Optional[float] = None,
         relaxed_constraints: Optional[list[RelaxedConstraint]] = None,
+        # TODO: pinned variables
     ) -> Attempt:
+        """Starts a new attempt."""
         if relaxed_constraints:
             relaxation = {
                 "penalty": _DEFAULT_PENALTY,
@@ -151,6 +154,7 @@ class Client:
         )
 
     async def load_attempt(self, uuid: str) -> Optional[Attempt]:
+        """Loads an existing attempt from its UUID."""
         data = await self._executor.execute("@FetchAttempt", {"uuid": uuid})
         attempt = data["attempt"]
         if not attempt:
@@ -165,12 +169,14 @@ class Client:
         return self._hub_url + "/attempts/" + uuid
 
     async def cancel_attempt(self, uuid: str) -> bool:
+        """Cancels a running attempt."""
         data = await self._executor.execute("@CancelAttempt", {"uuid": uuid})
         return bool(data["cancelAttempt"])
 
     async def poll_attempt(
         self, attempt: Attempt
     ) -> Union[Notification, Outcome]:
+        """Polls an attempt for its outcome or latest progress notification."""
         data = await self._executor.execute(
             "@PollAttempt",
             {
@@ -232,6 +238,8 @@ class Client:
                     print(f"Attempt is infeasible. [{', '.join(details)}]")
                 elif isinstance(ret, UnboundedOutcome):
                     print(f"Attempt is unbounded. [{', '.join(details)}]")
+                elif isinstance(ret, CancelledOutcome):
+                    print(f"Attempt cancelled. [{', '.join(details)}]")
                 elif isinstance(ret, FailedOutcome):
                     details.append(f"status={ret.status}")
                     details.append(f"message={ret.message}")
@@ -247,6 +255,7 @@ class Client:
     async def wait_for_outcome(
         self, attempt: Attempt, silent=False
     ) -> Outcome:
+        """Waits for the attempt to complete and returns its outcome."""
         print(f"Tracking attempt... [url={attempt.url}]")
         return await self._track_attempt(attempt, silent=silent)
 
