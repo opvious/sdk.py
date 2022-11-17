@@ -15,69 +15,68 @@ def client():
 class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_feasible_attempt(self, client):
-        builder = await client.create_inputs_builder("bounded")
-        builder.set("bound", 0.1)
-        attempt = await client.start_attempt(builder.build())
-        outcome = await attempt.wait_for_outcome()
+        inputs = await client.assemble_inputs(
+            formulation_name="bounded", parameters={"bound": 0.1}
+        )
+        attempt = await client.start_attempt(inputs)
+        outcome = await client.wait_for_outcome(attempt)
+        assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.is_optimal
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
     async def test_run_bounded_infeasible_attempt(self, client):
-        builder = await client.create_inputs_builder("bounded")
-        builder.set("bound", 3)
-        attempt = await client.start_attempt(builder.build())
-        outcome = await attempt.wait_for_outcome()
+        inputs = await client.assemble_inputs(
+            formulation_name="bounded", parameters={"bound": 3}
+        )
+        attempt = await client.start_attempt(inputs)
+        outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_run_simple_unbounded_attempt(self, client):
-        builder = await client.create_inputs_builder("unbounded")
-        attempt = await client.start_attempt(builder.build())
-        outcome = await attempt.wait_for_outcome()
+        inputs = await client.assemble_inputs(formulation_name="unbounded")
+        attempt = await client.start_attempt(inputs)
+        outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
     async def test_run_diet_attempt(self, client):
-        builder = await client.create_inputs_builder("diet")
-        builder.set(
-            "costPerRecipe",
-            {
-                "lasagna": 12,
-                "pizza": 15,
-                "salad": 9,
-                "caviar": 23,
+        inputs = await client.assemble_inputs(
+            formulation_name="diet",
+            parameters={
+                "costPerRecipe": {
+                    "lasagna": 12,
+                    "pizza": 15,
+                    "salad": 9,
+                    "caviar": 23,
+                },
+                "minimalNutrients": {
+                    "carbs": 5,
+                    "vitamins": 3,
+                    "fibers": 2,
+                },
+                "nutrientsPerRecipe": {
+                    ("carbs", "lasagna"): 3,
+                    ("carbs", "pizza"): 5,
+                    ("carbs", "caviar"): 1,
+                    ("vitamins", "lasagna"): 1,
+                    ("vitamins", "salad"): 2,
+                    ("vitamins", "caviar"): 3,
+                    ("fibers", "salad"): 1,
+                },
             },
+            infer_dimensions=True,
         )
-        builder.set(
-            "minimalNutrients",
-            {
-                "carbs": 5,
-                "vitamins": 3,
-                "fibers": 2,
-            },
-        )
-        builder.set(
-            "nutrientsPerRecipe",
-            {
-                ("carbs", "lasagna"): 3,
-                ("carbs", "pizza"): 5,
-                ("carbs", "caviar"): 1,
-                ("vitamins", "lasagna"): 1,
-                ("vitamins", "salad"): 2,
-                ("vitamins", "caviar"): 3,
-                ("fibers", "salad"): 1,
-            },
-        )
-        attempt = await client.start_attempt(builder.build(True))
-        outcome = await attempt.wait_for_outcome()
+        attempt = await client.start_attempt(inputs)
+        outcome = await client.wait_for_outcome(attempt)
         assert outcome.is_optimal
         assert outcome.objective_value == 33
 
-        quantities = await attempt.load_variable_result("quantityOfRecipe")
+        quantities = await client.fetch_variable(attempt, "quantityOfRecipe")
         assert quantities["value"].to_dict() == {("pizza",): 1, ("salad",): 2}
 
-        costs = await attempt.load_parameter("costPerRecipe")
+        costs = await client.fetch_parameter(attempt, "costPerRecipe")
         assert costs.to_dict() == {
             ("lasagna",): 12,
             ("pizza",): 15,
@@ -85,7 +84,7 @@ class TestClient:
             ("caviar",): 23,
         }
 
-        nutrients = await attempt.load_constraint_result("enoughNutrients")
+        nutrients = await client.fetch_constraint(attempt, "enoughNutrients")
         assert nutrients["slack"].to_dict() == {
             ("carbs",): 0,
             ("fibers",): 0,

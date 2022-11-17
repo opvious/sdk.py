@@ -17,11 +17,16 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
-from .attempt import Attempt, InputsBuilder
 from .client import Client
 from .data import (
+    Attempt,
     Key,
     KeyItem,
+    Value,
+    DimensionArgument,
+    SparseParameterArgument,
+    ParameterArgument,
+    Notification,
     Label,
     Inputs,
     FailedOutcome,
@@ -33,10 +38,15 @@ from .data import (
 
 __all__ = [
     "Attempt",
+    "SparseParameterArgument",
+    "ParameterArgument",
+    "DimensionArgument",
+    "Notification",
     "Client",
     "InputsBuilder",
     "KeyItem",
     "Key",
+    "Value",
     "Label",
     "Inputs",
     "FailedOutcome",
