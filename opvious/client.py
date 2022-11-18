@@ -354,17 +354,20 @@ class _InputsBuilder:
         else:
             data = arg
             default_value = 0
+        is_indic = outline.is_indicator()
         if (
-            outline.is_indicator()
+            is_indic
             and isinstance(data, pd.Series)
             and not pd.api.types.is_numeric_dtype(data)
         ):
             data = data.reset_index()
-        if outline.is_indicator() and isinstance(data, pd.DataFrame):
+        if is_indic and isinstance(data, pd.DataFrame):
             entries = [
                 {"key": key, "value": 1}
                 for key in data.itertuples(index=False, name=None)
             ]
+        elif is_indic and not hasattr(data, "items"):
+            entries = [{"key": key, "value": 1} for key in data]
         else:
             if is_value(data):
                 entries = [{"key": (), "value": data}]

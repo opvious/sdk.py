@@ -46,8 +46,9 @@ DimensionArgument = Iterable[KeyItem]
 
 SparseParameterArgument = Union[
     pd.Series,
-    pd.DataFrame,
     Mapping[Key, Value],
+    pd.DataFrame,  # For indicator parameters
+    Iterable[Key],  # For indicator parameters
 ]
 
 

@@ -115,3 +115,17 @@ class TestClient:
         )
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_run_sudoku(self, client):
+        inputs = await client.assemble_inputs(
+            formulation_name="sudoku",
+            parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
+        )
+        attempt = await client.start_attempt(inputs)
+
+        outcome = await client.wait_for_outcome(attempt)
+        assert isinstance(outcome, opvious.FeasibleOutcome)
+
+        decisions = await client.fetch_variable(attempt, "decisions")
+        assert (0, 0, 3) in decisions.index
