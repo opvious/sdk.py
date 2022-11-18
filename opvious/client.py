@@ -250,11 +250,17 @@ class Client:
         return ret
 
     async def wait_for_outcome(
-        self, attempt: Attempt, silent=False
+        self,
+        attempt: Attempt,
+        silent: bool = False,
+        assert_feasible: bool = False,
     ) -> Outcome:
         """Waits for the attempt to complete and returns its outcome."""
         print(f"Tracking attempt... [url={attempt.url}]")
-        return await self._track_attempt(attempt, silent=silent)
+        outcome = await self._track_attempt(attempt, silent=silent)
+        if assert_feasible and not isinstance(outcome, FeasibleOutcome):
+            raise Exception(f"Unexpected outcome: {outcome}")
+        return outcome
 
     async def _fetch_inputs(self, uuid: str) -> Any:
         data = await self._executor.execute(
