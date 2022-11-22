@@ -196,9 +196,11 @@ class Client:
         if status == "UNBOUNDED":
             return UnboundedOutcome(reached_at)
         outcome = attempt_data["outcome"]
-        if status == "FAILED":
+        if status == "ERRORED":
             return FailedOutcome.from_graphql(reached_at, outcome)
-        return FeasibleOutcome.from_graphql(reached_at, outcome)
+        if status == "FEASIBLE" or status == "OPTIMAL":
+            return FeasibleOutcome.from_graphql(reached_at, outcome)
+        raise Exception(f"Unexpected status {status}")
 
     @backoff.on_predicate(
         backoff.fibo, lambda ret: isinstance(ret, Notification), max_value=45
