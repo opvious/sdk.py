@@ -74,21 +74,21 @@ class TestClient:
         assert outcome.objective_value == 33
 
         quantities = await client.fetch_variable(attempt, "quantityOfRecipe")
-        assert quantities["value"].to_dict() == {("pizza",): 1, ("salad",): 2}
+        assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
 
         costs = await client.fetch_parameter(attempt, "costPerRecipe")
         assert costs.to_dict() == {
-            ("lasagna",): 12,
-            ("pizza",): 15,
-            ("salad",): 9,
-            ("caviar",): 23,
+            "lasagna": 12,
+            "pizza": 15,
+            "salad": 9,
+            "caviar": 23,
         }
 
         nutrients = await client.fetch_constraint(attempt, "enoughNutrients")
         assert nutrients["slack"].to_dict() == {
-            ("carbs",): 0,
-            ("fibers",): 0,
-            ("vitamins",): 1,
+            "carbs": 0,
+            "fibers": 0,
+            "vitamins": 1,
         }
 
     @pytest.mark.asyncio

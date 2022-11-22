@@ -284,9 +284,10 @@ class Client:
         for param in inputs["parameters"]:
             if param["label"] == label:
                 entries = param["entries"]
+                outline = attempt.outline.parameters[label]
                 return pd.Series(
                     data=(e["value"] for e in entries),
-                    index=pd.Index(tuple(e["key"]) for e in entries),
+                    index=_entry_index(entries, outline.bindings),
                 )
         raise Exception(f"Unknown parameter: {label}")
 
@@ -306,14 +307,15 @@ class Client:
         for var in outputs["variables"]:
             if var["label"] == label:
                 entries = var["entries"]
+                outline = attempt.outline.variables[label]
                 df = pd.DataFrame(
                     data=(
                         {"value": e["value"], "dual_value": e["dualValue"]}
                         for e in entries
                     ),
-                    index=pd.Index(tuple(e["key"]) for e in entries),
+                    index=_entry_index(entries, outline.bindings),
                 )
-                return df.dropna(axis=1)
+                return df.dropna(axis=1, how="all").fillna(0)
         raise Exception(f"Unknown variable {label}")
 
     async def fetch_constraint(
@@ -323,14 +325,15 @@ class Client:
         for var in outputs["constraints"]:
             if var["label"] == label:
                 entries = var["entries"]
+                outline = attempt.outline.constraints[label]
                 df = pd.DataFrame(
                     data=(
                         {"slack": e["value"], "dual_value": e["dualValue"]}
                         for e in entries
                     ),
-                    index=pd.Index(tuple(e["key"]) for e in entries),
+                    index=_entry_index(entries, outline.bindings),
                 )
-                return df.dropna(axis=1)
+                return df.dropna(axis=1, how="all").fillna(0)
         raise Exception(f"Unknown constraint {label}")
 
 
@@ -428,6 +431,19 @@ class _InputsBuilder:
 
 def _keyify(key):
     return tuple(key) if isinstance(key, (list, tuple)) else (key,)
+
+
+def _entry_index(entries, bindings):
+    if len(bindings) == 1:
+        binding = bindings[0]
+        return pd.Index(
+            data=[e["key"][0] for e in entries],
+            name=binding.qualifier or binding.dimension_label,
+        )
+    return pd.MultiIndex.from_tuples(
+        tuples=[tuple(e["key"]) for e in entries],
+        names=[b.qualifier or b.dimension_label for b in bindings],
+    )
 
 
 def _percent(val):
