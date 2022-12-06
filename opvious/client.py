@@ -43,10 +43,7 @@ from .data import (
 from .executors import aiohttp_executor
 
 
-DEFAULT_API_URL = "https://api.opvious.io"
-
-
-DEFAULT_HUB_URL = "https://hub.opvious.io"
+_DEFAULT_DOMAIN = "beta.opvious.io"
 
 
 _DEFAULT_PENALTY = "TOTAL_DEVIATION"
@@ -58,11 +55,11 @@ class Client:
     def __init__(
         self,
         token,
-        api_url=None,
+        domain=_DEFAULT_DOMAIN,
         hub_url=None,
     ):
-        self._api_url = api_url or DEFAULT_API_URL
-        self._hub_url = hub_url or DEFAULT_HUB_URL
+        self._api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
+        self._hub_url = f"https://hub.{domain or _DEFAULT_DOMAIN}"
         auth = token if " " in token else f"Bearer {token}"
         self._executor = aiohttp_executor(self._api_url, auth)
 

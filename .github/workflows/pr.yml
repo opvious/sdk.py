@@ -13,6 +13,11 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v2
+      - name: Register formulations
+        uses: opvious/register-specification-action@v0.1.5
+        with:
+          token: ${{ secrets.OPVIOUS_TOKEN }}
+          sources: tests/sources/*.md
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -23,11 +28,6 @@ jobs:
           poetry-version: '1.2.2'
       - name: Install dependencies
         run: poetry install --all-extras
-      - name: Register formulations
-        uses: opvious/register-specification-action@v0.1.2
-        with:
-          token: ${{ secrets.OPVIOUS_TOKEN }}
-          sources: tests/sources/*.md
       - name: Lint
         run: |
           poetry run black . --check
