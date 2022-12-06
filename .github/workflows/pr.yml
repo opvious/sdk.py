@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: poetry install --all-extras
       - name: Register formulations
-        uses: opvious/register-specification-action@v0.1.3
+        uses: opvious/register-specification-action@v0.1.4
         with:
           token: ${{ secrets.OPVIOUS_TOKEN }}
           sources: tests/sources/*.md
