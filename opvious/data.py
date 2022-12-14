@@ -95,13 +95,6 @@ class Tensor:
                 ]
         return Tensor(entries, default_value)
 
-    def to_graphql(self, label: Label) -> Any:
-        return {
-            "label": label,
-            "entries": self.entries,
-            "defaultValue": self.default_value,
-        }
-
 
 def _keyify(key):
     return tuple(key) if isinstance(key, (list, tuple)) else (key,)

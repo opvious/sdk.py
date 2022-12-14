@@ -123,7 +123,7 @@ class Client:
                 tensor = Tensor.from_argument(arg, outline.is_indicator())
                 if tensor.default_value:
                     raise Exception("Pinned variables may not have defaults")
-                pins.append(tensor.to_graphql(label))
+                pins.append({"label": label, "entries": tensor.entries})
         else:
             pins = None
         data = await self._executor.execute(
@@ -361,7 +361,11 @@ class _InputsBuilder:
         if not outline:
             raise Exception(f"Unknown parameter: {label}")
         tensor = Tensor.from_argument(arg, outline.is_indicator())
-        self._parameters[label] = tensor.to_graphql(label)
+        self._parameters[label] = {
+            "label": label,
+            "entries": tensor.entries,
+            "defaultValue": tensor.default_value,
+        }
 
     def build(self, infer_dimensions=False) -> Inputs:
         missing_labels = set()
