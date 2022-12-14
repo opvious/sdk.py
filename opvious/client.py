@@ -26,27 +26,24 @@ from typing import Any, Dict, Mapping, Optional, Union
 from .data import (
     Attempt,
     CancelledOutcome,
-    InfeasibleOutcome,
-    UnboundedOutcome,
+    DimensionArgument,
     FailedOutcome,
     FeasibleOutcome,
-    is_value,
+    InfeasibleOutcome,
     Inputs,
     Label,
     Notification,
     Outcome,
     Outline,
-    ParameterArgument,
-    DimensionArgument,
-    RelaxedConstraint,
+    Relaxation,
+    Tensor,
+    TensorArgument,
+    UnboundedOutcome,
 )
 from .executors import aiohttp_executor
 
 
 _DEFAULT_DOMAIN = "beta.opvious.io"
-
-
-_DEFAULT_PENALTY = "TOTAL_DEVIATION"
 
 
 class Client:
@@ -56,7 +53,6 @@ class Client:
         self,
         token,
         domain=_DEFAULT_DOMAIN,
-        hub_url=None,
     ):
         self._api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
         self._hub_url = f"https://hub.{domain or _DEFAULT_DOMAIN}"
@@ -66,7 +62,7 @@ class Client:
     async def assemble_inputs(
         self,
         formulation_name: str,
-        parameters: Optional[Mapping[Label, ParameterArgument]] = None,
+        parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         tag_name: Optional[str] = None,
         infer_dimensions: bool = False,
@@ -106,24 +102,26 @@ class Client:
         absolute_gap_threshold: Optional[float] = None,
         primal_value_epsilon: Optional[float] = None,
         solve_timeout_millis: Optional[float] = None,
-        relaxed_constraints: Optional[
-            list[Union[Label, RelaxedConstraint]]
-        ] = None,
-        # TODO: pinned variables
+        relaxed_constraints: Optional[list[Label], Relaxation] = None,
+        pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
     ) -> Attempt:
         """Starts a new attempt."""
-        if relaxed_constraints:
-            relaxation = {
-                "penalty": _DEFAULT_PENALTY,
-                "constraints": [
-                    c.to_graphql()
-                    if isinstance(c, RelaxedConstraint)
-                    else {"label": c}
-                    for c in relaxed_constraints
-                ],
-            }
+        if isinstance(relaxed_constraints, list):
+            relaxation = Relaxation.from_constraint_labels(relaxed_constraints)
         else:
-            relaxation = None
+            relaxation = relaxed_constraints
+        if pinned_variables:
+            pins = []
+            for label, arg in pinned_variables.items():
+                outline = inputs.outline.variables.get(label)
+                if not outline:
+                    raise Exception(f"Unknown variable {label}")
+                tensor = Tensor.from_argument(arg, outline.is_indicator())
+                if tensor.default_value:
+                    raise Exception("Pinned variables may not have defaults")
+                pins.append(tensor.to_graphql(label))
+        else:
+            pins = None
         data = await self._executor.execute(
             "@StartAttempt",
             {
@@ -136,7 +134,8 @@ class Client:
                     "relativeGapThreshold": relative_gap_threshold,
                     "solveTimeoutMillis": solve_timeout_millis,
                     "primalValueEpsilon": primal_value_epsilon,
-                    "relaxation": relaxation,
+                    "relaxation": relaxation.to_graphql(),
+                    "pinnedVariables": pins,
                 }
             },
         )
@@ -357,38 +356,8 @@ class _InputsBuilder:
         outline = self._outline.parameters.get(label)
         if not outline:
             raise Exception(f"Unknown parameter: {label}")
-        if isinstance(arg, tuple):
-            data, default_value = arg
-        else:
-            data = arg
-            default_value = 0
-        is_indic = outline.is_indicator()
-        if (
-            is_indic
-            and isinstance(data, pd.Series)
-            and not pd.api.types.is_numeric_dtype(data)
-        ):
-            data = data.reset_index()
-        if is_indic and isinstance(data, pd.DataFrame):
-            entries = [
-                {"key": key, "value": 1}
-                for key in data.itertuples(index=False, name=None)
-            ]
-        elif is_indic and not hasattr(data, "items"):
-            entries = [{"key": key, "value": 1} for key in data]
-        else:
-            if is_value(data):
-                entries = [{"key": (), "value": data}]
-            else:
-                entries = [
-                    {"key": _keyify(key), "value": value}
-                    for key, value in data.items()
-                ]
-        self._parameters[label] = {
-            "label": label,
-            "entries": entries,
-            "defaultValue": default_value,
-        }
+        tensor = Tensor.from_argument(arg, outline.is_indicator())
+        self._parameters[label] = tensor.to_graphql(label)
 
     def build(self, infer_dimensions=False) -> Inputs:
         missing_labels = set()
@@ -426,10 +395,6 @@ class _InputsBuilder:
             dimensions=list(dimensions.values()),
             parameters=list(self._parameters.values()),
         )
-
-
-def _keyify(key):
-    return tuple(key) if isinstance(key, (list, tuple)) else (key,)
 
 
 def _entry_index(entries, bindings):
