@@ -106,10 +106,14 @@ class Client:
         pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
     ) -> Attempt:
         """Starts a new attempt."""
-        if isinstance(relaxed_constraints, list):
-            relaxation = Relaxation.from_constraint_labels(relaxed_constraints)
+        if relaxed_constraints:
+            if isinstance(relaxed_constraints, list):
+                data = Relaxation.from_constraint_labels(relaxed_constraints)
+            else:
+                data = relaxed_constraints
+            relaxation = data.to_graphql()
         else:
-            relaxation = relaxed_constraints
+            relaxation = None
         if pinned_variables:
             pins = []
             for label, arg in pinned_variables.items():
@@ -134,7 +138,7 @@ class Client:
                     "relativeGapThreshold": relative_gap_threshold,
                     "solveTimeoutMillis": solve_timeout_millis,
                     "primalValueEpsilon": primal_value_epsilon,
-                    "relaxation": relaxation.to_graphql(),
+                    "relaxation": relaxation,
                     "pinnedVariables": pins,
                 }
             },
