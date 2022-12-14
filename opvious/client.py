@@ -102,7 +102,7 @@ class Client:
         absolute_gap_threshold: Optional[float] = None,
         primal_value_epsilon: Optional[float] = None,
         solve_timeout_millis: Optional[float] = None,
-        relaxed_constraints: Optional[list[Label], Relaxation] = None,
+        relaxed_constraints: Union[None, list[Label], Relaxation] = None,
         pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
     ) -> Attempt:
         """Starts a new attempt."""
