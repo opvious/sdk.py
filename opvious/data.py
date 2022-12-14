@@ -293,16 +293,14 @@ _DEFAULT_PENALTY = "TOTAL_DEVIATION"
 @dataclasses.dataclass
 class Relaxation:
     penalty: Penalty
-    objective_weight: float = 0
+    objective_weight: Optional[float] = None
     constraints: Optional[list[ConstraintRelaxation]] = None
 
     @classmethod
     def from_constraint_labels(cls, labels: list[Label]) -> Relaxation:
         return Relaxation(
             penalty=_DEFAULT_PENALTY,
-            constraints=[
-                ConstraintRelaxation(label=label) for label in labels
-            ],
+            constraints=[ConstraintRelaxation(label=n) for n in labels],
         )
 
     def to_graphql(self):
@@ -328,7 +326,7 @@ class ConstraintRelaxation:
             "penalty": self.penalty,
             "deficitCost": self.cost,
             "surplusCost": self.cost,
-            "deficitBound": -self.bound,
+            "deficitBound": None if self.bound is None else -self.bound,
             "surplusBound": self.bound,
         }
 

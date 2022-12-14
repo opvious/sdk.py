@@ -109,9 +109,16 @@ class TestClient:
         )
         attempt = await client.start_attempt(
             inputs,
-            relaxed_constraints=[
-                opvious.RelaxedConstraint(label="greaterThanBound", bound=0.5)
-            ],
+            relaxed_constraints=opvious.Relaxation(
+                penalty="MAX_DEVIATION",
+                objective_weight=1,
+                constraints=[
+                    opvious.ConstraintRelaxation(
+                        label="greaterThanBound",
+                        bound=0.5,
+                    ),
+                ],
+            ),
         )
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
