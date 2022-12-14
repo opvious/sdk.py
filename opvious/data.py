@@ -44,7 +44,10 @@ Label = str
 DimensionArgument = Iterable[KeyItem]
 
 
-SparseParameterArgument = Union[
+# Tensors
+
+
+SparseTensorArgument = Union[
     pd.Series,
     Mapping[Key, Value],
     pd.DataFrame,  # For indicator parameters
@@ -52,9 +55,49 @@ SparseParameterArgument = Union[
 ]
 
 
-ParameterArgument = Union[
-    Value, SparseParameterArgument, tuple[SparseParameterArgument, Value]
+TensorArgument = Union[
+    Value, SparseTensorArgument, tuple[SparseTensorArgument, Value]
 ]
+
+
+@dataclasses.dataclass
+class Tensor:
+    entries: list[Any]
+    default_value: float = 0
+
+    @classmethod
+    def from_argument(cls, arg: TensorArgument, is_indicator: bool = False):
+        if isinstance(arg, tuple):
+            data, default_value = arg
+        else:
+            data = arg
+            default_value = 0
+        if (
+            is_indicator
+            and isinstance(data, pd.Series)
+            and not pd.api.types.is_numeric_dtype(data)
+        ):
+            data = data.reset_index()
+        if is_indicator and isinstance(data, pd.DataFrame):
+            entries = [
+                {"key": key, "value": 1}
+                for key in data.itertuples(index=False, name=None)
+            ]
+        elif is_indicator and not hasattr(data, "items"):
+            entries = [{"key": key, "value": 1} for key in data]
+        else:
+            if is_value(data):
+                entries = [{"key": (), "value": data}]
+            else:
+                entries = [
+                    {"key": _keyify(key), "value": value}
+                    for key, value in data.items()
+                ]
+        return Tensor(entries, default_value)
+
+
+def _keyify(key):
+    return tuple(key) if isinstance(key, (list, tuple)) else (key,)
 
 
 # Outlines
@@ -234,8 +277,37 @@ class Inputs:
     parameters: list[Any]
 
 
+Penalty = str
+
+
+_DEFAULT_PENALTY = "TOTAL_DEVIATION"
+
+
 @dataclasses.dataclass
-class RelaxedConstraint:
+class Relaxation:
+    penalty: Penalty
+    objective_weight: Optional[float] = None
+    constraints: Optional[list[ConstraintRelaxation]] = None
+
+    @classmethod
+    def from_constraint_labels(cls, labels: list[Label]) -> Relaxation:
+        return Relaxation(
+            penalty=_DEFAULT_PENALTY,
+            constraints=[ConstraintRelaxation(label=n) for n in labels],
+        )
+
+    def to_graphql(self):
+        return {
+            "penalty": self.penalty,
+            "objectiveWeight": self.objective_weight,
+            "constraints": None
+            if self.constraints is None
+            else [c.to_graphql() for c in self.constraints],
+        }
+
+
+@dataclasses.dataclass
+class ConstraintRelaxation:
     label: Label
     penalty: Optional[str] = None
     cost: Optional[float] = None
@@ -247,7 +319,7 @@ class RelaxedConstraint:
             "penalty": self.penalty,
             "deficitCost": self.cost,
             "surplusCost": self.cost,
-            "deficitBound": -self.bound,
+            "deficitBound": None if self.bound is None else -self.bound,
             "surplusBound": self.bound,
         }
 

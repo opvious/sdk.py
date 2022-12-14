@@ -92,6 +92,38 @@ class TestClient:
         }
 
     @pytest.mark.asyncio
+    async def test_run_pinned_diet_attempt(self, client):
+        inputs = await client.assemble_inputs(
+            formulation_name="diet",
+            parameters={
+                "costPerRecipe": {
+                    "lasagna": 10,
+                    "pizza": 20,
+                },
+                "minimalNutrients": {
+                    "carbs": 5,
+                },
+                "nutrientsPerRecipe": {
+                    ("carbs", "lasagna"): 1,
+                    ("carbs", "pizza"): 1,
+                },
+            },
+            infer_dimensions=True,
+        )
+        attempt = await client.start_attempt(
+            inputs=inputs,
+            pinned_variables={
+                "quantityOfRecipe": {"pizza": 1},
+            },
+        )
+        outcome = await client.wait_for_outcome(attempt)
+        assert outcome.is_optimal
+        assert outcome.objective_value == 60
+
+        quantities = await client.fetch_variable(attempt, "quantityOfRecipe")
+        assert quantities["value"].to_dict() == {"pizza": 1, "lasagna": 4}
+
+    @pytest.mark.asyncio
     async def test_run_relaxed_attempt(self, client):
         inputs = await client.assemble_inputs(
             formulation_name="bounded", parameters={"bound": 3}
@@ -109,9 +141,16 @@ class TestClient:
         )
         attempt = await client.start_attempt(
             inputs,
-            relaxed_constraints=[
-                opvious.RelaxedConstraint(label="greaterThanBound", bound=0.5)
-            ],
+            relaxed_constraints=opvious.Relaxation(
+                penalty="MAX_DEVIATION",
+                objective_weight=1,
+                constraints=[
+                    opvious.ConstraintRelaxation(
+                        label="greaterThanBound",
+                        bound=0.5,
+                    ),
+                ],
+            ),
         )
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
