@@ -8,7 +8,7 @@ AUTHORIZATION = os.environ.get("OPVIOUS_AUTHORIZATION")
 
 @pytest.fixture
 def client():
-    return opvious.Client(AUTHORIZATION)
+    return opvious.Client.from_token(AUTHORIZATION) if AUTHORIZATION else None
 
 
 @pytest.mark.skipif(not AUTHORIZATION, reason="No access token detected")
