@@ -55,6 +55,7 @@ class Client:
 
     @classmethod
     def from_token(cls, token: str, domain: str = _DEFAULT_DOMAIN):
+        """Creates a client from an API token."""
         return Client(
             executor=default_executor(
                 api_url=f"https://api.{domain}",
@@ -274,6 +275,7 @@ class Client:
     async def fetch_dimension(
         self, attempt: Attempt, label: Label
     ) -> pd.Series:
+        """Fetches an attempt's dimension items."""
         inputs = await self._fetch_inputs(attempt.uuid)
         for dim in inputs["dimensions"]:
             if dim["label"] == label:
@@ -283,6 +285,7 @@ class Client:
     async def fetch_parameter(
         self, attempt: Attempt, label: Label
     ) -> pd.Series:
+        """Fetches an attempt's parameter entries."""
         inputs = await self._fetch_inputs(attempt.uuid)
         for param in inputs["parameters"]:
             if param["label"] == label:
@@ -306,6 +309,7 @@ class Client:
     async def fetch_variable(
         self, attempt: Attempt, label: Label
     ) -> pd.DataFrame:
+        """Fetches an attempt's variable results."""
         outputs = await self._fetch_outputs(attempt.uuid)
         for var in outputs["variables"]:
             if var["label"] == label:
@@ -324,6 +328,9 @@ class Client:
     async def fetch_constraint(
         self, attempt: Attempt, label: Label
     ) -> pd.DataFrame:
+        """
+        Fetches an attempt's constraint slack (and dual when relevant) values.
+        """
         outputs = await self._fetch_outputs(attempt.uuid)
         for var in outputs["constraints"]:
             if var["label"] == label:

@@ -34,17 +34,18 @@ def _is_using_pyodide():
 def default_executor(
     api_url: str, authorization: Optional[str] = None
 ) -> Executor:
+    """Infers the best executor for the current environment"""
     if _is_using_pyodide():
         from .pyodide import PyodideExecutor
 
         Executor = PyodideExecutor
-    try:
-        from .aiohttp import AiohttpExecutor
-    except ImportError:
-        from .urllib import UrllibExecutor
-
-        Executor = UrllibExecutor
     else:
-        Executor = AiohttpExecutor
+        try:
+            from .aiohttp import AiohttpExecutor
+        except ImportError:
+            from .urllib import UrllibExecutor
 
+            Executor = UrllibExecutor
+        else:
+            Executor = AiohttpExecutor
     return Executor(api_url=api_url, authorization=authorization)
