@@ -15,11 +15,10 @@ First, install this package and have an API access token handy (these can be
 generated [here][token]).
 
 ```sh
-pip install opvious[aio] # [aio] is recommended for better performance
+pip install opvious[aio] # aio is recommended for improved performance
 ```
 
-With these steps out of the way, you are ready to solve any of your optimization
-models!
+With these steps out of the way, you are ready to solve any formulation:
 
 ```python
 import opvious
@@ -68,5 +67,5 @@ CLI][cli].
 [api]: https://www.opvious.io
 [cli]: https://www.opvious.io/sdk.ts
 [JupyterLite]: https://jupyterlite.readthedocs.io/
-[token]: https://hub.opvious.io/authorizations
+[token]: https://hub.beta.opvious.io/authorizations
 [pandas]: https://pandas.pydata.org

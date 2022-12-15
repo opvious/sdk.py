@@ -32,7 +32,10 @@ _DEFAULT_HEADERS = {
 
 
 class UrllibExecutor:
-    """`urllib`-powered GraphQL executor"""
+    """
+    `urllib`-powered GraphQL executor, used as fallback. When possible, prefer
+    using the `aiohttp` equivalent.
+    """
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
         self._endpoint = api_url + GRAPHQL_ENDPOINT
