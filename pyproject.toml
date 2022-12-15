@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "opvious"
-version = "0.5.1"
+version = "0.5.2"
 description = "Opvious Python SDK"
 authors = ["Opvious Engineering <oss@opvious.io>"]
 readme = "README.md"
@@ -16,7 +16,7 @@ aiohttp = {version = "^3.8", optional = true}
 backoff = "^2.2"
 Brotli = {version = "^1.0.9", optional = true}
 humanize = "^4.4.0"
-pandas = "^1.5"
+pandas = "^1.4"
 python = "^3.8"
 
 [tool.poetry.group.dev.dependencies]
