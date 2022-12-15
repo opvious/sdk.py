@@ -25,7 +25,7 @@ models!
 import opvious
 
 # Instantiate an API client from an API token
-client = opvious.Client(TOKEN)
+client = opvious.Client.from_token(TOKEN)
 
 # Assemble and validate inputs for a registered formulation
 inputs = await client.assemble_inputs(
@@ -41,6 +41,22 @@ attempt = await client.start_attempt(inputs)
 # Wait for the attempt to complete
 outcome = await client.wait_for_outcome(attempt)
 ```
+
+
+## Environments
+
+Clients are compatible with Pyodide environments, for example JupyterLite
+kernels. Simply install the package as usual, omitting the `aio` optional
+dependencies:
+
+```python
+import piplite
+await piplite.install('opvious')
+```
+
+In other environments, prefer using the `aiohttp`-powered clients as they are
+more performant. This is the default if the corresponding dependencies are
+available.
 
 
 ## Next steps

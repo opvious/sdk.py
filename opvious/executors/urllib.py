@@ -59,5 +59,5 @@ class UrllibExecutor:
         return extract_api_data(
             status=res.status,
             trace=res.getheader(TRACE_HEADER),
-            body=json.loads(res.read().decode("utf8")),
+            body=res.read().decode("utf8"),
         )

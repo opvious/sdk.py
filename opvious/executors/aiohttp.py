@@ -60,5 +60,5 @@ class AiohttpExecutor:
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.post(self._endpoint, data=data) as res:
                 trace = res.headers.get(TRACE_HEADER)
-                body = await res.json()
+                body = await res.text()
                 return extract_api_data(res.status, trace, body)

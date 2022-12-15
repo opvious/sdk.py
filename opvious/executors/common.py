@@ -17,6 +17,7 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
+import json
 from typing import Any, Mapping, Optional, Protocol
 
 
@@ -44,12 +45,20 @@ class ApiError(Exception):
         return ApiError(status, msg, trace, errors, extensions)
 
 
-def extract_api_data(status: int, trace: Optional[str], body: Any) -> Any:
-    errors = body.get("errors")
+def extract_api_data(status: int, trace: Optional[str], body: str) -> Any:
+    try:
+        data = json.loads(body)
+    except Exception:
+        raise ApiError(
+            status=status,
+            message=f"Unexpected API response ({trace}): ${body}",
+            trace=trace,
+        )
+    errors = data.get("errors")
     if status != 200 or errors:
-        extensions = body.get("extensions")
+        extensions = data.get("extensions")
         raise ApiError.from_graphql(status, trace, errors, extensions)
-    return body["data"]
+    return data["data"]
 
 
 class Executor(Protocol):

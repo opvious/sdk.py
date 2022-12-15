@@ -46,9 +46,9 @@ class PyodideExecutor:
             headers=self._headers,
             body=json.dumps({"query": query, "variables": variables}),
         )
-        body = await res.json()
+        body = await res.js_response.text()
         return extract_api_data(
-            status=200,  # TODO
-            trace=res.headers.get(TRACE_HEADER),  # TODO
+            status=res.status,
+            trace=res.js_response.headers.get(TRACE_HEADER),
             body=body,
         )
