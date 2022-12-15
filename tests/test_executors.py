@@ -15,9 +15,12 @@ API_URL = "https://api.beta.opvious.io"
 
 @pytest.mark.skipif(not AUTHORIZATION, reason="No access token detected")
 class TestExecutors:
+    _authorization = (
+        AUTHORIZATION if " " in AUTHORIZATION else f"Bearer {AUTHORIZATION}"
+    )
     _executors = [
-        AiohttpExecutor(api_url=API_URL, authorization=AUTHORIZATION),
-        UrllibExecutor(api_url=API_URL, authorization=AUTHORIZATION),
+        AiohttpExecutor(api_url=API_URL, authorization=_authorization),
+        UrllibExecutor(api_url=API_URL, authorization=_authorization),
     ]
 
     @pytest.mark.asyncio
