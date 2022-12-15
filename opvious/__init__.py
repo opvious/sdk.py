@@ -18,6 +18,7 @@ with the License.  You may obtain a copy of the License at
 """
 
 from .client import Client
+from .executors import ApiError, Executor
 from .data import (
     Attempt,
     CancelledOutcome,
@@ -42,11 +43,13 @@ from .data import (
 )
 
 __all__ = [
+    "ApiError",
     "Attempt",
     "CancelledOutcome",
     "Client",
     "ConstraintRelaxation",
     "DimensionArgument",
+    "Executor",
     "FailedOutcome",
     "FeasibleOutcome",
     "InfeasibleOutcome",

@@ -40,7 +40,7 @@ from .data import (
     TensorArgument,
     UnboundedOutcome,
 )
-from .executors import aiohttp_executor
+from .executors import default_executor, Executor
 
 
 _DEFAULT_DOMAIN = "beta.opvious.io"
@@ -49,15 +49,19 @@ _DEFAULT_DOMAIN = "beta.opvious.io"
 class Client:
     """Opvious API client"""
 
-    def __init__(
-        self,
-        token,
-        domain=_DEFAULT_DOMAIN,
-    ):
-        self._api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
-        self._hub_url = f"https://hub.{domain or _DEFAULT_DOMAIN}"
-        auth = token if " " in token else f"Bearer {token}"
-        self._executor = aiohttp_executor(self._api_url, auth)
+    def __init__(self, executor: Executor, hub_url: str):
+        self._executor = executor
+        self._hub_url = hub_url
+
+    @classmethod
+    def from_token(cls, token: str, domain: str = _DEFAULT_DOMAIN):
+        return Client(
+            executor=default_executor(
+                api_url=f"https://api.{domain}",
+                authorization=token if " " in token else f"Bearer {token}",
+            ),
+            hub_url=f"https://hub.{domain}",
+        )
 
     async def assemble_inputs(
         self,
@@ -67,13 +71,10 @@ class Client:
         tag_name: Optional[str] = None,
         infer_dimensions: bool = False,
     ) -> Inputs:
-        """ "Assembles and validates inputs."""
+        """Assembles and validates inputs."""
         data = await self._executor.execute(
             "@FetchOutline",
-            {
-                "formulationName": formulation_name,
-                "tagName": tag_name,
-            },
+            {"formulationName": formulation_name, "tagName": tag_name},
         )
         formulation = data.get("formulation")
         if not formulation:
