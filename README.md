@@ -45,9 +45,9 @@ outcome = await client.wait_for_outcome(attempt)
 
 ## Environments
 
-Clients are compatible with Pyodide environments, for example JupyterLite
-kernels. Simply install the package as usual, omitting the `aio` optional
-dependencies:
+Clients are compatible with Pyodide environments, for example [JupyterLite][]
+kernels. Simply install the package as usual in a notebook, omitting the `aio`
+optional dependencies:
 
 ```python
 import piplite
@@ -55,8 +55,7 @@ await piplite.install('opvious')
 ```
 
 In other environments, prefer using the `aiohttp`-powered clients as they are
-more performant. This is the default if the corresponding dependencies are
-available.
+more performant (this is the default if the `aio` dependencies were specified).
 
 
 ## Next steps
@@ -68,5 +67,6 @@ CLI][cli].
 
 [api]: https://www.opvious.io
 [cli]: https://www.opvious.io/sdk.ts
+[JupyterLite]: https://jupyterlite.readthedocs.io/
 [token]: https://hub.opvious.io/authorizations
 [pandas]: https://pandas.pydata.org
