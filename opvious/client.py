@@ -20,6 +20,7 @@ with the License.  You may obtain a copy of the License at
 import backoff
 from datetime import datetime, timezone
 import humanize
+import os
 import pandas as pd
 from typing import Any, Dict, Mapping, Optional, Union
 
@@ -46,6 +47,12 @@ from .executors import default_executor, Executor
 _DEFAULT_DOMAIN = "beta.opvious.io"
 
 
+_TOKEN_EVAR = "OPVIOUS_TOKEN"
+
+
+_DOMAIN_EVAR = "OPVIOUS_DOMAIN"
+
+
 class Client:
     """Opvious API client"""
 
@@ -62,6 +69,16 @@ class Client:
                 authorization=token if " " in token else f"Bearer {token}",
             ),
             hub_url=f"https://hub.{domain}",
+        )
+
+    @classmethod
+    def from_environment(cls, env=os.environ):
+        """Creates a client from environment variables. OPVIOUS_TOKEN should
+        contain a valid API token. OPVIOUS_DOMAIN can optionally be set to use
+        a custom domain.
+        """
+        return Client.from_token(
+            token=env[_TOKEN_EVAR], domain=env.get(_DOMAIN_EVAR)
         )
 
     async def assemble_inputs(
