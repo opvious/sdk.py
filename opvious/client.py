@@ -61,11 +61,11 @@ class Client:
         self._hub_url = hub_url
 
     @classmethod
-    def from_token(cls, token: str, domain: str = _DEFAULT_DOMAIN):
+    def from_token(cls, token: str, domain: Optional[str] = None):
         """Creates a client from an API token."""
         return Client(
             executor=default_executor(
-                api_url=f"https://api.{domain}",
+                api_url=f"https://api.{domain or _DEFAULT_DOMAIN}",
                 authorization=token if " " in token else f"Bearer {token}",
             ),
             hub_url=f"https://hub.{domain}",
@@ -75,7 +75,8 @@ class Client:
     def from_environment(cls, env=os.environ):
         """Creates a client from environment variables. OPVIOUS_TOKEN should
         contain a valid API token. OPVIOUS_DOMAIN can optionally be set to use
-        a custom domain.
+        a
+        custom domain.
         """
         return Client.from_token(
             token=env[_TOKEN_EVAR], domain=env.get(_DOMAIN_EVAR)
