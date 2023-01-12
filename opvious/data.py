@@ -22,13 +22,13 @@ from __future__ import annotations
 import dataclasses
 from datetime import datetime
 import pandas as pd
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any, Iterable, List, Mapping, Optional, Tuple, Union
 
 
 KeyItem = Union[float, int, str]
 
 
-Key = Union[tuple[KeyItem, ...], KeyItem]
+Key = Union[Tuple[KeyItem, ...], KeyItem]
 
 
 Value = Union[float, int]
@@ -62,7 +62,7 @@ TensorArgument = Union[
 
 @dataclasses.dataclass
 class Tensor:
-    entries: list[Any]
+    entries: List[Any]
     default_value: float = 0
 
     @classmethod
@@ -143,7 +143,7 @@ class TensorOutline:
     lower_bound: Optional[Value]
     upper_bound: Optional[Value]
     is_integral: bool
-    bindings: list[SourceBinding]
+    bindings: List[SourceBinding]
 
     def is_indicator(self) -> bool:
         return (
@@ -168,7 +168,7 @@ class TensorOutline:
 @dataclasses.dataclass
 class ConstraintOutline:
     label: Label
-    bindings: list[SourceBinding]
+    bindings: List[SourceBinding]
 
     @classmethod
     def from_graphql(cls, data: Any) -> ConstraintOutline:
@@ -273,8 +273,8 @@ class Inputs:
     formulation_name: str
     tag_name: str
     outline: Outline
-    dimensions: list[Any]
-    parameters: list[Any]
+    dimensions: List[Any]
+    parameters: List[Any]
 
 
 Penalty = str
@@ -287,10 +287,10 @@ _DEFAULT_PENALTY = "TOTAL_DEVIATION"
 class Relaxation:
     penalty: Penalty
     objective_weight: Optional[float] = None
-    constraints: Optional[list[ConstraintRelaxation]] = None
+    constraints: Optional[List[ConstraintRelaxation]] = None
 
     @classmethod
-    def from_constraint_labels(cls, labels: list[Label]) -> Relaxation:
+    def from_constraint_labels(cls, labels: List[Label]) -> Relaxation:
         return Relaxation(
             penalty=_DEFAULT_PENALTY,
             constraints=[ConstraintRelaxation(label=n) for n in labels],
