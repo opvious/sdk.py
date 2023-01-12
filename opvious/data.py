@@ -56,7 +56,7 @@ SparseTensorArgument = Union[
 
 
 TensorArgument = Union[
-    Value, SparseTensorArgument, tuple[SparseTensorArgument, Value]
+    Value, SparseTensorArgument, Tuple[SparseTensorArgument, Value]
 ]
 
 
