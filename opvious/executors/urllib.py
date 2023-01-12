@@ -18,11 +18,15 @@ with the License.  You may obtain a copy of the License at
 """
 
 import json
+import logging
 import urllib.error
 import urllib.request
 from typing import Any, Mapping, Optional
 
 from .common import ApiError, extract_api_data, GRAPHQL_ENDPOINT, TRACE_HEADER
+
+
+_logger = logging.getLogger(__name__)
 
 
 _DEFAULT_HEADERS = {
@@ -42,6 +46,7 @@ class UrllibExecutor:
         self._headers = _DEFAULT_HEADERS.copy()
         if authorization:
             self._headers["authorization"] = authorization
+        _logger.info("Instantiated `urllib` executor.")
 
     async def execute(self, query: str, variables: Mapping[str, Any]) -> Any:
         body = json.dumps({"query": query, "variables": variables})

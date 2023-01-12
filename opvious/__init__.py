@@ -17,6 +17,8 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
+import logging
+
 from .client import Client
 from .executors import ApiError, Executor
 from .data import (
@@ -41,6 +43,7 @@ from .data import (
     UnboundedOutcome,
     Value,
 )
+
 
 __all__ = [
     "ApiError",
@@ -68,3 +71,6 @@ __all__ = [
     "UnboundedOutcome",
     "Value",
 ]
+
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())

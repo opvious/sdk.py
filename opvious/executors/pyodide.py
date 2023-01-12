@@ -18,10 +18,14 @@ with the License.  You may obtain a copy of the License at
 """
 
 import json
+import logging
 from pyodide.http import pyfetch
 from typing import Optional
 
 from .common import extract_api_data, GRAPHQL_ENDPOINT, TRACE_HEADER
+
+
+_logger = logging.getLogger(__name__)
 
 
 _DEFAULT_HEADERS = {
@@ -38,6 +42,7 @@ class PyodideExecutor:
         self._headers = _DEFAULT_HEADERS.copy()
         if authorization:
             self._headers["authorization"] = authorization
+        _logger.info("Instantiated Pyodide executor.")
 
     async def execute(self, query, variables):
         res = await pyfetch(

@@ -24,6 +24,7 @@ import os
 import pandas as pd
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+from .common import format_percent
 from .data import (
     Attempt,
     CancelledOutcome,
@@ -223,7 +224,10 @@ class Client:
         raise Exception(f"Unexpected status {status}")
 
     @backoff.on_predicate(
-        backoff.fibo, lambda ret: isinstance(ret, Notification), max_value=45
+        backoff.fibo,
+        lambda ret: isinstance(ret, Notification),
+        max_value=45,
+        logger=None,
     )
     async def _track_attempt(self, attempt: Attempt, silent=False) -> Any:
         ret = await self.poll_attempt(attempt)
@@ -237,7 +241,9 @@ class Client:
                     msg = "Attempt is running..."
                     details = [f"elapsed={elapsed}"]
                     if ret.relative_gap is not None:
-                        details.append(f"gap={_percent(ret.relative_gap)}")
+                        details.append(
+                            f"gap={format_percent(ret.relative_gap)}"
+                        )
                     if ret.cut_count is not None:
                         details.append(f"cuts={ret.cut_count}")
                     if ret.lp_iteration_count is not None:
@@ -267,7 +273,9 @@ class Client:
                     adj = "optimal" if ret.is_optimal else "feasible"
                     details.append(f"objective={ret.objective_value}")
                     if ret.relative_gap is not None:
-                        details.append(f"gap={_percent(ret.relative_gap)}")
+                        details.append(
+                            f"gap={format_percent(ret.relative_gap)}"
+                        )
                     print(f"Attempt is {adj}. [{', '.join(details)}]")
         return ret
 
@@ -442,9 +450,3 @@ def _entry_index(entries, bindings):
         tuples=[tuple(e["key"]) for e in entries],
         names=[b.qualifier or b.dimension_label for b in bindings],
     )
-
-
-def _percent(val):
-    if val == "Infinity":
-        return "inf"
-    return f"{int(val * 10_000) / 100}%"
