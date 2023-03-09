@@ -16,7 +16,7 @@ jobs:
       - name: Register formulations
         uses: opvious/register-specification-action@alpha
         with:
-          token: ${{ secrets.OPVIOUS_TOKEN }}
+          token: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
           domain: alpha.opvious.io
           sources: tests/sources/*.md
       - name: Setup Python
