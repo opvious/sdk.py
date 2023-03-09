@@ -8,7 +8,10 @@ AUTHORIZATION = os.environ.get("OPVIOUS_AUTHORIZATION")
 
 @pytest.fixture
 def client():
-    return opvious.Client.from_token(AUTHORIZATION) if AUTHORIZATION else None
+    if not AUTHORIZATION:
+        return None
+    domain = os.environ.get("OPVIOUS_DOMAIN")
+    return opvious.Client.from_token(AUTHORIZATION, domain)
 
 
 @pytest.mark.skipif(not AUTHORIZATION, reason="No access token detected")
@@ -147,7 +150,7 @@ class TestClient:
                 constraints=[
                     opvious.ConstraintRelaxation(
                         label="greaterThanBound",
-                        bound=0.5,
+                        bound=1,
                     ),
                 ],
             ),

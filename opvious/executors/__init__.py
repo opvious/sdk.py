@@ -20,10 +20,16 @@ with the License.  You may obtain a copy of the License at
 import sys
 from typing import Optional
 
-from .common import ApiError, Executor
+from .common import ApiError, Executor, ExecutorResult, execute_graphql_query
 
 
-__all__ = ["default_executor", "ApiError", "Executor"]
+__all__ = [
+    "default_executor",
+    "ApiError",
+    "Executor",
+    "ExecutorResult",
+    "execute_graphql_query",
+]
 
 
 def _is_using_pyodide():

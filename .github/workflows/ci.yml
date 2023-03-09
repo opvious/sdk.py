@@ -35,7 +35,8 @@ jobs:
       - name: Test
         run: poetry run pytest
         env:
-          OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_TOKEN }}
+          OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
+          OPVIOUS_DOMAIN: alpha.opvious.io
       - name: Extract version
         id: extract-version
         run: |

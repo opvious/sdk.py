@@ -20,19 +20,14 @@ with the License.  You may obtain a copy of the License at
 import json
 import logging
 import urllib.error
+import urllib.parse
 import urllib.request
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
-from .common import ApiError, extract_api_data, GRAPHQL_ENDPOINT, TRACE_HEADER
+from .common import ApiError, default_headers, ExecutorResult, TRACE_HEADER
 
 
 _logger = logging.getLogger(__name__)
-
-
-_DEFAULT_HEADERS = {
-    "content-type": "application/json",
-    "opvious-sdk": "Python (urllib)",
-}
 
 
 class UrllibExecutor:
@@ -42,19 +37,26 @@ class UrllibExecutor:
     """
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
-        self._endpoint = api_url + GRAPHQL_ENDPOINT
-        self._headers = _DEFAULT_HEADERS.copy()
+        self._api_url = api_url
+        self._headers = default_headers("urllib")
         if authorization:
             self._headers["authorization"] = authorization
         _logger.info("Instantiated `urllib` executor.")
 
-    async def execute(self, query: str, variables: Mapping[str, Any]) -> Any:
-        body = json.dumps({"query": query, "variables": variables})
+    async def execute(
+        self, path: str, method: str = "GET", body: Optional[Any] = None
+    ) -> ExecutorResult:
+        headers = self._headers.copy()
+        if body:
+            headers["content-type"] = "application/json"
+            data = json.dumps(body).encode("utf8")
+        else:
+            data = None
         req = urllib.request.Request(
-            url=self._endpoint,
-            headers=self._headers,
-            data=body.encode("utf8"),
-            method="POST",
+            url=urllib.parse.urljoin(self._api_url, path),
+            headers=headers,
+            data=data,
+            method=method,
         )
         try:
             res = urllib.request.urlopen(req)
@@ -64,7 +66,7 @@ class UrllibExecutor:
                 message=err.reason,
                 trace=err.headers.get(TRACE_HEADER),
             )
-        return extract_api_data(
+        return ExecutorResult(
             status=res.status,
             trace=res.getheader(TRACE_HEADER),
             body=res.read().decode("utf8"),
