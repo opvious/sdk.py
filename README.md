@@ -26,19 +26,47 @@ import opvious
 # Instantiate an API client from an API token
 client = opvious.Client.from_token(TOKEN)
 
-# Assemble and validate inputs for a registered formulation
-inputs = await client.assemble_inputs(
-    formulation_name='my-formulation',
+# Solve a simple portfolio selection optimization model
+outputs = await client.solve(
+    sources=[
+      r"""
+          We find an allocation of assets which minimizes risk while satisfying
+          a minimum expected return and allocation per group.
+
+          + A collection of assets: $\S^d_{asset}: A$
+          + Covariances: $\S^p_{covariance}: c \in \mathbb{R}^{A \times A}$
+          + Expected return: $\S^p_{expectedReturn}: m \in \mathbb{R}^A$
+          + Minimum desired return: $\S^p_{desiredReturn}: r \in \mathbb{R}$
+
+          The only output is the allocation per asset
+          $\S^v_{allocation}: \alpha \in [0,1]^A$ chosen to minimize risk:
+          $\S^o_{risk}: \min \sum_{a, b \in A} c_{a,b} \alpha_a \alpha_b$.
+
+          Subject to the following constraints:
+
+          + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
+          + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
+      """
+    ],
     parameters={
-        # Formulation parameters...
-    }
+        "covariance": {
+            ("AAPL", "AAPL"): 0.08,
+            ("AAPL", "MSFT"): 0.06,
+            # ...
+        },
+        "expectedReturn": {
+            "AAPL": 0.07,
+            # ..
+        },
+        "desiredReturn": 0.05,
+    },
 )
 
-# Start an attempt and wait for it to complete
-attempt = await client.start_attempt(inputs)
-
-# Wait for the attempt to complete
-outcome = await client.wait_for_outcome(attempt)
+# Print the optimal allocation, if any
+if isinstance(outputs.outcome, opvious.FeasibleOutcome):
+  print(outputs.data.variable("allocation"))
+else:
+  print(f"Problem was {outputs.status}.") # INFEASIBLE, UNBOUNDED
 ```
 
 

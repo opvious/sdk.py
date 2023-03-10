@@ -75,10 +75,8 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 33
 
-        quantities = await client.fetch_variable(attempt, "quantityOfRecipe")
-        assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
-
-        costs = await client.fetch_parameter(attempt, "costPerRecipe")
+        input_data = await client.fetch_input_data(attempt)
+        costs = input_data.parameter("costPerRecipe")
         assert costs.to_dict() == {
             "lasagna": 12,
             "pizza": 15,
@@ -86,7 +84,10 @@ class TestClient:
             "caviar": 23,
         }
 
-        nutrients = await client.fetch_constraint(attempt, "enoughNutrients")
+        output_data = await client.fetch_output_data(attempt)
+        quantities = output_data.variable("quantityOfRecipe")
+        assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
+        nutrients = output_data.constraint("enoughNutrients")
         assert nutrients["slack"].to_dict() == {
             "carbs": 0,
             "fibers": 0,
@@ -121,7 +122,8 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 60
 
-        quantities = await client.fetch_variable(attempt, "quantityOfRecipe")
+        output_data = await client.fetch_output_data(attempt)
+        quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "lasagna": 4}
 
     @pytest.mark.asyncio
@@ -167,5 +169,76 @@ class TestClient:
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
 
-        decisions = await client.fetch_variable(attempt, "decisions")
+        output_data = await client.fetch_output_data(attempt)
+        decisions = output_data.variable("decisions")
         assert (0, 0, 3) in decisions.index
+
+    @pytest.mark.asyncio
+    async def test_solve_bounded_feasible(self, client):
+        outputs = await client.solve(
+            sources=[
+                r"""
+                    $\S^{v}_{target}: \alpha \in \{0,1\}$
+                    $\S^{p}_{bound}: b \in \mathbb{R}_+$
+                    $\S^{c}_{greaterThanBound}: \alpha \geq b$
+                    $\S^o_{maximize}: \max 2 \alpha$
+                """,
+            ],
+            parameters={"bound": 0.1},
+        )
+        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
+        assert outputs.outcome.is_optimal
+        assert outputs.outcome.objective_value == 2
+
+    @pytest.mark.asyncio
+    async def test_solve_bounded_infeasible(self, client):
+        outputs = await client.solve(
+            sources=[
+                r"""
+                    $\S^{v}_{target}: \alpha \in \{0,1\}$
+                    $\S^{p}_{bound}: b \in \mathbb{R}_+$
+                    $\S^{c}_{greaterThanBound}: \alpha \geq b$
+                    $\S^o_{maximize}: \max 2 \alpha$
+                """,
+            ],
+            parameters={"bound": 30},
+        )
+        assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_solve_portfolio_selection(self, client):
+        source = r"""
+            We find an allocation of assets which minimizes risk while
+            satisfying a minimum expected return and allocation per group.
+
+            + A collection of assets: $\S^d_{asset}: A$
+            + Covariances: $\S^p_{covariance}: c \in \mathbb{R}^{A \times A}$
+            + Expected return: $\S^p_{expectedReturn}: m \in \mathbb{R}^A$
+            + Minimum desired return: $\S^p_{desiredReturn}: r \in \mathbb{R}$
+
+            The only output is the allocation per asset
+            $\S^v_{allocation}: \alpha \in [0,1]^A$ chosen to minimize risk:
+            $\S^o_{risk}: \min \sum_{a, b \in A} c_{a,b} \alpha_a \alpha_b$.
+
+            Subject to the following constraints:
+
+            + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
+            + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
+        """
+        outputs = await client.solve(
+            sources=[source],
+            parameters={
+                "covariance": {
+                    ("AAPL", "AAPL"): 0.2,
+                    ("AAPL", "MSFT"): 0.1,
+                    ("MSFT", "AAPL"): 0.1,
+                    ("MSFT", "MSFT"): 0.25,
+                },
+                "expectedReturn": {
+                    "AAPL": 0.15,
+                    "MSFT": 0.2,
+                },
+                "desiredReturn": 0.1,
+            },
+        )
+        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
