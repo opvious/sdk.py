@@ -69,7 +69,6 @@ class TestClient:
                     ("fibers", "salad"): 1,
                 },
             },
-            infer_dimensions=True,
         )
         attempt = await client.start_attempt(inputs)
         outcome = await client.wait_for_outcome(attempt)
@@ -111,7 +110,6 @@ class TestClient:
                     ("carbs", "pizza"): 1,
                 },
             },
-            infer_dimensions=True,
         )
         attempt = await client.start_attempt(
             inputs=inputs,

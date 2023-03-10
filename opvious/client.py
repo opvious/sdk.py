@@ -89,7 +89,6 @@ class Client:
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         tag_name: Optional[str] = None,
-        infer_dimensions: bool = False,
     ) -> Inputs:
         """Assembles and validates inputs."""
         data = await execute_graphql_query(
@@ -118,7 +117,7 @@ class Client:
         if parameters:
             for label, param in parameters.items():
                 builder.set_parameter(label, param)
-        return builder.build(infer_dimensions=infer_dimensions)
+        return builder.build()
 
     async def start_attempt(
         self,
@@ -155,11 +154,13 @@ class Client:
             body={
                 "formulationName": inputs.formulation_name,
                 "specificationTagName": inputs.tag_name,
-                "inputs": {
-                    "dimensions": inputs.dimensions,
-                    "parameters": inputs.parameters,
-                    "pinnedVariables": pins,
-                },
+                "inputs": strip_nones(
+                    {
+                        "dimensions": inputs.dimensions,
+                        "parameters": inputs.parameters,
+                        "pinnedVariables": pins,
+                    }
+                ),
                 "options": strip_nones(
                     {
                         "absoluteGapThreshold": absolute_gap_threshold,
@@ -409,31 +410,17 @@ class _InputsBuilder:
             "defaultValue": tensor.default_value,
         }
 
-    def build(self, infer_dimensions=False) -> Inputs:
+    def build(self) -> Inputs:
         missing_labels = set()
 
         for label in self._outline.parameters:
             if label not in self._parameters:
                 missing_labels.add(label)
 
-        dimensions = dict(self._dimensions)
-        for label in self._outline.dimensions:
-            if label in self._dimensions:
-                continue
-            if not infer_dimensions:
-                missing_labels.add(label)
-                continue
-            if missing_labels:
-                continue
-            items = set()
-            for outline in self._outline.parameters.values():
-                for i, binding in enumerate(outline.bindings):
-                    if binding.dimension_label != label:
-                        continue
-                    entries = self._parameters[outline.label]["entries"]
-                    for entry in entries:
-                        items.add(entry["key"][i])
-            dimensions[label] = {"label": label, "items": list(items)}
+        if self._dimensions:
+            for label in self._outline.dimensions:
+                if label not in self._dimensions:
+                    missing_labels.add(label)
 
         if missing_labels:
             raise Exception(f"Missing label(s): {missing_labels}")
@@ -442,7 +429,7 @@ class _InputsBuilder:
             formulation_name=self._formulation_name,
             tag_name=self._tag_name,
             outline=self._outline,
-            dimensions=list(dimensions.values()),
+            dimensions=list(self._dimensions.values()) or None,
             parameters=list(self._parameters.values()),
         )
 
