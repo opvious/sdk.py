@@ -17,6 +17,7 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
+import dataclasses
 import json
 from typing import Any, Mapping, Optional, Protocol
 
@@ -38,29 +39,66 @@ class ApiError(Exception):
         self.extensions = extensions
 
     @classmethod
-    def from_graphql(cls, status, trace, errors, extensions=None):
+    def from_graphql(
+        cls, status, trace, errors, extensions=None
+    ) -> "ApiError":
         msg = f"API call failed with status {status} ({trace})"
         if errors:
             msg += ": " + ", ".join(e["message"] for e in errors)
         return ApiError(status, msg, trace, errors, extensions)
 
 
-def extract_api_data(status: int, trace: Optional[str], body: str) -> Any:
-    try:
-        data = json.loads(body)
-    except Exception:
-        raise ApiError(
-            status=status,
-            message=f"Unexpected API response ({trace}): ${body}",
-            trace=trace,
-        )
-    errors = data.get("errors")
-    if status != 200 or errors:
-        extensions = data.get("extensions")
-        raise ApiError.from_graphql(status, trace, errors, extensions)
-    return data["data"]
+@dataclasses.dataclass
+class ExecutorResult:
+    status: int
+    body: str
+    trace: Optional[str] = None
+
+    def json_data(self, status: int = 200) -> Any:
+        if self.status != status:
+            raise ApiError(
+                status=self.status,
+                message=(
+                    f"Unexpected {self.status} API response ({self.trace}): "
+                    + self.body
+                ),
+                trace=self.trace,
+            )
+        return json.loads(self.body)
 
 
 class Executor(Protocol):
-    async def execute(self, query: str, variables: Mapping[str, Any]) -> Any:
+    async def execute(
+        self, path: str, method: str = "GET", body: Optional[str] = None
+    ) -> ExecutorResult:
         pass
+
+
+async def execute_graphql_query(
+    executor: Executor,
+    query: str,
+    variables: Optional[Mapping[str, Any]] = None,
+) -> Any:
+    result = await executor.execute(
+        path="/graphql",
+        method="POST",
+        body={"query": query, "variables": variables or {}},
+    )
+    data = result.json_data()
+    errors = data.get("errors")
+    if errors:
+        extensions = data.get("extensions")
+        raise ApiError.from_graphql(
+            status=result.status,
+            trace=result.trace,
+            errors=errors,
+            extensions=extensions,
+        )
+    return data["data"]
+
+
+def default_headers(client: str) -> Mapping[str, str]:
+    return {
+        "accept": "application/json;q=1, text/*;q=0.1",
+        "opvious-client": f"Python SDK ({client})",
+    }

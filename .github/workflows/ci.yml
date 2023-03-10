@@ -16,7 +16,8 @@ jobs:
       - name: Register formulations
         uses: opvious/register-specification-action@beta
         with:
-          token: ${{ secrets.OPVIOUS_TOKEN }}
+          token: ${{ secrets.OPVIOUS_BETA_TOKEN }}
+          domain: beta.opvious.io
           sources: tests/sources/*.md
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -35,7 +36,8 @@ jobs:
       - name: Test
         run: poetry run pytest
         env:
-          OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_TOKEN }}
+          OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_BETA_TOKEN }}
+          OPVIOUS_DOMAIN: beta.opvious.io
       - name: Extract version
         id: extract-version
         run: |

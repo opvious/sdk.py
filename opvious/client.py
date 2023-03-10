@@ -24,7 +24,7 @@ import os
 import pandas as pd
 from typing import Any, Dict, List, Mapping, Optional, Union
 
-from .common import format_percent
+from .common import format_percent, strip_nones
 from .data import (
     Attempt,
     CancelledOutcome,
@@ -42,7 +42,7 @@ from .data import (
     TensorArgument,
     UnboundedOutcome,
 )
-from .executors import default_executor, Executor
+from .executors import default_executor, Executor, execute_graphql_query
 
 
 _DEFAULT_DOMAIN = "beta.opvious.io"
@@ -92,9 +92,13 @@ class Client:
         infer_dimensions: bool = False,
     ) -> Inputs:
         """Assembles and validates inputs."""
-        data = await self._executor.execute(
-            "@FetchOutline",
-            {"formulationName": formulation_name, "tagName": tag_name},
+        data = await execute_graphql_query(
+            executor=self._executor,
+            query="@FetchOutline",
+            variables={
+                "formulationName": formulation_name,
+                "tagName": tag_name,
+            },
         )
         formulation = data.get("formulation")
         if not formulation:
@@ -132,11 +136,11 @@ class Client:
                 data = Relaxation.from_constraint_labels(relaxed_constraints)
             else:
                 data = relaxed_constraints
-            relaxation = data.to_graphql()
+            relaxation = data.to_json()
         else:
             relaxation = None
+        pins = []
         if pinned_variables:
-            pins = []
             for label, arg in pinned_variables.items():
                 outline = inputs.outline.variables.get(label)
                 if not outline:
@@ -145,35 +149,43 @@ class Client:
                 if tensor.default_value:
                     raise Exception("Pinned variables may not have defaults")
                 pins.append({"label": label, "entries": tensor.entries})
-        else:
-            pins = None
-        data = await self._executor.execute(
-            "@StartAttempt",
-            {
-                "input": {
-                    "formulationName": inputs.formulation_name,
-                    "specificationTagName": inputs.tag_name,
+        result = await self._executor.execute(
+            path="/attempts/start",
+            method="POST",
+            body={
+                "formulationName": inputs.formulation_name,
+                "specificationTagName": inputs.tag_name,
+                "inputs": {
                     "dimensions": inputs.dimensions,
                     "parameters": inputs.parameters,
-                    "absoluteGapThreshold": absolute_gap_threshold,
-                    "relativeGapThreshold": relative_gap_threshold,
-                    "solveTimeoutMillis": solve_timeout_millis,
-                    "primalValueEpsilon": primal_value_epsilon,
-                    "relaxation": relaxation,
                     "pinnedVariables": pins,
-                }
+                },
+                "options": strip_nones(
+                    {
+                        "absoluteGapThreshold": absolute_gap_threshold,
+                        "relativeGapThreshold": relative_gap_threshold,
+                        "timeoutMillis": solve_timeout_millis,
+                        "primalValueEpsilon": primal_value_epsilon,
+                        "relaxation": relaxation,
+                    }
+                ),
             },
         )
-        attempt_data = data["startAttempt"]
-        return Attempt.from_graphql(
-            data=attempt_data,
+        uuid = result.json_data()["uuid"]
+        return Attempt(
+            uuid=uuid,
+            started_at=datetime.now(timezone.utc),
             outline=inputs.outline,
-            url=self._attempt_url(attempt_data["uuid"]),
+            url=self._attempt_url(uuid),
         )
 
     async def load_attempt(self, uuid: str) -> Optional[Attempt]:
         """Loads an existing attempt from its UUID."""
-        data = await self._executor.execute("@FetchAttempt", {"uuid": uuid})
+        data = await execute_graphql_query(
+            executor=self._executor,
+            query="@FetchAttempt",
+            variables={"uuid": uuid},
+        )
         attempt = data["attempt"]
         if not attempt:
             return None
@@ -188,18 +200,21 @@ class Client:
 
     async def cancel_attempt(self, uuid: str) -> bool:
         """Cancels a running attempt."""
-        data = await self._executor.execute("@CancelAttempt", {"uuid": uuid})
+        data = await execute_graphql_query(
+            executor=self._executor,
+            query="@CancelAttempt",
+            variables={"uuid": uuid},
+        )
         return bool(data["cancelAttempt"])
 
     async def poll_attempt(
         self, attempt: Attempt
     ) -> Union[Notification, Outcome]:
         """Polls an attempt for its outcome or latest progress notification."""
-        data = await self._executor.execute(
-            "@PollAttempt",
-            {
-                "uuid": attempt.uuid,
-            },
+        data = await execute_graphql_query(
+            executor=self._executor,
+            query="@PollAttempt",
+            variables={"uuid": attempt.uuid},
         )
         attempt_data = data["attempt"]
         status = attempt_data["status"]
@@ -293,10 +308,8 @@ class Client:
         return outcome
 
     async def _fetch_inputs(self, uuid: str) -> Any:
-        data = await self._executor.execute(
-            "@FetchAttemptInputs", {"uuid": uuid}
-        )
-        return data["attempt"]
+        res = await self._executor.execute(f"/attempts/{uuid}/inputs")
+        return res.json_data()
 
     async def fetch_dimension(
         self, attempt: Attempt, label: Label
@@ -324,13 +337,8 @@ class Client:
         raise Exception(f"Unknown parameter: {label}")
 
     async def _fetch_outputs(self, uuid: str):
-        data = await self._executor.execute(
-            "@FetchAttemptOutputs", {"uuid": uuid}
-        )
-        outcome = data["attempt"].get("outcome")
-        if not outcome or outcome["__typename"] != "FeasibleOutcome":
-            raise Exception("Missing or non-feasible attempt outcome")
-        return outcome
+        res = await self._executor.execute(f"/attempts/{uuid}/outputs")
+        return res.json_data()
 
     async def fetch_variable(
         self, attempt: Attempt, label: Label
@@ -343,7 +351,7 @@ class Client:
                 outline = attempt.outline.variables[label]
                 df = pd.DataFrame(
                     data=(
-                        {"value": e["value"], "dual_value": e["dualValue"]}
+                        {"value": e["value"], "dual_value": e.get("dualValue")}
                         for e in entries
                     ),
                     index=_entry_index(entries, outline.bindings),
@@ -364,7 +372,7 @@ class Client:
                 outline = attempt.outline.constraints[label]
                 df = pd.DataFrame(
                     data=(
-                        {"slack": e["value"], "dual_value": e["dualValue"]}
+                        {"slack": e["value"], "dual_value": e.get("dualValue")}
                         for e in entries
                     ),
                     index=_entry_index(entries, outline.bindings),

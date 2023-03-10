@@ -17,7 +17,7 @@
 
 ## Objective
 
-Minimize total cost: $\S^o : \min \sum_{r \in R} c_r \alpha_r$
+Minimize total cost: $\S^o_{lowestCost} : \min \sum_{r \in R} c_r \alpha_r$
 
 ## Constraint
 

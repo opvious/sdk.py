@@ -24,6 +24,8 @@ from datetime import datetime
 import pandas as pd
 from typing import Any, Iterable, List, Mapping, Optional, Tuple, Union
 
+from .common import strip_nones
+
 
 KeyItem = Union[float, int, str]
 
@@ -296,14 +298,16 @@ class Relaxation:
             constraints=[ConstraintRelaxation(label=n) for n in labels],
         )
 
-    def to_graphql(self):
-        return {
-            "penalty": self.penalty,
-            "objectiveWeight": self.objective_weight,
-            "constraints": None
-            if self.constraints is None
-            else [c.to_graphql() for c in self.constraints],
-        }
+    def to_json(self):
+        return strip_nones(
+            {
+                "penalty": self.penalty,
+                "objectiveWeight": self.objective_weight,
+                "constraints": None
+                if self.constraints is None
+                else [c.to_json() for c in self.constraints],
+            }
+        )
 
 
 @dataclasses.dataclass
@@ -313,15 +317,17 @@ class ConstraintRelaxation:
     cost: Optional[float] = None
     bound: Optional[float] = None
 
-    def to_graphql(self):
-        return {
-            "label": self.label,
-            "penalty": self.penalty,
-            "deficitCost": self.cost,
-            "surplusCost": self.cost,
-            "deficitBound": None if self.bound is None else -self.bound,
-            "surplusBound": self.bound,
-        }
+    def to_json(self):
+        return strip_nones(
+            {
+                "label": self.label,
+                "penalty": self.penalty,
+                "deficitCost": self.cost,
+                "surplusCost": self.cost,
+                "deficitBound": None if self.bound is None else -self.bound,
+                "surplusBound": self.bound,
+            }
+        )
 
 
 @dataclasses.dataclass
