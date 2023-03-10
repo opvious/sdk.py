@@ -160,7 +160,7 @@ class Client:
             outcome = FeasibleOutcome(
                 reached_at=reached_at,
                 is_optimal=status == "OPTIMAL",
-                objective_value=outcome_data["objectiveValue"],
+                objective_value=outcome_data.get("objectiveValue"),
                 relative_gap=outcome_data.get("relativeGap"),
             )
         if not isinstance(outcome, FeasibleOutcome):
@@ -400,7 +400,8 @@ class Client:
                     print(f"Attempt failed. [{', '.join(details)}]")
                 else:
                     adj = "optimal" if ret.is_optimal else "feasible"
-                    details.append(f"objective={ret.objective_value}")
+                    if ret.objective_value is not None:
+                        details.append(f"objective={ret.objective_value}")
                     if ret.relative_gap is not None:
                         details.append(
                             f"gap={format_percent(ret.relative_gap)}"

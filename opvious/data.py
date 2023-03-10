@@ -236,7 +236,7 @@ class FailedOutcome:
 class FeasibleOutcome:
     reached_at: datetime
     is_optimal: bool
-    objective_value: Value
+    objective_value: Optional[Value]
     relative_gap: Optional[Value]
 
     @classmethod
@@ -244,7 +244,7 @@ class FeasibleOutcome:
         return FeasibleOutcome(
             reached_at=reached_at,
             is_optimal=data["isOptimal"],
-            objective_value=data["objectiveValue"],
+            objective_value=data.get("objectiveValue"),
             relative_gap=data.get("relativeGap"),
         )
 
