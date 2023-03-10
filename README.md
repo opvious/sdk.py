@@ -18,7 +18,7 @@ generated [here][token]).
 pip install opvious[aio] # aio is recommended for improved performance
 ```
 
-With these steps out of the way, you are ready to solve any formulation:
+With these steps out of the way, you are ready to optimize!
 
 ```python
 import opvious
@@ -31,7 +31,7 @@ outputs = await client.solve(
     sources=[
       r"""
           We find an allocation of assets which minimizes risk while satisfying
-          a minimum expected return and allocation per group.
+          a minimum expected return:
 
           + A collection of assets: $\S^d_{asset}: A$
           + Covariances: $\S^p_{covariance}: c \in \mathbb{R}^{A \times A}$
@@ -51,7 +51,6 @@ outputs = await client.solve(
     parameters={
         "covariance": {
             ("AAPL", "AAPL"): 0.08,
-            ("AAPL", "MSFT"): 0.06,
             # ...
         },
         "expectedReturn": {
