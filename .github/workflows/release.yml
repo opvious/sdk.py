@@ -37,7 +37,6 @@ jobs:
           OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_BETA_TOKEN }}
           OPVIOUS_DOMAIN: beta.opvious.io
       - name: Publish
-        if: steps.check-version.outputs.exists == 'false'
         run: poetry publish --build
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
