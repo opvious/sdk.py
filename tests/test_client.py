@@ -75,10 +75,8 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 33
 
-        quantities = await client.fetch_variable(attempt, "quantityOfRecipe")
-        assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
-
-        costs = await client.fetch_parameter(attempt, "costPerRecipe")
+        input_data = await client.fetch_input_data(attempt)
+        costs = input_data.parameter("costPerRecipe")
         assert costs.to_dict() == {
             "lasagna": 12,
             "pizza": 15,
@@ -86,7 +84,10 @@ class TestClient:
             "caviar": 23,
         }
 
-        nutrients = await client.fetch_constraint(attempt, "enoughNutrients")
+        output_data = await client.fetch_output_data(attempt)
+        quantities = output_data.variable("quantityOfRecipe")
+        assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
+        nutrients = output_data.constraint("enoughNutrients")
         assert nutrients["slack"].to_dict() == {
             "carbs": 0,
             "fibers": 0,
@@ -121,7 +122,8 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 60
 
-        quantities = await client.fetch_variable(attempt, "quantityOfRecipe")
+        output_data = await client.fetch_output_data(attempt)
+        quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "lasagna": 4}
 
     @pytest.mark.asyncio
@@ -167,5 +169,38 @@ class TestClient:
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
 
-        decisions = await client.fetch_variable(attempt, "decisions")
+        output_data = await client.fetch_output_data(attempt)
+        decisions = output_data.variable("decisions")
         assert (0, 0, 3) in decisions.index
+
+    @pytest.mark.asyncio
+    async def test_solve_bounded_feasible(self, client):
+        outputs = await client.solve(
+            sources=[
+                r"""
+                    $\S^{v}_{target}: \alpha \in \{0,1\}$
+                    $\S^{p}_{bound}: b \in \mathbb{R}_+$
+                    $\S^{c}_{greaterThanBound}: \alpha \geq b$
+                    $\S^o_{maximize}: \max 2 \alpha$
+                """,
+            ],
+            parameters={"bound": 0.1}
+        )
+        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
+        assert outputs.outcome.is_optimal
+        assert outputs.outcome.objective_value == 2
+
+    @pytest.mark.asyncio
+    async def test_solve_bounded_infeasible(self, client):
+        outputs = await client.solve(
+            sources=[
+                r"""
+                    $\S^{v}_{target}: \alpha \in \{0,1\}$
+                    $\S^{p}_{bound}: b \in \mathbb{R}_+$
+                    $\S^{c}_{greaterThanBound}: \alpha \geq b$
+                    $\S^o_{maximize}: \max 2 \alpha$
+                """,
+            ],
+            parameters={"bound": 30}
+        )
+        assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)

@@ -19,9 +19,9 @@ with the License.  You may obtain a copy of the License at
 
 import backoff
 from datetime import datetime, timezone
+import json
 import humanize
 import os
-import pandas as pd
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from .common import format_percent, strip_nones
@@ -32,11 +32,14 @@ from .data import (
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
+    InputData,
     Inputs,
     Label,
     Notification,
     Outcome,
     Outline,
+    OutputData,
+    Outputs,
     Relaxation,
     Tensor,
     TensorArgument,
@@ -76,21 +79,101 @@ class Client:
     def from_environment(cls, env=os.environ):
         """Creates a client from environment variables. OPVIOUS_TOKEN should
         contain a valid API token. OPVIOUS_DOMAIN can optionally be set to use
-        a
-        custom domain.
+        a custom domain.
         """
         return Client.from_token(
             token=env[_TOKEN_EVAR], domain=env.get(_DOMAIN_EVAR)
         )
 
+    async def solve(
+        self,
+        sources: list[str],
+        parameters: Optional[Mapping[Label, TensorArgument]] = None,
+        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
+        relative_gap_threshold: Optional[float] = None,
+        absolute_gap_threshold: Optional[float] = None,
+        primal_value_epsilon: Optional[float] = None,
+        timeout_millis: Optional[float] = None,
+    ) -> Outputs:
+        """Solves an optimization problem. See also `start_attempt` for an
+        alternative for long-running solves.
+        """
+        outline_res = await self._executor.execute(
+            path="/sources/parse",
+            method="POST",
+            body={"sources": sources, "outline": True},
+        )
+        outline_data = outline_res.json_data()
+        errors = outline_data.get("errors")
+        if errors:
+            raise Exception(f"Invalid sources: {json.dumps(errors)}")
+        outline = outline_data["outline"]
+        builder = _InputDataBuilder(outline=Outline.from_json(outline))
+        if dimensions:
+            for label, dim in dimensions.items():
+                builder.set_dimension(label, dim)
+        if parameters:
+            for label, param in parameters.items():
+                builder.set_parameter(label, param)
+        inputs = builder.build()
+        solve_res = await self._executor.execute(
+            path="/solves/run",
+            method="POST",
+            body={
+                "sources": sources,
+                "inputs": strip_nones(
+                    {
+                        "dimensions": inputs.raw_dimensions,
+                        "parameters": inputs.raw_parameters,
+                    }
+                ),
+                "options": strip_nones(
+                    {
+                        "absoluteGapThreshold": absolute_gap_threshold,
+                        "relativeGapThreshold": relative_gap_threshold,
+                        "timeoutMillis": timeout_millis,
+                        "primalValueEpsilon": primal_value_epsilon,
+                    }
+                ),
+            },
+        )
+        solve_data = solve_res.json_data()
+        outcome_data = solve_data["outcome"]
+        status = outcome_data["status"]
+        reached_at = datetime.now(timezone.utc)
+        if status == "INFEASIBLE":
+            outcome = InfeasibleOutcome(reached_at)
+        elif status == "UNBOUNDED":
+            outcome = UnboundedOutcome(reached_at)
+        else:
+            outcome = FeasibleOutcome(
+                reached_at=reached_at,
+                is_optimal=status == "OPTIMAL",
+                objective_value=outcome_data["objectiveValue"],
+                relative_gap=outcome_data.get("relativeGap"),
+            )
+        if not isinstance(outcome, FeasibleOutcome):
+            return Outputs(outcome=outcome)
+        outputs_data = solve_data["outputs"]
+        return Outputs(
+            outcome=outcome,
+            data = OutputData(
+                outline=outline,
+                raw_variables=outputs_data["variables"],
+                raw_constraints=outputs_data["constraints"],
+            )
+        )
+
     async def assemble_inputs(
         self,
         formulation_name: str,
+        tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        tag_name: Optional[str] = None,
     ) -> Inputs:
-        """Assembles and validates inputs."""
+        """Assembles and validates inputs for a given formulation. The returned
+        object can be used to start an asynchronous solve via `start_attempt`.
+        """
         data = await execute_graphql_query(
             executor=self._executor,
             query="@FetchOutline",
@@ -106,18 +189,18 @@ class Client:
         if not tag:
             raise Exception("No matching specification found")
         spec = tag["specification"]
-        builder = _InputsBuilder(
-            formulation_name=formulation_name,
-            tag_name=tag["name"],
-            outline=Outline.from_graphql(spec["outline"]),
-        )
+        builder = _InputDataBuilder(Outline.from_json(spec["outline"]))
         if dimensions:
             for label, dim in dimensions.items():
                 builder.set_dimension(label, dim)
         if parameters:
             for label, param in parameters.items():
                 builder.set_parameter(label, param)
-        return builder.build()
+        return Inputs(
+            formulation_name=formulation_name,
+            tag_name=tag["name"],
+            data=builder.build(),
+        )
 
     async def start_attempt(
         self,
@@ -125,11 +208,11 @@ class Client:
         relative_gap_threshold: Optional[float] = None,
         absolute_gap_threshold: Optional[float] = None,
         primal_value_epsilon: Optional[float] = None,
-        solve_timeout_millis: Optional[float] = None,
+        timeout_millis: Optional[float] = None,
         relaxed_constraints: Union[None, List[Label], Relaxation] = None,
         pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
     ) -> Attempt:
-        """Starts a new attempt."""
+        """Starts a new asynchronous solve attempt."""
         if relaxed_constraints:
             if isinstance(relaxed_constraints, list):
                 data = Relaxation.from_constraint_labels(relaxed_constraints)
@@ -141,10 +224,10 @@ class Client:
         pins = []
         if pinned_variables:
             for label, arg in pinned_variables.items():
-                outline = inputs.outline.variables.get(label)
-                if not outline:
+                var_outline = inputs.data.outline.variables.get(label)
+                if not var_outline:
                     raise Exception(f"Unknown variable {label}")
-                tensor = Tensor.from_argument(arg, outline.is_indicator())
+                tensor = Tensor.from_argument(arg, var_outline.is_indicator())
                 if tensor.default_value:
                     raise Exception("Pinned variables may not have defaults")
                 pins.append({"label": label, "entries": tensor.entries})
@@ -156,8 +239,8 @@ class Client:
                 "specificationTagName": inputs.tag_name,
                 "inputs": strip_nones(
                     {
-                        "dimensions": inputs.dimensions,
-                        "parameters": inputs.parameters,
+                        "dimensions": inputs.data.raw_dimensions,
+                        "parameters": inputs.data.raw_parameters,
                         "pinnedVariables": pins,
                     }
                 ),
@@ -165,7 +248,7 @@ class Client:
                     {
                         "absoluteGapThreshold": absolute_gap_threshold,
                         "relativeGapThreshold": relative_gap_threshold,
-                        "timeoutMillis": solve_timeout_millis,
+                        "timeoutMillis": timeout_millis,
                         "primalValueEpsilon": primal_value_epsilon,
                         "relaxation": relaxation,
                     }
@@ -176,7 +259,7 @@ class Client:
         return Attempt(
             uuid=uuid,
             started_at=datetime.now(timezone.utc),
-            outline=inputs.outline,
+            outline=inputs.data.outline,
             url=self._attempt_url(uuid),
         )
 
@@ -192,7 +275,7 @@ class Client:
             return None
         return Attempt.from_graphql(
             data=attempt,
-            outline=Outline.from_graphql(attempt["outline"]),
+            outline=Outline.from_json(attempt["outline"]),
             url=self._attempt_url(uuid),
         )
 
@@ -308,84 +391,27 @@ class Client:
             raise Exception(f"Unexpected outcome: {outcome}")
         return outcome
 
-    async def _fetch_inputs(self, uuid: str) -> Any:
-        res = await self._executor.execute(f"/attempts/{uuid}/inputs")
-        return res.json_data()
+    async def fetch_input_data(self, attempt: Attempt) -> InputData:
+        res = await self._executor.execute(f"/attempts/{attempt.uuid}/inputs")
+        data = res.json_data()
+        return InputData(
+            outline=attempt.outline,
+            raw_parameters=data["parameters"],
+            raw_dimensions=data["dimensions"],
+        )
 
-    async def fetch_dimension(
-        self, attempt: Attempt, label: Label
-    ) -> pd.Series:
-        """Fetches an attempt's dimension items."""
-        inputs = await self._fetch_inputs(attempt.uuid)
-        for dim in inputs["dimensions"]:
-            if dim["label"] == label:
-                return pd.Index(dim["items"])
-        raise Exception(f"Unknown dimension: {label}")
-
-    async def fetch_parameter(
-        self, attempt: Attempt, label: Label
-    ) -> pd.Series:
-        """Fetches an attempt's parameter entries."""
-        inputs = await self._fetch_inputs(attempt.uuid)
-        for param in inputs["parameters"]:
-            if param["label"] == label:
-                entries = param["entries"]
-                outline = attempt.outline.parameters[label]
-                return pd.Series(
-                    data=(e["value"] for e in entries),
-                    index=_entry_index(entries, outline.bindings),
-                )
-        raise Exception(f"Unknown parameter: {label}")
-
-    async def _fetch_outputs(self, uuid: str):
-        res = await self._executor.execute(f"/attempts/{uuid}/outputs")
-        return res.json_data()
-
-    async def fetch_variable(
-        self, attempt: Attempt, label: Label
-    ) -> pd.DataFrame:
-        """Fetches an attempt's variable results."""
-        outputs = await self._fetch_outputs(attempt.uuid)
-        for var in outputs["variables"]:
-            if var["label"] == label:
-                entries = var["entries"]
-                outline = attempt.outline.variables[label]
-                df = pd.DataFrame(
-                    data=(
-                        {"value": e["value"], "dual_value": e.get("dualValue")}
-                        for e in entries
-                    ),
-                    index=_entry_index(entries, outline.bindings),
-                )
-                return df.dropna(axis=1, how="all").fillna(0)
-        raise Exception(f"Unknown variable {label}")
-
-    async def fetch_constraint(
-        self, attempt: Attempt, label: Label
-    ) -> pd.DataFrame:
-        """
-        Fetches an attempt's constraint slack (and dual when relevant) values.
-        """
-        outputs = await self._fetch_outputs(attempt.uuid)
-        for var in outputs["constraints"]:
-            if var["label"] == label:
-                entries = var["entries"]
-                outline = attempt.outline.constraints[label]
-                df = pd.DataFrame(
-                    data=(
-                        {"slack": e["value"], "dual_value": e.get("dualValue")}
-                        for e in entries
-                    ),
-                    index=_entry_index(entries, outline.bindings),
-                )
-                return df.dropna(axis=1, how="all").fillna(0)
-        raise Exception(f"Unknown constraint {label}")
+    async def fetch_output_data(self, attempt: Attempt) -> OutputData:
+        res = await self._executor.execute(f"/attempts/{attempt.uuid}/outputs")
+        data = res.json_data()
+        return OutputData(
+            outline=attempt.outline,
+            raw_variables=data["variables"],
+            raw_constraints=data["constraints"],
+        )
 
 
-class _InputsBuilder:
-    def __init__(self, formulation_name: str, tag_name: str, outline: Outline):
-        self._formulation_name = formulation_name
-        self._tag_name = tag_name
+class _InputDataBuilder:
+    def __init__(self, outline: Outline):
         self._outline = outline
         self._dimensions: Dict[Label, Any] = {}
         self._parameters: Dict[Label, Any] = {}
@@ -425,23 +451,8 @@ class _InputsBuilder:
         if missing_labels:
             raise Exception(f"Missing label(s): {missing_labels}")
 
-        return Inputs(
-            formulation_name=self._formulation_name,
-            tag_name=self._tag_name,
+        return InputData(
             outline=self._outline,
-            dimensions=list(self._dimensions.values()) or None,
-            parameters=list(self._parameters.values()),
+            raw_parameters=list(self._parameters.values()),
+            raw_dimensions=list(self._dimensions.values()) or None,
         )
-
-
-def _entry_index(entries, bindings):
-    if len(bindings) == 1:
-        binding = bindings[0]
-        return pd.Index(
-            data=[e["key"][0] for e in entries],
-            name=binding.qualifier or binding.dimension_label,
-        )
-    return pd.MultiIndex.from_tuples(
-        tuples=[tuple(e["key"]) for e in entries],
-        names=[b.qualifier or b.dimension_label for b in bindings],
-    )

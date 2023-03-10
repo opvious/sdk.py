@@ -111,7 +111,7 @@ class SourceBinding:
     qualifier: Optional[Label]
 
     @classmethod
-    def from_graphql(cls, data: Any) -> SourceBinding:
+    def from_json(cls, data: Any) -> SourceBinding:
         return SourceBinding(
             dimension_label=data["dimensionLabel"],
             qualifier=data["qualifier"],
@@ -123,7 +123,7 @@ class ObjectiveOutline:
     is_maximization: bool
 
     @classmethod
-    def from_graphql(cls, data: Any) -> ObjectiveOutline:
+    def from_json(cls, data: Any) -> ObjectiveOutline:
         return ObjectiveOutline(is_maximization=data["isMaximization"])
 
 
@@ -133,7 +133,7 @@ class DimensionOutline:
     is_numeric: bool
 
     @classmethod
-    def from_graphql(cls, data: Any) -> DimensionOutline:
+    def from_json(cls, data: Any) -> DimensionOutline:
         return DimensionOutline(
             label=data["label"], is_numeric=data["isNumeric"]
         )
@@ -155,7 +155,7 @@ class TensorOutline:
         )
 
     @classmethod
-    def from_graphql(cls, data: Any) -> TensorOutline:
+    def from_json(cls, data: Any) -> TensorOutline:
         lb = data["lowerBound"]
         ub = data["upperBound"]
         return TensorOutline(
@@ -163,7 +163,7 @@ class TensorOutline:
             lower_bound=lb if is_value(lb) else None,
             upper_bound=ub if is_value(ub) else None,
             is_integral=data["isIntegral"],
-            bindings=[SourceBinding.from_graphql(b) for b in data["bindings"]],
+            bindings=[SourceBinding.from_json(b) for b in data["bindings"]],
         )
 
 
@@ -173,10 +173,10 @@ class ConstraintOutline:
     bindings: List[SourceBinding]
 
     @classmethod
-    def from_graphql(cls, data: Any) -> ConstraintOutline:
+    def from_json(cls, data: Any) -> ConstraintOutline:
         return ConstraintOutline(
             label=data["label"],
-            bindings=[SourceBinding.from_graphql(b) for b in data["bindings"]],
+            bindings=[SourceBinding.from_json(b) for b in data["bindings"]],
         )
 
 
@@ -189,10 +189,10 @@ class Outline:
     constraints: Mapping[Label, ConstraintOutline]
 
     @classmethod
-    def from_graphql(cls, data: Any) -> Outline:
+    def from_json(cls, data: Any) -> Outline:
         obj = data["objective"]
         return Outline(
-            objective=ObjectiveOutline.from_graphql(obj) if obj else None,
+            objective=ObjectiveOutline.from_json(obj) if obj else None,
             dimensions=_map_outlines(DimensionOutline, data["dimensions"]),
             parameters=_map_outlines(TensorOutline, data["parameters"]),
             variables=_map_outlines(TensorOutline, data["variables"]),
@@ -201,7 +201,7 @@ class Outline:
 
 
 def _map_outlines(cls, data):
-    return {o["label"]: cls.from_graphql(o) for o in data}
+    return {o["label"]: cls.from_json(o) for o in data}
 
 
 # Outcomes
@@ -267,17 +267,99 @@ Outcome = Union[
 ]
 
 
-# Attempt
+# Solve data
+
+
+@dataclasses.dataclass
+class InputData:
+    outline: Outline
+    raw_parameters: List[Any]
+    raw_dimensions: Optional[List[Any]]
+
+    def parameter(self, label: Label) -> pd.Series:
+        for param in self.raw_parameters:
+            if param["label"] == label:
+                entries = param["entries"]
+                outline = self.outline.parameters[label]
+                return pd.Series(
+                    data=(e["value"] for e in entries),
+                    index=_entry_index(entries, outline.bindings),
+                )
+        raise Exception(f"Unknown parameter: {label}")
+
+    def dimension(self, label: Label) -> pd.Series:
+        for dim in self.raw_dimensions or []:
+            if dim["label"] == label:
+                return pd.Index(dim["items"])
+        raise Exception(f"Unknown dimension: {label}")
+
+
+@dataclasses.dataclass
+class OutputData:
+    outline: Outline
+    raw_variables: List[Any]
+    raw_constraints: List[Any]
+
+    def variable(self, label: Label) -> pd.DataFrame:
+        for res in self.raw_variables:
+            if res["label"] == label:
+                entries = res["entries"]
+                outline = self.outline.variables[label]
+                df = pd.DataFrame(
+                    data=(
+                        {"value": e["value"], "dual_value": e.get("dualValue")}
+                        for e in entries
+                    ),
+                    index=_entry_index(entries, outline.bindings),
+                )
+                return df.dropna(axis=1, how="all").fillna(0)
+        raise Exception(f"Unknown variable {label}")
+
+    def constraint(self, label: Label) -> pd.DataFrame:
+        for res in self.raw_constraints:
+            if res["label"] == label:
+                entries = res["entries"]
+                outline = self.outline.constraints[label]
+                df = pd.DataFrame(
+                    data=(
+                        {"slack": e["value"], "dual_value": e.get("dualValue")}
+                        for e in entries
+                    ),
+                    index=_entry_index(entries, outline.bindings),
+                )
+                return df.dropna(axis=1, how="all").fillna(0)
+        raise Exception(f"Unknown constraint {label}")
+
+
+def _entry_index(entries, bindings):
+    if len(bindings) == 1:
+        binding = bindings[0]
+        return pd.Index(
+            data=[e["key"][0] for e in entries],
+            name=binding.qualifier or binding.dimension_label,
+        )
+    return pd.MultiIndex.from_tuples(
+        tuples=[tuple(e["key"]) for e in entries],
+        names=[b.qualifier or b.dimension_label for b in bindings],
+    )
 
 
 @dataclasses.dataclass
 class Inputs:
+    """ "Attempt inputs"""
+
     formulation_name: str
     tag_name: str
-    outline: Outline
-    dimensions: List[Any]
-    parameters: List[Any]
+    data: InputData
 
+
+@dataclasses.dataclass
+class Outputs:
+    outcome: Outcome
+    data: Optional[OutputData] = None
+
+
+# Attempt options
 
 Penalty = str
 
