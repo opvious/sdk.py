@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 import json
 import humanize
 import os
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from .common import format_percent, strip_nones
 from .data import (
@@ -87,7 +87,9 @@ class Client:
 
     async def solve(
         self,
-        sources: list[str],
+        sources: Optional[list[str]] = None,
+        formulation_name: Optional[str] = None,
+        tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relative_gap_threshold: Optional[float] = None,
@@ -98,16 +100,23 @@ class Client:
         """Solves an optimization problem. See also `start_attempt` for an
         alternative for long-running solves.
         """
-        outline_res = await self._executor.execute(
-            path="/sources/parse",
-            method="POST",
-            body={"sources": sources, "outline": True},
-        )
-        outline_data = outline_res.json_data()
-        errors = outline_data.get("errors")
-        if errors:
-            raise Exception(f"Invalid sources: {json.dumps(errors)}")
-        outline = Outline.from_json(outline_data["outline"])
+        if formulation_name:
+            if sources:
+                raise Exception(
+                    "Sources and formulation name are mutually exclusive"
+                )
+            outline, _tag = await self._fetch_formulation_outline(
+                formulation_name, tag_name
+            )
+            formulation = strip_nones({
+                "name": formulation_name,
+                "specificationTagName": tag_name,
+            })
+        else:
+            if not sources:
+                raise Exception("Sources or formulation name must be set")
+            outline = await self._fetch_sources_outline(sources)
+            formulation = {"sources": sources}
         builder = _InputDataBuilder(outline=outline)
         if dimensions:
             for label, dim in dimensions.items():
@@ -120,7 +129,7 @@ class Client:
             path="/solves/run",
             method="POST",
             body={
-                "sources": sources,
+                "formulation": formulation,
                 "inputs": strip_nones(
                     {
                         "dimensions": inputs.raw_dimensions,
@@ -165,6 +174,36 @@ class Client:
             ),
         )
 
+    async def _fetch_sources_outline(self, sources: list[str]) -> Outline:
+        outline_res = await self._executor.execute(
+            path="/sources/parse",
+            method="POST",
+            body={"sources": sources, "outline": True},
+        )
+        outline_data = outline_res.json_data()
+        errors = outline_data.get("errors")
+        if errors:
+            raise Exception(f"Invalid sources: {json.dumps(errors)}")
+        return Outline.from_json(outline_data["outline"])
+
+    async def _fetch_formulation_outline(
+        self, name: str, tag_name: Optional[str] = None
+    ) -> Tuple[Outline, str]:
+        data = await execute_graphql_query(
+            executor=self._executor,
+            query="@FetchOutline",
+            variables={"formulationName": name, "tagName": tag_name},
+        )
+        formulation = data.get("formulation")
+        if not formulation:
+            raise Exception("No matching formulation found")
+        tag = formulation.get("tag")
+        if not tag:
+            raise Exception("No matching specification found")
+        spec = tag["specification"]
+        outline = Outline.from_json(spec["outline"])
+        return [outline, tag["name"]]
+
     async def assemble_inputs(
         self,
         formulation_name: str,
@@ -175,22 +214,10 @@ class Client:
         """Assembles and validates inputs for a given formulation. The returned
         object can be used to start an asynchronous solve via `start_attempt`.
         """
-        data = await execute_graphql_query(
-            executor=self._executor,
-            query="@FetchOutline",
-            variables={
-                "formulationName": formulation_name,
-                "tagName": tag_name,
-            },
+        outline, tag = await self._fetch_formulation_outline(
+            formulation_name, tag_name
         )
-        formulation = data.get("formulation")
-        if not formulation:
-            raise Exception("No matching formulation found")
-        tag = formulation.get("tag")
-        if not tag:
-            raise Exception("No matching specification found")
-        spec = tag["specification"]
-        builder = _InputDataBuilder(Outline.from_json(spec["outline"]))
+        builder = _InputDataBuilder(outline)
         if dimensions:
             for label, dim in dimensions.items():
                 builder.set_dimension(label, dim)
@@ -199,7 +226,7 @@ class Client:
                 builder.set_parameter(label, param)
         return Inputs(
             formulation_name=formulation_name,
-            tag_name=tag["name"],
+            tag_name=tag,
             data=builder.build(),
         )
 
