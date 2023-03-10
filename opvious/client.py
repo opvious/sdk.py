@@ -88,7 +88,7 @@ class Client:
         formulation_name: str,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        tag_name: Optional[str] = None
+        tag_name: Optional[str] = None,
     ) -> Inputs:
         """Assembles and validates inputs."""
         data = await execute_graphql_query(
@@ -154,11 +154,13 @@ class Client:
             body={
                 "formulationName": inputs.formulation_name,
                 "specificationTagName": inputs.tag_name,
-                "inputs": strip_nones({
-                    "dimensions": inputs.dimensions,
-                    "parameters": inputs.parameters,
-                    "pinnedVariables": pins,
-                }),
+                "inputs": strip_nones(
+                    {
+                        "dimensions": inputs.dimensions,
+                        "parameters": inputs.parameters,
+                        "pinnedVariables": pins,
+                    }
+                ),
                 "options": strip_nones(
                     {
                         "absoluteGapThreshold": absolute_gap_threshold,
