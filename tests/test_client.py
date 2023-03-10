@@ -184,7 +184,7 @@ class TestClient:
                     $\S^o_{maximize}: \max 2 \alpha$
                 """,
             ],
-            parameters={"bound": 0.1}
+            parameters={"bound": 0.1},
         )
         assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
         assert outputs.outcome.is_optimal
@@ -201,6 +201,6 @@ class TestClient:
                     $\S^o_{maximize}: \max 2 \alpha$
                 """,
             ],
-            parameters={"bound": 30}
+            parameters={"bound": 30},
         )
         assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)

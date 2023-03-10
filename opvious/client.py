@@ -157,11 +157,11 @@ class Client:
         outputs_data = solve_data["outputs"]
         return Outputs(
             outcome=outcome,
-            data = OutputData(
+            data=OutputData(
                 outline=outline,
                 raw_variables=outputs_data["variables"],
                 raw_constraints=outputs_data["constraints"],
-            )
+            ),
         )
 
     async def assemble_inputs(
