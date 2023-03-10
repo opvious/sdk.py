@@ -36,27 +36,6 @@ jobs:
         env:
           OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_BETA_TOKEN }}
           OPVIOUS_DOMAIN: beta.opvious.io
-      - name: Extract version
-        id: extract-version
-        run: |
-          PACKAGE_VERSION="$(poetry version -s)"
-          echo "::set-output name=version::$PACKAGE_VERSION"
-      - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.1.0
-        id: check-version
-        with:
-          tag: v${{ steps.extract-version.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create tag
-        if: steps.check-version.outputs.exists == 'false'
-        uses: pkgdeps/git-tag-action@v2
-        with:
-          git_commit_sha: ${{ github.sha }}
-          git_tag_prefix: v
-          github_repo: ${{ github.repository }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          version: ${{ steps.extract-version.outputs.version }}
       - name: Publish
         if: steps.check-version.outputs.exists == 'false'
         run: poetry publish --build
