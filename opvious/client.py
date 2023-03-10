@@ -108,10 +108,12 @@ class Client:
             outline, _tag = await self._fetch_formulation_outline(
                 formulation_name, tag_name
             )
-            formulation = strip_nones({
-                "name": formulation_name,
-                "specificationTagName": tag_name,
-            })
+            formulation = strip_nones(
+                {
+                    "name": formulation_name,
+                    "specificationTagName": tag_name,
+                }
+            )
         else:
             if not sources:
                 raise Exception("Sources or formulation name must be set")
