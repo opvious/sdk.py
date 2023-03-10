@@ -204,3 +204,41 @@ class TestClient:
             parameters={"bound": 30},
         )
         assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_solve_portfolio_selection(self, client):
+        source = r"""
+            We find an allocation of assets which minimizes risk while
+            satisfying a minimum expected return and allocation per group.
+
+            + A collection of assets: $\S^d_{asset}: A$
+            + Covariances: $\S^p_{covariance}: c \in \mathbb{R}^{A \times A}$
+            + Expected return: $\S^p_{expectedReturn}: m \in \mathbb{R}^A$
+            + Minimum desired return: $\S^p_{desiredReturn}: r \in \mathbb{R}$
+
+            The only output is the allocation per asset
+            $\S^v_{allocation}: \alpha \in [0,1]^A$ chosen to minimize risk:
+            $\S^o_{risk}: \min \sum_{a, b \in A} c_{a,b} \alpha_a \alpha_b$.
+
+            Subject to the following constraints:
+
+            + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
+            + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
+        """
+        outputs = await client.solve(
+            sources=[source],
+            parameters={
+                "covariance": {
+                    ("AAPL", "AAPL"): 0.2,
+                    ("AAPL", "MSFT"): 0.1,
+                    ("MSFT", "AAPL"): 0.1,
+                    ("MSFT", "MSFT"): 0.25,
+                },
+                "expectedReturn": {
+                    "AAPL": 0.15,
+                    "MSFT": 0.2,
+                },
+                "desiredReturn": 0.1,
+            },
+        )
+        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)

@@ -113,8 +113,8 @@ class SourceBinding:
     @classmethod
     def from_json(cls, data: Any) -> SourceBinding:
         return SourceBinding(
-            dimension_label=data["dimensionLabel"],
-            qualifier=data["qualifier"],
+            dimension_label=data.get("dimensionLabel"),
+            qualifier=data.get("qualifier"),
         )
 
 
@@ -355,6 +355,7 @@ class Inputs:
 
 @dataclasses.dataclass
 class Outputs:
+    status: str
     outcome: Outcome
     data: Optional[OutputData] = None
 

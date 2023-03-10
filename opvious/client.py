@@ -107,8 +107,8 @@ class Client:
         errors = outline_data.get("errors")
         if errors:
             raise Exception(f"Invalid sources: {json.dumps(errors)}")
-        outline = outline_data["outline"]
-        builder = _InputDataBuilder(outline=Outline.from_json(outline))
+        outline = Outline.from_json(outline_data["outline"])
+        builder = _InputDataBuilder(outline=outline)
         if dimensions:
             for label, dim in dimensions.items():
                 builder.set_dimension(label, dim)
@@ -153,9 +153,10 @@ class Client:
                 relative_gap=outcome_data.get("relativeGap"),
             )
         if not isinstance(outcome, FeasibleOutcome):
-            return Outputs(outcome=outcome)
+            return Outputs(status=status, outcome=outcome)
         outputs_data = solve_data["outputs"]
         return Outputs(
+            status=status,
             outcome=outcome,
             data=OutputData(
                 outline=outline,
