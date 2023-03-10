@@ -242,3 +242,23 @@ class TestClient:
             },
         )
         assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_solve_diet(self, client):
+        outputs = await client.solve(
+            formulation_name="diet",
+            parameters={
+                "costPerRecipe": {
+                    "lasagna": 12,
+                    "pizza": 15,
+                },
+                "minimalNutrients": {
+                    "carbs": 5,
+                },
+                "nutrientsPerRecipe": {
+                    ("carbs", "lasagna"): 3,
+                    ("carbs", "pizza"): 5,
+                },
+            },
+        )
+        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
