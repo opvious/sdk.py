@@ -1,23 +1,21 @@
-name: CI
+name: Release
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
+  release:
+    types:
+      - published
 jobs:
   test:
-    name: Test and maybe tag
+    name: Test and publish
     timeout-minutes: 2
     runs-on: ubuntu-latest
     steps:
       - name: Check out
         uses: actions/checkout@v2
       - name: Register formulations
-        uses: opvious/register-specification-action@alpha
+        uses: opvious/register-specification-action@beta
         with:
-          token: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
-          domain: alpha.opvious.io
+          token: ${{ secrets.OPVIOUS_BETA_TOKEN }}
+          domain: beta.opvious.io
           sources: tests/sources/*.md
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -36,8 +34,8 @@ jobs:
       - name: Test
         run: poetry run pytest
         env:
-          OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
-          OPVIOUS_DOMAIN: alpha.opvious.io
+          OPVIOUS_AUTHORIZATION: ${{ secrets.OPVIOUS_BETA_TOKEN }}
+          OPVIOUS_DOMAIN: beta.opvious.io
       - name: Extract version
         id: extract-version
         run: |
@@ -59,3 +57,8 @@ jobs:
           github_repo: ${{ github.repository }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ steps.extract-version.outputs.version }}
+      - name: Publish
+        if: steps.check-version.outputs.exists == 'false'
+        run: poetry publish --build
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
