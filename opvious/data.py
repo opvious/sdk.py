@@ -190,7 +190,7 @@ class Outline:
 
     @classmethod
     def from_json(cls, data: Any) -> Outline:
-        obj = data["objective"]
+        obj = data.get("objective")
         return Outline(
             objective=ObjectiveOutline.from_json(obj) if obj else None,
             dimensions=_map_outlines(DimensionOutline, data["dimensions"]),
