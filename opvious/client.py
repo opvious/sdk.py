@@ -100,6 +100,7 @@ class Client:
         """Solves an optimization problem. See also `start_attempt` for an
         alternative for long-running solves.
         """
+        # First we fetch the outline to validate/coerce inputs later on
         if formulation_name:
             if sources:
                 raise Exception(
@@ -119,6 +120,8 @@ class Client:
                 raise Exception("Sources or formulation name must be set")
             outline = await self._fetch_sources_outline(sources)
             formulation = {"sources": sources}
+
+        # Then we assemble the inputs
         builder = _InputDataBuilder(outline=outline)
         if dimensions:
             for label, dim in dimensions.items():
@@ -127,10 +130,16 @@ class Client:
             for label, param in parameters.items():
                 builder.set_parameter(label, param)
         inputs = builder.build()
-        solve_res = await self._executor.execute(
+
+        # After that we parse the streamed response data
+        solved_data = None
+        async with self._executor.execute(
             path="/solves/run",
             method="POST",
-            body={
+            headers={
+                "accept": "application/json-seq, text/*",
+            },
+            json_body={
                 "formulation": formulation,
                 "inputs": strip_nones(
                     {
@@ -147,11 +156,20 @@ class Client:
                     }
                 ),
             },
-        )
-        solve_data = solve_res.json_data()
-        outcome_data = solve_data["outcome"]
+        ) as res:
+            async for data in res.json_seq_data():
+                kind = data["kind"]
+                if kind == "ready":
+                    print(data)
+                elif kind == "solving":
+                    print(data)
+                else:
+                    reached_at = datetime.now(timezone.utc)
+                    solved_data = data
+
+        # Finally we gather the outputs
+        outcome_data = solved_data["outcome"]
         status = outcome_data["status"]
-        reached_at = datetime.now(timezone.utc)
         if status == "INFEASIBLE":
             outcome = InfeasibleOutcome(reached_at)
         elif status == "UNBOUNDED":
@@ -165,7 +183,7 @@ class Client:
             )
         if not isinstance(outcome, FeasibleOutcome):
             return Outputs(status=status, outcome=outcome)
-        outputs_data = solve_data["outputs"]
+        outputs_data = solved_data["outputs"]
         return Outputs(
             status=status,
             outcome=outcome,
@@ -177,12 +195,12 @@ class Client:
         )
 
     async def _fetch_sources_outline(self, sources: list[str]) -> Outline:
-        outline_res = await self._executor.execute(
+        async with self._executor.execute(
             path="/sources/parse",
             method="POST",
-            body={"sources": sources, "outline": True},
-        )
-        outline_data = outline_res.json_data()
+            json_body={"sources": sources, "outline": True},
+        ) as res:
+            outline_data = res.json_data()
         errors = outline_data.get("errors")
         if errors:
             raise Exception(f"Invalid sources: {json.dumps(errors)}")
@@ -261,10 +279,10 @@ class Client:
                 if tensor.default_value:
                     raise Exception("Pinned variables may not have defaults")
                 pins.append({"label": label, "entries": tensor.entries})
-        result = await self._executor.execute(
+        async with self._executor.execute(
             path="/attempts/start",
             method="POST",
-            body={
+            json_body={
                 "formulationName": inputs.formulation_name,
                 "specificationTagName": inputs.tag_name,
                 "inputs": strip_nones(
@@ -284,8 +302,8 @@ class Client:
                     }
                 ),
             },
-        )
-        uuid = result.json_data()["uuid"]
+        ) as res:
+            uuid = res.json_data()["uuid"]
         return Attempt(
             uuid=uuid,
             started_at=datetime.now(timezone.utc),
@@ -423,8 +441,9 @@ class Client:
         return outcome
 
     async def fetch_input_data(self, attempt: Attempt) -> InputData:
-        res = await self._executor.execute(f"/attempts/{attempt.uuid}/inputs")
-        data = res.json_data()
+        url = f"/attempts/{attempt.uuid}/inputs"
+        async with self._executor.execute(url) as res:
+            data = res.json_data()
         return InputData(
             outline=attempt.outline,
             raw_parameters=data["parameters"],
@@ -432,8 +451,9 @@ class Client:
         )
 
     async def fetch_output_data(self, attempt: Attempt) -> OutputData:
-        res = await self._executor.execute(f"/attempts/{attempt.uuid}/outputs")
-        data = res.json_data()
+        url = f"/attempts/{attempt.uuid}/outputs"
+        async with self._executor.execute(url) as res:
+            data = res.json_data()
         return OutputData(
             outline=attempt.outline,
             raw_variables=data["variables"],

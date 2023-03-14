@@ -346,7 +346,7 @@ def _entry_index(entries, bindings):
 
 @dataclasses.dataclass
 class Inputs:
-    """ "Attempt inputs"""
+    """Solve inputs"""
 
     formulation_name: str
     tag_name: str
@@ -355,6 +355,8 @@ class Inputs:
 
 @dataclasses.dataclass
 class Outputs:
+    """Solve outputs"""
+
     status: str
     outcome: Outcome
     data: Optional[OutputData] = None
