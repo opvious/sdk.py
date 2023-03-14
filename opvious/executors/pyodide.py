@@ -17,13 +17,22 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
+import contextlib
 import json
 import logging
 from pyodide.http import pyfetch
 from typing import Any, Optional
 import urllib.parse
 
-from .common import default_headers, ExecutorResult, TRACE_HEADER
+from .common import (
+    CONTENT_TYPE_HEADER,
+    default_headers,
+    Execution,
+    JsonExecutorResult,
+    Headers,
+    TRACE_HEADER,
+    unsupported_content_type_error,
+)
 
 
 _logger = logging.getLogger(__name__)
@@ -39,24 +48,50 @@ class PyodideExecutor:
             self._headers["authorization"] = authorization
         _logger.info("Instantiated Pyodide executor.")
 
-    async def execute(
-        self, path: str, method: str = "GET", body: Optional[Any] = None
-    ) -> ExecutorResult:
-        headers = self._headers.copy()
-        if body:
-            headers["content-type"] = "application/json"
-            data = json.dumps(body)
+    def execute(
+        self,
+        path: str,
+        method: str = "GET",
+        headers: Optional[Headers] = None,
+        json_body: Optional[Any] = None,
+    ) -> Execution:
+        all_headers = self._headers.copy()
+        if headers:
+            all_headers.update(headers)
+        if json_body:
+            all_headers["content-type"] = "application/json"
+            data = json.dumps(json_body)
         else:
             data = None
-        res = await pyfetch(
-            urllib.parse.urljoin(self._api_url, path),
+        return _execution(
+            url=urllib.parse.urljoin(self._api_url, path),
             method=method,
-            headers=self._headers,
-            body=data,
+            headers=all_headers,
+            data=data,
         )
+
+
+@contextlib.asynccontextmanager
+async def _execution(
+    url: str, method: str, headers: Headers, data: Any
+) -> Execution:
+    # TODO: Raise any errors as ApiError
+    res = await pyfetch(
+        url=url,
+        method=method,
+        headers=headers,
+        body=data,
+    )
+    status = res.status
+    headers = res.js_response.headers
+    trace = (headers.get(TRACE_HEADER),)
+    ctype = headers.get(CONTENT_TYPE_HEADER)
+    if JsonExecutorResult.is_eligible(ctype):
         text = await res.js_response.text()
-        return ExecutorResult(
-            status=res.status,
-            trace=res.js_response.headers.get(TRACE_HEADER),
-            body=text,
+        yield JsonExecutorResult(status=status, trace=trace, text=text)
+    else:
+        # TODO: Support streaming responses.
+        raise unsupported_content_type_error(
+            content_type=ctype,
+            trace=trace,
         )

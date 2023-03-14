@@ -19,12 +19,23 @@ with the License.  You may obtain a copy of the License at
 
 import aiohttp
 import brotli
+import contextlib
 import json
 import logging
 import urllib.parse
 from typing import Any, Optional
 
-from .common import default_headers, ExecutorResult, TRACE_HEADER
+from .common import (
+    CONTENT_TYPE_HEADER,
+    default_headers,
+    Execution,
+    JsonExecutorResult,
+    JsonSeqExecutorResult,
+    Headers,
+    TRACE_HEADER,
+    unexpected_response_error,
+    unsupported_content_type_error,
+)
 
 
 _logger = logging.getLogger(__name__)
@@ -47,15 +58,21 @@ class AiohttpExecutor:
             self._headers["authorization"] = authorization
         _logger.info("Instantiated `aiohttp` executor.")
 
-    async def execute(
-        self, path: str, method: str = "GET", body: Optional[Any] = None
-    ) -> ExecutorResult:
-        headers = self._headers.copy()
-        if body:
-            headers["content-type"] = "application/json"
-            data = json.dumps(body)
+    def execute(
+        self,
+        path: str,
+        method: str = "GET",
+        headers: Optional[Headers] = None,
+        json_body: Optional[Any] = None,
+    ) -> Execution:
+        all_headers = self._headers.copy()
+        if headers:
+            all_headers.update(headers)
+        if json_body:
+            all_headers["content-type"] = "application/json"
+            data = json.dumps(json_body)
             if len(data) > _COMPRESSION_THRESHOLD:
-                headers["content-encoding"] = "br"
+                all_headers["content-encoding"] = "br"
                 data = brotli.compress(
                     data.encode("utf8"),
                     mode=brotli.MODE_TEXT,
@@ -63,13 +80,44 @@ class AiohttpExecutor:
                 )
         else:
             data = None
-        url = urllib.parse.urljoin(self._api_url, path)
+        return _execution(
+            url=urllib.parse.urljoin(self._api_url, path),
+            method=method,
+            headers=all_headers,
+            data=data,
+        )
+
+
+@contextlib.asynccontextmanager
+async def _execution(
+    url: str, method: str, headers: Headers, data: Any
+) -> Execution:
+    try:
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.request(
                 method=method, url=url, data=data
             ) as res:
+                status = res.status
                 trace = res.headers.get(TRACE_HEADER)
-                body = await res.text()
-                return ExecutorResult(
-                    status=res.status, body=body, trace=trace
-                )
+                ctype = res.headers.get(CONTENT_TYPE_HEADER)
+                if JsonExecutorResult.is_eligible(ctype):
+                    text = await res.text()
+                    yield JsonExecutorResult(
+                        status=status,
+                        trace=trace,
+                        text=text,
+                    )
+                elif JsonSeqExecutorResult.is_eligible(ctype):
+                    yield JsonSeqExecutorResult(
+                        status=status,
+                        trace=trace,
+                        reader=res.content,
+                    )
+                else:
+                    raise unsupported_content_type_error(
+                        content_type=ctype,
+                        trace=trace,
+                    )
+    except aiohttp.ClientResponseError as err:
+        trace = next((v for k, v in err.headers if k == TRACE_HEADER), None)
+        raise unexpected_response_error(message=err.message, trace=trace)
