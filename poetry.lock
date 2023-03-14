@@ -548,22 +548,6 @@ files = [
 ]
 
 [[package]]
-name = "jsonseq"
-version = "1.0.0"
-description = "Python support for RFC 7464 JSON text sequences"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "jsonseq-1.0.0-py3-none-any.whl", hash = "sha256:d4add916420fc02796a503e59ce4d8008152830fd1625cc70692b1f980a32231"},
-    {file = "jsonseq-1.0.0.tar.gz", hash = "sha256:238f51aa741132d2a41d1fb89e58eb8d43c6da9d34845c9499dd882a4cd0253a"},
-]
-
-[package.extras]
-dev = ["check-manifest"]
-test = ["pytest", "pytest-cover"]
-
-[[package]]
 name = "mccabe"
 version = "0.6.1"
 description = "McCabe checker, plugin for flake8"
@@ -1050,4 +1034,4 @@ aio = ["Brotli", "aiohttp"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "26568f0b16a9607b52c89c9e29f6171d1f6cf7c16ac438751c03d68026fd063a"
+content-hash = "88a163bbf7f7464c21e64f5a782876828f2aa81297380440f6782e91ca9fa072"
