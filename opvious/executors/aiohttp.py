@@ -56,7 +56,7 @@ class AiohttpExecutor:
         self._headers["accept-encoding"] = "br;q=1.0, gzip;q=0.5, *;q=0.1"
         if authorization:
             self._headers["authorization"] = authorization
-        _logger.info("Instantiated `aiohttp` executor.")
+        _logger.debug("Instantiated executor. [url=%s]", api_url)
 
     def execute(
         self,
@@ -72,6 +72,7 @@ class AiohttpExecutor:
             all_headers["content-type"] = "application/json"
             data = json.dumps(json_body)
             if len(data) > _COMPRESSION_THRESHOLD:
+                _logger.debug("Compressing request. [size=%s]", len(data))
                 all_headers["content-encoding"] = "br"
                 data = brotli.compress(
                     data.encode("utf8"),

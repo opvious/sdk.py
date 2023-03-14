@@ -52,7 +52,7 @@ class UrllibExecutor:
         self._headers = default_headers("urllib")
         if authorization:
             self._headers["authorization"] = authorization
-        _logger.info("Instantiated `urllib` executor.")
+        _logger.debug("Instantiated executor. [url=%s]", api_url)
 
     def execute(
         self,

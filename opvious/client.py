@@ -21,6 +21,7 @@ import backoff
 from datetime import datetime, timezone
 import json
 import humanize
+import logging
 import os
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
@@ -41,11 +42,15 @@ from .data import (
     OutputData,
     Outputs,
     Relaxation,
+    Summary,
     Tensor,
     TensorArgument,
     UnboundedOutcome,
 )
 from .executors import default_executor, Executor, execute_graphql_query
+
+
+_logger = logging.getLogger(__name__)
 
 
 _DEFAULT_DOMAIN = "beta.opvious.io"
@@ -60,23 +65,33 @@ _DOMAIN_EVAR = "OPVIOUS_DOMAIN"
 class Client:
     """Opvious API client"""
 
-    def __init__(self, executor: Executor, hub_url: str):
+    def __init__(self, executor: Executor, api_url: str, hub_url: str):
         self._executor = executor
+        self._api_url = api_url
         self._hub_url = hub_url
 
+    def __repr__(self) -> str:
+        fields = [
+            f"executor_class={self._executor.__class__.__name__}",
+            f"api_url={json.dumps(self._api_url)}",
+        ]
+        return f"<opvious.Client {' '.join(fields)}>"
+
     @classmethod
-    def from_token(cls, token: str, domain: Optional[str] = None):
+    def from_token(cls, token: str, domain: Optional[str] = None) -> 'Client':
         """Creates a client from an API token."""
+        api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
         return Client(
             executor=default_executor(
-                api_url=f"https://api.{domain or _DEFAULT_DOMAIN}",
+                api_url=api_url,
                 authorization=token if " " in token else f"Bearer {token}",
             ),
+            api_url=api_url,
             hub_url=f"https://hub.{domain}",
         )
 
     @classmethod
-    def from_environment(cls, env=os.environ):
+    def from_environment(cls, env=os.environ) -> 'Client':
         """Creates a client from environment variables. OPVIOUS_TOKEN should
         contain a valid API token. OPVIOUS_DOMAIN can optionally be set to use
         a custom domain.
@@ -130,6 +145,7 @@ class Client:
             for label, param in parameters.items():
                 builder.set_parameter(label, param)
         inputs = builder.build()
+        _logger.debug("Validated inputs.")
 
         # After that we parse the streamed response data
         solved_data = None
@@ -157,13 +173,29 @@ class Client:
                 ),
             },
         ) as res:
+            _logger.debug("Uploaded inputs.")
             async for data in res.json_seq_data():
                 kind = data["kind"]
                 if kind == "ready":
-                    print(data)
+                    summary = Summary.from_json(data["summary"])
+                    _logger.info(
+                        "Solving problem... [columns=%s, rows=%s, weights=%s]",
+                        summary.column_count,
+                        summary.row_count,
+                        summary.weight_count,
+                    )
                 elif kind == "solving":
-                    print(data)
+                    progress = data["progress"]
+                    iter_count = progress.get("lpIterationCount")
+                    if iter_count is not None:
+                        _logger.info(
+                            "Solve in progress... [iters=%s, cuts=%s, gap=%s]",
+                            iter_count,
+                            progress.get("cutCount"),
+                            progress.get("relativeGap"),
+                        )
                 else:
+                    _logger.debug("Downloaded outputs.")
                     reached_at = datetime.now(timezone.utc)
                     solved_data = data
 
@@ -181,17 +213,17 @@ class Client:
                 objective_value=outcome_data.get("objectiveValue"),
                 relative_gap=outcome_data.get("relativeGap"),
             )
-        if not isinstance(outcome, FeasibleOutcome):
-            return Outputs(status=status, outcome=outcome)
-        outputs_data = solved_data["outputs"]
+        outputs_data = None
+        if isinstance(outcome, FeasibleOutcome):
+            outputs_data = OutputData.from_json(
+                data=solved_data["outputs"],
+                outline=outline,
+            )
         return Outputs(
             status=status,
             outcome=outcome,
-            data=OutputData(
-                outline=outline,
-                raw_variables=outputs_data["variables"],
-                raw_constraints=outputs_data["constraints"],
-            ),
+            summary=summary,
+            data=outputs_data,
         )
 
     async def _fetch_sources_outline(self, sources: list[str]) -> Outline:

@@ -20,7 +20,11 @@ with the License.  You may obtain a copy of the License at
 import asyncio
 import dataclasses
 import json
+import logging
 from typing import Any, AsyncIterator, Mapping, Optional, Protocol
+
+
+_logger = logging.getLogger(__name__)
 
 
 GRAPHQL_ENDPOINT = "/graphql"
@@ -79,6 +83,13 @@ class ExecutorResult:
     status: int
     trace: Optional[str]
 
+    def __post_init__(self):
+        _logger.debug(
+            'Got API response. [status=%s, trace=%s]',
+            self.status,
+            self.trace
+        )
+
     def _assert_status(self, status: int, text: Optional[str] = None) -> None:
         if self.status != status:
             raise ApiError(status=self.status, trace=self.trace, data=text)
@@ -92,7 +103,7 @@ class ExecutorResult:
 class JsonExecutorResult(ExecutorResult):
     """Unary JSON execution result"""
 
-    text: str
+    text: str = dataclasses.field(repr=False)
     content_type = "application/json"
 
     def json_data(self, status: int = 200) -> Any:
@@ -100,22 +111,31 @@ class JsonExecutorResult(ExecutorResult):
         return json.loads(self.text)
 
 
-RECORD_SEPARATOR = b"\x1e"
-
-
 @dataclasses.dataclass
 class JsonSeqExecutorResult(ExecutorResult):
     """Streaming JSON execution result"""
 
-    reader: asyncio.StreamReader
+    reader: asyncio.StreamReader = dataclasses.field(repr=False)
     content_type = "application/json-seq"
 
     async def json_seq_data(self) -> AsyncIterator[Any]:
         self._assert_status(200)
-        async for line in self.reader:
-            # TODO: Robust error checking.
-            data = line[1:] if line.startswith(RECORD_SEPARATOR) else line
-            yield json.loads(data)
+        if hasattr(self.reader, '__aiter__'):
+            async for line in self.reader:
+                yield _json_seq_item(line)
+        else:
+            # For synchronous executors
+            for line in self.reader:
+                yield _json_seq_item(line)
+
+
+RECORD_SEPARATOR = b"\x1e"
+
+
+def _json_seq_item(line: str) -> Any:
+    # TODO: Robust error checking.
+    data = line[1:] if line.startswith(RECORD_SEPARATOR) else line
+    return json.loads(data)
 
 
 Execution = AsyncIterator[ExecutorResult]

@@ -46,7 +46,7 @@ class PyodideExecutor:
         self._headers = default_headers("pyodide")
         if authorization:
             self._headers["authorization"] = authorization
-        _logger.info("Instantiated Pyodide executor.")
+        _logger.debug("Instantiated executor. [url=%s]", api_url)
 
     def execute(
         self,
