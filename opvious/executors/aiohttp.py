@@ -47,6 +47,12 @@ _BROTLI_QUALITY = 4
 _COMPRESSION_THRESHOLD = 2**16
 
 
+_READ_BUFFER_SIZE = 2**26  # 512MiB
+
+
+_REQUEST_TIMEOUT_SECONDS = 900  # 15 minutes
+
+
 class AiohttpExecutor:
     """`aiohttp`-powered GraphQL executor"""
 
@@ -56,7 +62,11 @@ class AiohttpExecutor:
         self._headers["accept-encoding"] = "br;q=1.0, gzip;q=0.5, *;q=0.1"
         if authorization:
             self._headers["authorization"] = authorization
-        _logger.info("Instantiated `aiohttp` executor.")
+        _logger.debug(
+            "Instantiated executor. [name=%s, url=%s]",
+            self.__class__.__name__,
+            api_url,
+        )
 
     def execute(
         self,
@@ -72,6 +82,9 @@ class AiohttpExecutor:
             all_headers["content-type"] = "application/json"
             data = json.dumps(json_body)
             if len(data) > _COMPRESSION_THRESHOLD:
+                _logger.debug(
+                    "Compressing API request... [size=%s]", len(data)
+                )
                 all_headers["content-encoding"] = "br"
                 data = brotli.compress(
                     data.encode("utf8"),
@@ -92,8 +105,13 @@ class AiohttpExecutor:
 async def _execution(
     url: str, method: str, headers: Headers, data: Any
 ) -> Execution:
+    _logger.debug("Sending API request... [size=%s]", len(data) if data else 0)
     try:
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession(
+            headers=headers,
+            read_bufsize=_READ_BUFFER_SIZE,
+            timeout=aiohttp.ClientTimeout(total=_REQUEST_TIMEOUT_SECONDS),
+        ) as session:
             async with session.request(
                 method=method, url=url, data=data
             ) as res:

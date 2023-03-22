@@ -267,6 +267,36 @@ Outcome = Union[
 ]
 
 
+# Summaries
+
+
+@dataclasses.dataclass
+class Summary:
+    column_count: int
+    row_count: int
+    weight_count: int
+
+    def density(self) -> float:
+        denom = self.column_count * self.row_count
+        return self.weight_count / denom if denom > 0 else 1
+
+    @classmethod
+    def from_json(cls, data) -> "Summary":
+        column_count = 0
+        for item in data["variables"]:
+            column_count += item["columnCount"]
+        row_count = 0
+        weight_count = 0
+        for item in data["constraints"]:
+            row_count += item["rowCount"]
+            weight_count += item["weightProfile"]["count"]
+        return Summary(
+            column_count=column_count,
+            row_count=row_count,
+            weight_count=weight_count,
+        )
+
+
 # Solve data
 
 
@@ -299,6 +329,14 @@ class OutputData:
     outline: Outline
     raw_variables: List[Any]
     raw_constraints: List[Any]
+
+    @classmethod
+    def from_json(cls, data, outline):
+        return OutputData(
+            outline=outline,
+            raw_variables=data["variables"],
+            raw_constraints=data["constraints"],
+        )
 
     def variable(self, label: Label) -> pd.DataFrame:
         for res in self.raw_variables:
@@ -350,7 +388,7 @@ class Inputs:
 
     formulation_name: str
     tag_name: str
-    data: InputData
+    data: InputData = dataclasses.field(repr=False)
 
 
 @dataclasses.dataclass
@@ -359,7 +397,8 @@ class Outputs:
 
     status: str
     outcome: Outcome
-    data: Optional[OutputData] = None
+    summary: Summary
+    data: Optional[OutputData] = dataclasses.field(default=None, repr=False)
 
 
 # Attempt options
