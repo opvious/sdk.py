@@ -269,14 +269,19 @@ Outcome = Union[
 
 # Summaries
 
+
 @dataclasses.dataclass
 class Summary:
     column_count: int
     row_count: int
     weight_count: int
 
+    def density(self) -> float:
+        denom = self.column_count * self.row_count
+        return self.weight_count / denom if denom > 0 else 1
+
     @classmethod
-    def from_json(cls, data) -> 'Summary':
+    def from_json(cls, data) -> "Summary":
         column_count = 0
         for item in data["variables"]:
             column_count += item["columnCount"]

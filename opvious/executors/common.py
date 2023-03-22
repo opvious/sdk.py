@@ -85,9 +85,7 @@ class ExecutorResult:
 
     def __post_init__(self):
         _logger.debug(
-            'Got API response. [status=%s, trace=%s]',
-            self.status,
-            self.trace
+            "Got API response. [status=%s, trace=%s]", self.status, self.trace
         )
 
     def _assert_status(self, status: int, text: Optional[str] = None) -> None:
@@ -95,8 +93,8 @@ class ExecutorResult:
             raise ApiError(status=self.status, trace=self.trace, data=text)
 
     @classmethod
-    def is_eligible(cls, ctype: str) -> bool:
-        return ctype.split(";")[0] == cls.content_type
+    def is_eligible(cls, ctype: Optional[str]) -> bool:
+        return ctype and ctype.split(";")[0] == cls.content_type
 
 
 @dataclasses.dataclass
@@ -120,7 +118,7 @@ class JsonSeqExecutorResult(ExecutorResult):
 
     async def json_seq_data(self) -> AsyncIterator[Any]:
         self._assert_status(200)
-        if hasattr(self.reader, '__aiter__'):
+        if hasattr(self.reader, "__aiter__"):
             async for line in self.reader:
                 yield _json_seq_item(line)
         else:

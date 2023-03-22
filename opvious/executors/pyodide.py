@@ -46,7 +46,11 @@ class PyodideExecutor:
         self._headers = default_headers("pyodide")
         if authorization:
             self._headers["authorization"] = authorization
-        _logger.debug("Instantiated executor. [url=%s]", api_url)
+        _logger.debug(
+            "Instantiated executor. [name=%s, url=%s]",
+            self.__class__.__name__,
+            api_url,
+        )
 
     def execute(
         self,
@@ -75,6 +79,7 @@ class PyodideExecutor:
 async def _execution(
     url: str, method: str, headers: Headers, data: Any
 ) -> Execution:
+    _logger.debug("Sending API request... [size=%s]", len(data) if data else 0)
     # TODO: Raise any errors as ApiError
     res = await pyfetch(
         url=url,
