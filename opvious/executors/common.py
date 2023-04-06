@@ -30,6 +30,7 @@ from typing import (
     Optional,
     TypeVar,
 )
+import urllib.parse
 
 
 _logger = logging.getLogger(__name__)
@@ -235,12 +236,8 @@ class Executor:
             self._headers["authorization"] = authorization
         _logger.debug("Instantiated %s executor. [url=%s]", variant, api_url)
 
-    def _fetch_result(
-        self,
-        path: str,
-        method: str = "GET",
-        headers: Optional[Headers] = None,
-        json_body: Optional[Any] = None,
+    def _send(
+        self, url: str, method: str, headers: Headers, body: Optional[bytes]
     ) -> AsyncContextManager[ExecutorResult]:
         raise NotImplementedError()
 
@@ -251,10 +248,24 @@ class Executor:
         path: str,
         method: str = "GET",
         headers: Optional[Headers] = None,
-        json_body: Optional[Any] = None,
+        json_data: Optional[Any] = None,
     ) -> AsyncIterator[ExpectedExecutorResult]:
-        async with self._fetch_result(
-            path=path, method=method, headers=headers, json_body=json_body
+        all_headers = self._headers.copy()
+        if headers:
+            all_headers.update(headers)
+        if json_data:
+            all_headers["content-type"] = "application/json"
+            body = json.dumps(json_data).encode("utf8")
+        else:
+            body = None
+        _logger.debug(
+            "Sending API request... [size=%s]", len(body) if body else 0
+        )
+        async with self._send(
+            url=urllib.parse.urljoin(self._api_url, path),
+            method=method,
+            headers=all_headers,
+            body=body,
         ) as result:
             if not isinstance(result, result_type):
                 if isinstance(self, PlainTextExecutorResult):
@@ -272,10 +283,10 @@ class Executor:
         variables: Optional[Mapping[str, Any]] = None,
     ) -> Any:
         async with self.execute(
-            path="/graphql",
             result_type=JsonExecutorResult,
+            path="/graphql",
             method="POST",
-            json_body={"query": query, "variables": variables or {}},
+            json_data={"query": query, "variables": variables or {}},
         ) as result:
             data = result.json_data()
         if data.get("errors"):

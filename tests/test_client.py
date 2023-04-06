@@ -75,7 +75,7 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 33
 
-        input_data = await client.fetch_input_data(attempt)
+        input_data = await client.fetch_solve_input_data(attempt)
         costs = input_data.parameter("costPerRecipe")
         assert costs.to_dict() == {
             "lasagna": 12,
@@ -84,7 +84,7 @@ class TestClient:
             "caviar": 23,
         }
 
-        output_data = await client.fetch_output_data(attempt)
+        output_data = await client.fetch_solve_output_data(attempt)
         quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
         nutrients = output_data.constraint("enoughNutrients")
@@ -169,7 +169,7 @@ class TestClient:
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
 
-        output_data = await client.fetch_output_data(attempt)
+        output_data = await client.fetch_solve_output_data(attempt)
         decisions = output_data.variable("decisions")
         assert (0, 0, 3) in decisions.index
 

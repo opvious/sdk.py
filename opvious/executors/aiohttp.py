@@ -20,10 +20,8 @@ with the License.  You may obtain a copy of the License at
 import aiohttp
 import brotli  # type: ignore
 import contextlib
-import json
 import logging
-import urllib.parse
-from typing import Any, AsyncIterator, AsyncContextManager, Optional
+from typing import AsyncIterator, Optional
 
 from .common import (
     CONTENT_TYPE_HEADER,
@@ -55,89 +53,66 @@ _REQUEST_TIMEOUT_SECONDS = 900  # 15 minutes
 
 
 class AiohttpExecutor(Executor):
-    """`aiohttp`-powered GraphQL executor"""
+    """`aiohttp`-powered executor"""
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
         super().__init__("aiohttp", api_url, authorization)
 
-    def _fetch_result(
-        self,
-        path: str,
-        method: str = "GET",
-        headers: Optional[Headers] = None,
-        json_body: Optional[Any] = None,
-    ) -> AsyncContextManager[ExecutorResult]:
-        all_headers = self._headers.copy()
-        if headers:
-            all_headers.update(headers)
-        if json_body:
-            all_headers["content-type"] = "application/json"
-            data = json.dumps(json_body)
-            if len(data) > _COMPRESSION_THRESHOLD:
-                _logger.debug(
-                    "Compressing API request... [size=%s]", len(data)
-                )
-                all_headers["content-encoding"] = "br"
-                data = brotli.compress(
-                    data.encode("utf8"),
-                    mode=brotli.MODE_TEXT,
-                    quality=_BROTLI_QUALITY,
-                )
-        else:
-            data = None
-        return _execution(
-            url=urllib.parse.urljoin(self._api_url, path),
-            method=method,
-            headers=all_headers,
-            data=data,
-        )
-
-
-@contextlib.asynccontextmanager
-async def _execution(
-    url: str, method: str, headers: Headers, data: Any
-) -> AsyncIterator[ExecutorResult]:
-    _logger.debug("Sending API request... [size=%s]", len(data) if data else 0)
-    try:
-        async with aiohttp.ClientSession(
-            headers=headers,
-            read_bufsize=_READ_BUFFER_SIZE,
-            timeout=aiohttp.ClientTimeout(total=_REQUEST_TIMEOUT_SECONDS),
-        ) as session:
-            async with session.request(
-                method=method, url=url, data=data
-            ) as res:
-                status = res.status
-                trace = res.headers.get(TRACE_HEADER)
-                ctype = res.headers.get(CONTENT_TYPE_HEADER)
-                if JsonExecutorResult.is_eligible(ctype):
-                    text = await res.text()
-                    yield JsonExecutorResult(
-                        status=status,
-                        trace=trace,
-                        text=text,
-                    )
-                elif JsonSeqExecutorResult.is_eligible(ctype):
-                    yield JsonSeqExecutorResult(
-                        status=status,
-                        trace=trace,
-                        reader=res.content,
-                    )
-                elif PlainTextExecutorResult.is_eligible(ctype):
-                    yield PlainTextExecutorResult(
-                        status=status,
-                        trace=trace,
-                        reader=res.content,
-                    )
-                else:
-                    raise unsupported_content_type_error(
-                        content_type=ctype,
-                        trace=trace,
-                    )
-    except aiohttp.ClientResponseError as err:
-        trace = None
-        if isinstance(err.headers, list):
-            trace = next(
-                (v for (k, v) in err.headers if k == TRACE_HEADER), None
+    @contextlib.asynccontextmanager
+    async def _send(
+        self, url: str, method: str, headers: Headers, body: Optional[bytes]
+    ) -> AsyncIterator[ExecutorResult]:
+        if body and len(body) > _COMPRESSION_THRESHOLD:
+            headers["content-encoding"] = "br"
+            compressed_body = brotli.compress(
+                body,
+                mode=brotli.MODE_TEXT,
+                quality=_BROTLI_QUALITY,
             )
-        raise unexpected_response_error(message=err.message, trace=trace)
+            _logger.debug(
+                "Compressed request body. [size=%s]", len(compressed_body)
+            )
+            body = compressed_body
+        try:
+            async with aiohttp.ClientSession(
+                headers=headers,
+                read_bufsize=_READ_BUFFER_SIZE,
+                timeout=aiohttp.ClientTimeout(total=_REQUEST_TIMEOUT_SECONDS),
+            ) as session:
+                async with session.request(
+                    url=url, method=method, data=body
+                ) as res:
+                    status = res.status
+                    trace = res.headers.get(TRACE_HEADER)
+                    ctype = res.headers.get(CONTENT_TYPE_HEADER)
+                    if JsonExecutorResult.is_eligible(ctype):
+                        text = await res.text()
+                        yield JsonExecutorResult(
+                            status=status,
+                            trace=trace,
+                            text=text,
+                        )
+                    elif JsonSeqExecutorResult.is_eligible(ctype):
+                        yield JsonSeqExecutorResult(
+                            status=status,
+                            trace=trace,
+                            reader=res.content,
+                        )
+                    elif PlainTextExecutorResult.is_eligible(ctype):
+                        yield PlainTextExecutorResult(
+                            status=status,
+                            trace=trace,
+                            reader=res.content,
+                        )
+                    else:
+                        raise unsupported_content_type_error(
+                            content_type=ctype,
+                            trace=trace,
+                        )
+        except aiohttp.ClientResponseError as err:
+            trace = None
+            if isinstance(err.headers, list):
+                trace = next(
+                    (v for (k, v) in err.headers if k == TRACE_HEADER), None
+                )
+            raise unexpected_response_error(message=err.message, trace=trace)
