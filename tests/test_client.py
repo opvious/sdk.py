@@ -124,7 +124,7 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 60
 
-        output_data = await client.fetch_output_data(attempt)
+        output_data = await client.fetch_solve_output_data(attempt)
         quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "lasagna": 4}
 

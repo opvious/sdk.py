@@ -50,10 +50,10 @@ class UrllibExecutor(Executor):
 
     @contextlib.asynccontextmanager
     async def _send(
-        self, path: str, method: str, headers: Headers, data: Optional[bytes]
+        self, url: str, method: str, headers: Headers, data: Optional[bytes]
     ) -> AsyncIterator[ExecutorResult]:
         req = urllib.request.Request(
-            url=urllib.parse.urljoin(self._api_url, path),
+            url=url,
             headers=headers,
             method=method,
             data=data,
