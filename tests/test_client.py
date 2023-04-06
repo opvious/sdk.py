@@ -18,7 +18,7 @@ def client():
 class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_feasible_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 0.1}
         )
         attempt = await client.start_attempt(inputs)
@@ -29,7 +29,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_bounded_infeasible_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(inputs)
@@ -38,14 +38,16 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_simple_unbounded_attempt(self, client):
-        inputs = await client.assemble_inputs(formulation_name="unbounded")
+        inputs = await client.assemble_solve_inputs(
+            formulation_name="unbounded"
+        )
         attempt = await client.start_attempt(inputs)
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
     async def test_run_diet_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="diet",
             parameters={
                 "costPerRecipe": {
@@ -96,7 +98,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_pinned_diet_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="diet",
             parameters={
                 "costPerRecipe": {
@@ -128,7 +130,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_relaxed_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(
@@ -139,7 +141,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_bounded_relaxed_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(
@@ -160,7 +162,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_sudoku(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
         )
