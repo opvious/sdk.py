@@ -50,13 +50,13 @@ class UrllibExecutor(Executor):
 
     @contextlib.asynccontextmanager
     async def _send(
-        self, url: str, method: str, headers: Headers, data: Optional[bytes]
+        self, url: str, method: str, headers: Headers, body: Optional[bytes]
     ) -> AsyncIterator[ExecutorResult]:
         req = urllib.request.Request(
             url=url,
             headers=headers,
             method=method,
-            data=data,
+            data=body,
         )
         try:
             res = urllib.request.urlopen(req)
