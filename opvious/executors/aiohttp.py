@@ -34,7 +34,6 @@ from .common import (
     PlainTextExecutorResult,
     Headers,
     TRACE_HEADER,
-    Type,
     unexpected_response_error,
     unsupported_content_type_error,
 )

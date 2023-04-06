@@ -18,7 +18,7 @@ with the License.  You may obtain a copy of the License at
 """
 
 import sys
-from typing import cast, Optional
+from typing import Optional
 
 from .common import (
     ApiError,
@@ -35,6 +35,9 @@ __all__ = [
     "ApiError",
     "Executor",
     "ExecutorResult",
+    "JsonExecutorResult",
+    "JsonSeqExecutorResult",
+    "PlainTextExecutorResult",
 ]
 
 

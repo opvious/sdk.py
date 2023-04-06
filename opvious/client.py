@@ -599,7 +599,7 @@ class Client:
     async def fetch_input_data(self, attempt: Attempt) -> InputData:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            path=f"/attempts/{attempt.uuid}/inputs"
+            path=f"/attempts/{attempt.uuid}/inputs",
         ) as res:
             data = res.json_data()
         return InputData(
@@ -611,7 +611,7 @@ class Client:
     async def fetch_output_data(self, attempt: Attempt) -> OutputData:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            path=f"/attempts/{attempt.uuid}/outputs"
+            path=f"/attempts/{attempt.uuid}/outputs",
         ) as res:
             data = res.json_data()
         return OutputData(
