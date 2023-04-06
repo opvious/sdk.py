@@ -18,21 +18,23 @@ with the License.  You may obtain a copy of the License at
 """
 
 import aiohttp
-import brotli
+import brotli  # type: ignore
 import contextlib
 import json
 import logging
 import urllib.parse
-from typing import Any, Optional
+from typing import Any, AsyncIterator, AsyncContextManager, Optional
 
 from .common import (
     CONTENT_TYPE_HEADER,
-    default_headers,
-    Execution,
+    Executor,
+    ExecutorResult,
     JsonExecutorResult,
     JsonSeqExecutorResult,
+    PlainTextExecutorResult,
     Headers,
     TRACE_HEADER,
+    Type,
     unexpected_response_error,
     unsupported_content_type_error,
 )
@@ -53,28 +55,19 @@ _READ_BUFFER_SIZE = 2**26  # 512MiB
 _REQUEST_TIMEOUT_SECONDS = 900  # 15 minutes
 
 
-class AiohttpExecutor:
+class AiohttpExecutor(Executor):
     """`aiohttp`-powered GraphQL executor"""
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
-        self._api_url = api_url
-        self._headers = default_headers("aiohttp")
-        self._headers["accept-encoding"] = "br;q=1.0, gzip;q=0.5, *;q=0.1"
-        if authorization:
-            self._headers["authorization"] = authorization
-        _logger.debug(
-            "Instantiated executor. [name=%s, url=%s]",
-            self.__class__.__name__,
-            api_url,
-        )
+        super().__init__("aiohttp", api_url, authorization)
 
-    def execute(
+    def _fetch_result(
         self,
         path: str,
         method: str = "GET",
         headers: Optional[Headers] = None,
         json_body: Optional[Any] = None,
-    ) -> Execution:
+    ) -> AsyncContextManager[ExecutorResult]:
         all_headers = self._headers.copy()
         if headers:
             all_headers.update(headers)
@@ -104,7 +97,7 @@ class AiohttpExecutor:
 @contextlib.asynccontextmanager
 async def _execution(
     url: str, method: str, headers: Headers, data: Any
-) -> Execution:
+) -> AsyncIterator[ExecutorResult]:
     _logger.debug("Sending API request... [size=%s]", len(data) if data else 0)
     try:
         async with aiohttp.ClientSession(
@@ -131,11 +124,21 @@ async def _execution(
                         trace=trace,
                         reader=res.content,
                     )
+                elif PlainTextExecutorResult.is_eligible(ctype):
+                    yield PlainTextExecutorResult(
+                        status=status,
+                        trace=trace,
+                        reader=res.content,
+                    )
                 else:
                     raise unsupported_content_type_error(
                         content_type=ctype,
                         trace=trace,
                     )
     except aiohttp.ClientResponseError as err:
-        trace = next((v for k, v in err.headers if k == TRACE_HEADER), None)
+        trace = None
+        if isinstance(err.headers, list):
+            trace = next(
+                (v for (k, v) in err.headers if k == TRACE_HEADER), None
+            )
         raise unexpected_response_error(message=err.message, trace=trace)

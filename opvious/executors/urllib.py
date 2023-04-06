@@ -23,17 +23,17 @@ import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Optional
+from typing import Any, AsyncContextManager, AsyncIterator, Optional
 
 from .common import (
     CONTENT_TYPE_HEADER,
-    default_headers,
     Headers,
-    Execution,
+    Executor,
+    ExecutorResult,
     JsonExecutorResult,
     JsonSeqExecutorResult,
+    PlainTextExecutorResult,
     TRACE_HEADER,
-    unexpected_response_error,
     unsupported_content_type_error,
 )
 
@@ -41,30 +41,22 @@ from .common import (
 _logger = logging.getLogger(__name__)
 
 
-class UrllibExecutor:
+class UrllibExecutor(Executor):
     """
     `urllib`-powered GraphQL executor, used as fallback. When possible, prefer
     using the `aiohttp` equivalent.
     """
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
-        self._api_url = api_url
-        self._headers = default_headers("urllib")
-        if authorization:
-            self._headers["authorization"] = authorization
-        _logger.debug(
-            "Instantiated executor. [name=%s, url=%s]",
-            self.__class__.__name__,
-            api_url,
-        )
+        super().__init__("urllib", api_url, authorization)
 
-    def execute(
+    def _fetch_result(
         self,
         path: str,
         method: str = "GET",
         headers: Optional[Headers] = None,
         json_body: Optional[Any] = None,
-    ) -> Execution:
+    ) -> AsyncContextManager[ExecutorResult]:
         all_headers = self._headers.copy()
         if headers:
             all_headers.update(headers)
@@ -84,7 +76,7 @@ class UrllibExecutor:
 @contextlib.asynccontextmanager
 async def _execution(
     url: str, method: str, headers: Headers, data: Any
-) -> Execution:
+) -> AsyncIterator[ExecutorResult]:
     _logger.debug("Sending API request... [size=%s]", len(data) if data else 0)
     req = urllib.request.Request(
         url=url,
@@ -96,15 +88,14 @@ async def _execution(
         res = urllib.request.urlopen(req)
     except urllib.error.HTTPError as err:
         res = err
-    except Exception as err:
-        trace = err.headers.get(TRACE_HEADER)
-        raise unexpected_response_error(message=err.reason, trace=trace)
     status = res.status
     trace = res.getheader(TRACE_HEADER)
     ctype = res.getheader(CONTENT_TYPE_HEADER)
     if JsonExecutorResult.is_eligible(ctype):
         text = res.read().decode("utf8")
         yield JsonExecutorResult(status=status, trace=trace, text=text)
+    elif PlainTextExecutorResult.is_eligible(ctype):
+        yield PlainTextExecutorResult(status=status, trace=trace, reader=res)
     elif JsonSeqExecutorResult.is_eligible(ctype):
         # TODO: Check compatible
         yield JsonSeqExecutorResult(status=status, trace=trace, reader=res)

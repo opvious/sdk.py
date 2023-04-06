@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
+import math
 import pandas as pd
 from typing import Any, Iterable, List, Mapping, Optional, Tuple, Union
 
@@ -62,15 +63,39 @@ TensorArgument = Union[
 ]
 
 
+ExtendedFloat = Union[float, str]
+
+
+def encode_extended_float(val: float):
+    if val == math.inf:
+        return "Infinity"
+    elif val == -math.inf:
+        return "-Infinity"
+    return val
+
+
+def decode_extended_float(val: ExtendedFloat):
+    if val == "Infinity":
+        return math.inf
+    elif val == "-Infinity":
+        return -math.inf
+    return val
+
+
 @dataclasses.dataclass
 class Tensor:
     entries: List[Any]
-    default_value: float = 0
+    default_value: ExtendedFloat = 0
 
     @classmethod
-    def from_argument(cls, arg: TensorArgument, is_indicator: bool = False):
+    def from_argument(
+        cls, arg: TensorArgument, rank: int, is_indicator: bool = False
+    ):
         if isinstance(arg, tuple):
             data, default_value = arg
+        elif rank > 0 and is_value(arg) and not is_indicator:
+            data = {}
+            default_value = arg
         else:
             data = arg
             default_value = 0
@@ -80,26 +105,39 @@ class Tensor:
             and not pd.api.types.is_numeric_dtype(data)
         ):
             data = data.reset_index()
+        keyifier = _Keyifier(rank)
         if is_indicator and isinstance(data, pd.DataFrame):
             entries = [
-                {"key": key, "value": 1}
+                {"key": keyifier.keyify(key), "value": 1}
                 for key in data.itertuples(index=False, name=None)
             ]
         elif is_indicator and not hasattr(data, "items"):
-            entries = [{"key": key, "value": 1} for key in data]
+            entries = [
+                {"key": keyifier.keyify(key), "value": 1} for key in data
+            ]
         else:
             if is_value(data):
-                entries = [{"key": (), "value": data}]
+                entries = [{"key": (), "value": encode_extended_float(data)}]
             else:
                 entries = [
-                    {"key": _keyify(key), "value": value}
+                    {
+                        "key": keyifier.keyify(key),
+                        "value": encode_extended_float(value),
+                    }
                     for key, value in data.items()
                 ]
-        return Tensor(entries, default_value)
+        return Tensor(entries, encode_extended_float(default_value))
 
 
-def _keyify(key):
-    return tuple(key) if isinstance(key, (list, tuple)) else (key,)
+class _Keyifier:
+    def __init__(self, rank: int):
+        self.rank = rank
+
+    def keyify(self, key):
+        tup = tuple(key) if isinstance(key, (list, tuple)) else (key,)
+        if len(tup) != self.rank:
+            raise Exception(f"Invalid key rank: {len(tup)} != {self.rank}")
+        return tup
 
 
 # Outlines
@@ -312,12 +350,12 @@ class InputData:
                 entries = param["entries"]
                 outline = self.outline.parameters[label]
                 return pd.Series(
-                    data=(e["value"] for e in entries),
+                    data=(decode_extended_float(e["value"]) for e in entries),
                     index=_entry_index(entries, outline.bindings),
                 )
         raise Exception(f"Unknown parameter: {label}")
 
-    def dimension(self, label: Label) -> pd.Series:
+    def dimension(self, label: Label) -> pd.Index:
         for dim in self.raw_dimensions or []:
             if dim["label"] == label:
                 return pd.Index(dim["items"])
@@ -345,7 +383,10 @@ class OutputData:
                 outline = self.outline.variables[label]
                 df = pd.DataFrame(
                     data=(
-                        {"value": e["value"], "dual_value": e.get("dualValue")}
+                        {
+                            "value": decode_extended_float(e["value"]),
+                            "dual_value": e.get("dualValue"),
+                        }
                         for e in entries
                     ),
                     index=_entry_index(entries, outline.bindings),
@@ -370,6 +411,8 @@ class OutputData:
 
 
 def _entry_index(entries, bindings):
+    if not bindings:
+        return None
     if len(bindings) == 1:
         binding = bindings[0]
         return pd.Index(
