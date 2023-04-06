@@ -132,7 +132,7 @@ class TestClient:
             formulation_name="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(
-            inputs, relaxed_constraints=["greaterThanBound"]
+            inputs, relaxation=["greaterThanBound"]
         )
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
@@ -144,7 +144,7 @@ class TestClient:
         )
         attempt = await client.start_attempt(
             inputs,
-            relaxed_constraints=opvious.Relaxation(
+            relaxation=opvious.Relaxation(
                 penalty="MAX_DEVIATION",
                 objective_weight=1,
                 constraints=[
