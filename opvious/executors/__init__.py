@@ -20,7 +20,14 @@ with the License.  You may obtain a copy of the License at
 import sys
 from typing import Optional
 
-from .common import ApiError, Executor, ExecutorResult, execute_graphql_query
+from .common import (
+    ApiError,
+    Executor,
+    ExecutorResult,
+    JsonExecutorResult,
+    JsonSeqExecutorResult,
+    PlainTextExecutorResult,
+)
 
 
 __all__ = [
@@ -28,7 +35,9 @@ __all__ = [
     "ApiError",
     "Executor",
     "ExecutorResult",
-    "execute_graphql_query",
+    "JsonExecutorResult",
+    "JsonSeqExecutorResult",
+    "PlainTextExecutorResult",
 ]
 
 
@@ -44,14 +53,15 @@ def default_executor(
     if _is_using_pyodide():
         from .pyodide import PyodideExecutor
 
-        Executor = PyodideExecutor
+        return PyodideExecutor(api_url=api_url, authorization=authorization)
     else:
         try:
             from .aiohttp import AiohttpExecutor
         except ImportError:
             from .urllib import UrllibExecutor
 
-            Executor = UrllibExecutor
+            return UrllibExecutor(api_url=api_url, authorization=authorization)
         else:
-            Executor = AiohttpExecutor
-    return Executor(api_url=api_url, authorization=authorization)
+            return AiohttpExecutor(
+                api_url=api_url, authorization=authorization
+            )

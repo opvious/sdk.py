@@ -23,7 +23,16 @@ import json
 import humanize
 import logging
 import os
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import (
+    Any,
+    cast,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from .common import format_percent, strip_nones
 from .data import (
@@ -47,7 +56,13 @@ from .data import (
     TensorArgument,
     UnboundedOutcome,
 )
-from .executors import default_executor, Executor, execute_graphql_query
+from .executors import (
+    default_executor,
+    Executor,
+    JsonExecutorResult,
+    JsonSeqExecutorResult,
+    PlainTextExecutorResult,
+)
 
 
 _logger = logging.getLogger(__name__)
@@ -100,6 +115,43 @@ class Client:
             token=env[_TOKEN_EVAR], domain=env.get(_DOMAIN_EVAR)
         )
 
+    async def inspect(
+        self,
+        sources: Optional[list[str]] = None,
+        formulation_name: Optional[str] = None,
+        tag_name: Optional[str] = None,
+        parameters: Optional[Mapping[Label, TensorArgument]] = None,
+        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
+    ) -> str:
+        """Inspects an optimization problem, returning its underlying solver
+        instructions.
+        """
+        body, _outline = await self._assemble_solve_request(
+            sources=sources,
+            formulation_name=formulation_name,
+            tag_name=tag_name,
+            parameters=parameters,
+            dimensions=dimensions,
+        )
+        async with self._executor.execute(
+            result_type=PlainTextExecutorResult,
+            path="/solves/inspect/instructions",
+            method="POST",
+            headers={
+                "accept": "text/plain",
+            },
+            json_body={
+                "runRequest": body,
+            },
+        ) as res:
+            lines = []
+            async for line in res.lines():
+                if line.startswith("\\"):
+                    _logger.debug(line[2:].strip())
+                else:
+                    lines.append(line)
+            return "".join(lines)
+
     async def solve(
         self,
         sources: Optional[list[str]] = None,
@@ -109,74 +161,37 @@ class Client:
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relative_gap_threshold: Optional[float] = None,
         absolute_gap_threshold: Optional[float] = None,
-        primal_value_epsilon: Optional[float] = None,
+        zero_value_threshold: Optional[float] = None,
+        infinity_value_threshold: Optional[float] = None,
         timeout_millis: Optional[float] = None,
+        relaxation: Union[None, List[Label], Relaxation] = None,
     ) -> Outputs:
         """Solves an optimization problem. See also `start_attempt` for an
         alternative for long-running solves.
         """
-        # First we fetch the outline to validate/coerce inputs later on
-        if formulation_name:
-            if sources:
-                raise Exception(
-                    "Sources and formulation name are mutually exclusive"
-                )
-            outline, _tag = await self._fetch_formulation_outline(
-                formulation_name, tag_name
-            )
-            formulation = strip_nones(
-                {
-                    "name": formulation_name,
-                    "specificationTagName": tag_name,
-                }
-            )
-        else:
-            if not sources:
-                raise Exception("Sources or formulation name must be set")
-            outline = await self._fetch_sources_outline(sources)
-            formulation = {"sources": sources}
-
-        # Then we assemble the inputs
-        builder = _InputDataBuilder(outline=outline)
-        if dimensions:
-            for label, dim in dimensions.items():
-                builder.set_dimension(label, dim)
-        if parameters:
-            for label, param in parameters.items():
-                builder.set_parameter(label, param)
-        inputs = builder.build()
-        _logger.info(
-            "Validated inputs. [parameters=%s]",
-            builder.parameter_entry_count,
+        body, outline = await self._assemble_solve_request(
+            sources=sources,
+            formulation_name=formulation_name,
+            tag_name=tag_name,
+            parameters=parameters,
+            dimensions=dimensions,
+            relative_gap_threshold=relative_gap_threshold,
+            absolute_gap_threshold=absolute_gap_threshold,
+            zero_value_threshold=zero_value_threshold,
+            infinity_value_threshold=infinity_value_threshold,
+            timeout_millis=timeout_millis,
+            relaxation=relaxation,
         )
-
-        # After that we parse the streamed response data
         solved_data = None
         async with self._executor.execute(
+            result_type=JsonSeqExecutorResult,
             path="/solves/run",
             method="POST",
             headers={
-                "accept": "application/json-seq, text/*",
+                "accept": "application/json-seq;q=1, text/*;q=0.1",
             },
-            json_body={
-                "formulation": formulation,
-                "inputs": strip_nones(
-                    {
-                        "dimensions": inputs.raw_dimensions,
-                        "parameters": inputs.raw_parameters,
-                    }
-                ),
-                "options": strip_nones(
-                    {
-                        "absoluteGapThreshold": absolute_gap_threshold,
-                        "relativeGapThreshold": relative_gap_threshold,
-                        "timeoutMillis": timeout_millis,
-                        "primalValueEpsilon": primal_value_epsilon,
-                    }
-                ),
-            },
+            json_body=body,
         ) as res:
-            _logger.debug("Uploaded inputs.")
             async for data in res.json_seq_data():
                 kind = data["kind"]
                 if kind == "reifying":
@@ -213,16 +228,23 @@ class Client:
                             progress.get("cutCount"),
                             "n/a" if gap is None else format_percent(gap),
                         )
-                else:
+                elif kind == "solved":
                     _logger.debug("Downloaded outputs.")
                     reached_at = datetime.now(timezone.utc)
                     solved_data = data
+                elif kind == "error":
+                    message = data["error"]["message"]
+                    raise Exception(f"Solve failed: {message}")
+                else:
+                    raise Exception(f"Unexpected response: {json.dumps(data)}")
+        if not solved_data:
+            raise Exception("Solve terminated without any data")
 
         # Finally we gather the outputs
         outcome_data = solved_data["outcome"]
         status = outcome_data["status"]
         if status == "INFEASIBLE":
-            outcome = InfeasibleOutcome(reached_at)
+            outcome = cast(Outcome, InfeasibleOutcome(reached_at))
         elif status == "UNBOUNDED":
             outcome = UnboundedOutcome(reached_at)
         else:
@@ -245,8 +267,90 @@ class Client:
             data=outputs_data,
         )
 
+    async def _assemble_solve_request(
+        self,
+        sources: Optional[list[str]] = None,
+        formulation_name: Optional[str] = None,
+        tag_name: Optional[str] = None,
+        parameters: Optional[Mapping[Label, TensorArgument]] = None,
+        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
+        relative_gap_threshold: Optional[float] = None,
+        absolute_gap_threshold: Optional[float] = None,
+        zero_value_threshold: Optional[float] = None,
+        infinity_value_threshold: Optional[float] = None,
+        timeout_millis: Optional[float] = None,
+        relaxation: Union[None, List[Label], Relaxation] = None,
+    ) -> Tuple[Any, Outline]:
+        # First we fetch the outline to validate/coerce inputs later on
+        if formulation_name:
+            if sources:
+                raise Exception(
+                    "Sources and formulation name are mutually exclusive"
+                )
+            outline, _tag = await self._fetch_formulation_outline(
+                formulation_name, tag_name
+            )
+            formulation = strip_nones(
+                {
+                    "name": formulation_name,
+                    "specificationTagName": tag_name,
+                }
+            )
+        else:
+            if not sources:
+                raise Exception("Sources or formulation name must be set")
+            outline = await self._fetch_sources_outline(sources)
+            formulation = {"sources": sources}
+
+        # Then we assemble the inputs
+        builder = _InputDataBuilder(outline=outline)
+        if dimensions:
+            for label, dim in dimensions.items():
+                builder.set_dimension(label, dim)
+        if parameters:
+            for label, param in parameters.items():
+                builder.set_parameter(label, param)
+        inputs = builder.build()
+        _logger.info(
+            "Validated inputs. [parameters=%s]",
+            builder.parameter_entry_count,
+        )
+
+        # Then we add any relaxation options
+        if relaxation:
+            if isinstance(relaxation, list):
+                data = Relaxation.from_constraint_labels(relaxation)
+            else:
+                data = relaxation
+            relaxation_data = data.to_json()
+        else:
+            relaxation_data = None
+
+        # Finally we put everything together
+        body = {
+            "formulation": formulation,
+            "inputs": strip_nones(
+                {
+                    "dimensions": inputs.raw_dimensions,
+                    "parameters": inputs.raw_parameters,
+                }
+            ),
+            "options": strip_nones(
+                {
+                    "absoluteGapThreshold": absolute_gap_threshold,
+                    "relativeGapThreshold": relative_gap_threshold,
+                    "timeoutMillis": timeout_millis,
+                    "zeroValueThreshold": zero_value_threshold,
+                    "infinityValueThreshold": infinity_value_threshold,
+                    "relaxation": relaxation_data,
+                }
+            ),
+        }
+        return (body, outline)
+
     async def _fetch_sources_outline(self, sources: list[str]) -> Outline:
         async with self._executor.execute(
+            result_type=JsonExecutorResult,
             path="/sources/parse",
             method="POST",
             json_body={"sources": sources, "outline": True},
@@ -260,8 +364,7 @@ class Client:
     async def _fetch_formulation_outline(
         self, name: str, tag_name: Optional[str] = None
     ) -> Tuple[Outline, str]:
-        data = await execute_graphql_query(
-            executor=self._executor,
+        data = await self._executor.execute_graphql_query(
             query="@FetchOutline",
             variables={"formulationName": name, "tagName": tag_name},
         )
@@ -273,7 +376,7 @@ class Client:
             raise Exception("No matching specification found")
         spec = tag["specification"]
         outline = Outline.from_json(spec["outline"])
-        return [outline, tag["name"]]
+        return (outline, tag["name"])
 
     async def assemble_inputs(
         self,
@@ -306,31 +409,35 @@ class Client:
         inputs: Inputs,
         relative_gap_threshold: Optional[float] = None,
         absolute_gap_threshold: Optional[float] = None,
-        primal_value_epsilon: Optional[float] = None,
+        zero_value_threshold: Optional[float] = None,
+        infinity_value_threshold: Optional[float] = None,
         timeout_millis: Optional[float] = None,
-        relaxed_constraints: Union[None, List[Label], Relaxation] = None,
+        relaxation: Union[None, List[Label], Relaxation] = None,
         pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
     ) -> Attempt:
         """Starts a new asynchronous solve attempt."""
-        if relaxed_constraints:
-            if isinstance(relaxed_constraints, list):
-                data = Relaxation.from_constraint_labels(relaxed_constraints)
+        if relaxation:
+            if isinstance(relaxation, list):
+                data = Relaxation.from_constraint_labels(relaxation)
             else:
-                data = relaxed_constraints
-            relaxation = data.to_json()
+                data = relaxation
+            relaxation_data = data.to_json()
         else:
-            relaxation = None
+            relaxation_data = None
         pins = []
         if pinned_variables:
             for label, arg in pinned_variables.items():
                 var_outline = inputs.data.outline.variables.get(label)
                 if not var_outline:
                     raise Exception(f"Unknown variable {label}")
-                tensor = Tensor.from_argument(arg, var_outline.is_indicator())
+                tensor = Tensor.from_argument(
+                    arg, len(var_outline.bindings), var_outline.is_indicator()
+                )
                 if tensor.default_value:
                     raise Exception("Pinned variables may not have defaults")
                 pins.append({"label": label, "entries": tensor.entries})
         async with self._executor.execute(
+            result_type=JsonExecutorResult,
             path="/attempts/start",
             method="POST",
             json_body={
@@ -348,8 +455,9 @@ class Client:
                         "absoluteGapThreshold": absolute_gap_threshold,
                         "relativeGapThreshold": relative_gap_threshold,
                         "timeoutMillis": timeout_millis,
-                        "primalValueEpsilon": primal_value_epsilon,
-                        "relaxation": relaxation,
+                        "zeroValueThreshold": zero_value_threshold,
+                        "infinityValueThreshold": infinity_value_threshold,
+                        "relaxation": relaxation_data,
                     }
                 ),
             },
@@ -364,8 +472,7 @@ class Client:
 
     async def load_attempt(self, uuid: str) -> Optional[Attempt]:
         """Loads an existing attempt from its UUID."""
-        data = await execute_graphql_query(
-            executor=self._executor,
+        data = await self._executor.execute_graphql_query(
             query="@FetchAttempt",
             variables={"uuid": uuid},
         )
@@ -383,8 +490,7 @@ class Client:
 
     async def cancel_attempt(self, uuid: str) -> bool:
         """Cancels a running attempt."""
-        data = await execute_graphql_query(
-            executor=self._executor,
+        data = await self._executor.execute_graphql_query(
             query="@CancelAttempt",
             variables={"uuid": uuid},
         )
@@ -394,8 +500,7 @@ class Client:
         self, attempt: Attempt
     ) -> Union[Notification, Outcome]:
         """Polls an attempt for its outcome or latest progress notification."""
-        data = await execute_graphql_query(
-            executor=self._executor,
+        data = await self._executor.execute_graphql_query(
             query="@PollAttempt",
             variables={"uuid": attempt.uuid},
         )
@@ -409,7 +514,7 @@ class Client:
             )
         reached_at = datetime.fromisoformat(attempt_data["endedAt"])
         if status == "CANCELLED":
-            return CancelledOutcome(reached_at)
+            return cast(Outcome, CancelledOutcome(reached_at))
         if status == "INFEASIBLE":
             return InfeasibleOutcome(reached_at)
         if status == "UNBOUNDED":
@@ -492,8 +597,10 @@ class Client:
         return outcome
 
     async def fetch_input_data(self, attempt: Attempt) -> InputData:
-        url = f"/attempts/{attempt.uuid}/inputs"
-        async with self._executor.execute(url) as res:
+        async with self._executor.execute(
+            result_type=JsonExecutorResult,
+            path=f"/attempts/{attempt.uuid}/inputs",
+        ) as res:
             data = res.json_data()
         return InputData(
             outline=attempt.outline,
@@ -502,8 +609,10 @@ class Client:
         )
 
     async def fetch_output_data(self, attempt: Attempt) -> OutputData:
-        url = f"/attempts/{attempt.uuid}/outputs"
-        async with self._executor.execute(url) as res:
+        async with self._executor.execute(
+            result_type=JsonExecutorResult,
+            path=f"/attempts/{attempt.uuid}/outputs",
+        ) as res:
             data = res.json_data()
         return OutputData(
             outline=attempt.outline,
@@ -532,9 +641,14 @@ class _InputDataBuilder:
         outline = self._outline.parameters.get(label)
         if not outline:
             raise Exception(f"Unknown parameter: {label}")
-        tensor = Tensor.from_argument(arg, outline.is_indicator())
         if label in self._parameters:
             raise Exception(f"Duplicate parameter: {label}")
+        try:
+            tensor = Tensor.from_argument(
+                arg, len(outline.bindings), outline.is_indicator()
+            )
+        except Exception as exc:
+            raise ValueError(f"Invalid  parameter: {label}") from exc
         self._parameters[label] = {
             "label": label,
             "entries": tensor.entries,
@@ -542,7 +656,7 @@ class _InputDataBuilder:
         }
         self.parameter_entry_count += len(tensor.entries)
 
-    def build(self) -> Inputs:
+    def build(self) -> InputData:
         missing_labels = set()
 
         for label in self._outline.parameters:

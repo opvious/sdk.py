@@ -17,11 +17,19 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
-import asyncio
+import contextlib
 import dataclasses
 import json
 import logging
-from typing import Any, AsyncIterator, Mapping, Optional, Protocol
+from typing import (
+    Any,
+    AsyncContextManager,
+    AsyncIterator,
+    Type,
+    Mapping,
+    Optional,
+    TypeVar,
+)
 
 
 _logger = logging.getLogger(__name__)
@@ -36,7 +44,7 @@ TRACE_HEADER = "opvious-trace"
 CONTENT_TYPE_HEADER = "content-type"
 
 
-Headers = Mapping[str, str]
+Headers = dict[str, str]
 
 
 class ApiError(Exception):
@@ -70,7 +78,7 @@ def unexpected_response_error(
 
 
 def unsupported_content_type_error(
-    content_type: str, trace: Optional[str] = None
+    content_type: Optional[str], trace: Optional[str] = None
 ) -> Exception:
     return unexpected_response_error(
         message=f"unsupported content-type: {content_type}",
@@ -88,13 +96,87 @@ class ExecutorResult:
             "Got API response. [status=%s, trace=%s]", self.status, self.trace
         )
 
+    @property
+    def content_type(self) -> str:
+        raise NotImplementedError()
+
     def _assert_status(self, status: int, text: Optional[str] = None) -> None:
-        if self.status != status:
-            raise ApiError(status=self.status, trace=self.trace, data=text)
+        if self.status == status:
+            return
+        raise ApiError(status=self.status, trace=self.trace, data=text)
+
+    async def assert_content_type(self, ctype: str) -> None:
+        if self.content_type == ctype:
+            return
+        if isinstance(self, PlainTextExecutorResult):
+            text = await self.text()
+        else:
+            text = None
+        raise ApiError(status=self.status, trace=self.trace, data=text)
 
     @classmethod
     def is_eligible(cls, ctype: Optional[str]) -> bool:
-        return ctype and ctype.split(";")[0] == cls.content_type
+        return bool(ctype and ctype.split(";")[0] == cls.content_type)
+
+
+@dataclasses.dataclass
+class PlainTextExecutorResult(ExecutorResult):
+    """Plain text execution result"""
+
+    reader: Any = dataclasses.field(repr=False)
+    content_type = "text/plain"
+
+    async def text(self) -> str:
+        lines = []
+        async for line in self.lines(assert_status=None):
+            lines.append(line)
+        return "".join(lines)
+
+    async def lines(
+        self, assert_status: Optional[int] = 200
+    ) -> AsyncIterator[str]:
+        if assert_status:
+            self._assert_status(assert_status)
+
+        # Non-streaming
+        if isinstance(self.reader, str):
+            for line in self.reader.splitlines(keepends=True):
+                yield line
+            return
+
+        # Streaming
+        splitter = _LineSplitter()
+        if hasattr(self.reader, "__aiter__"):
+            async for chunk in self.reader:
+                for line in splitter.push(chunk):
+                    yield line
+        elif hasattr(self.reader, "__iter__"):
+            for chunk in self.reader:
+                for line in splitter.push(chunk):
+                    yield line
+        else:
+            raise Exception(f"Non-iterable reader: {self.reader}")
+        yield splitter.flush()
+
+
+class _LineSplitter:
+    def __init__(self):
+        self._buffer = ""
+
+    def push(self, chunk: bytes) -> list[str]:
+        lines = chunk.decode("utf8").splitlines(keepends=True)
+        if self._buffer:
+            lines[0] = self._buffer + lines[0]
+        if lines[-1].endswith("\n"):
+            self._buffer = ""
+        else:
+            self._buffer = lines.pop()
+        return lines
+
+    def flush(self) -> str:
+        buf = self._buffer
+        self._buffer = ""
+        return buf
 
 
 @dataclasses.dataclass
@@ -113,7 +195,7 @@ class JsonExecutorResult(ExecutorResult):
 class JsonSeqExecutorResult(ExecutorResult):
     """Streaming JSON execution result"""
 
-    reader: asyncio.StreamReader = dataclasses.field(repr=False)
+    reader: Any = dataclasses.field(repr=False)
     content_type = "application/json-seq"
 
     async def json_seq_data(self) -> AsyncIterator[Any]:
@@ -121,52 +203,87 @@ class JsonSeqExecutorResult(ExecutorResult):
         if hasattr(self.reader, "__aiter__"):
             async for line in self.reader:
                 yield _json_seq_item(line)
-        else:
+        elif hasattr(self.reader, "__iter__"):
             # For synchronous executors
             for line in self.reader:
                 yield _json_seq_item(line)
+        else:
+            raise Exception(f"Non-iterable reader: {self.reader}")
 
 
 RECORD_SEPARATOR = b"\x1e"
 
 
-def _json_seq_item(line: str) -> Any:
+def _json_seq_item(line: bytes) -> Any:
     # TODO: Robust error checking.
     data = line[1:] if line.startswith(RECORD_SEPARATOR) else line
     return json.loads(data)
 
 
-Execution = AsyncIterator[ExecutorResult]
+ExpectedExecutorResult = TypeVar(
+    "ExpectedExecutorResult", bound=ExecutorResult
+)
 
 
-class Executor(Protocol):
-    def execute(
+class Executor:
+    def __init__(
+        self, variant: str, api_url: str, authorization: Optional[str] = None
+    ):
+        self._api_url = api_url
+        self._headers = _default_headers(variant)
+        if authorization:
+            self._headers["authorization"] = authorization
+        _logger.debug("Instantiated %s executor. [url=%s]", variant, api_url)
+
+    def _fetch_result(
         self,
         path: str,
         method: str = "GET",
         headers: Optional[Headers] = None,
-        json_body: Optional[str] = None,
-    ) -> Execution:
-        pass
+        json_body: Optional[Any] = None,
+    ) -> AsyncContextManager[ExecutorResult]:
+        raise NotImplementedError()
+
+    @contextlib.asynccontextmanager
+    async def execute(
+        self,
+        result_type: Type[ExpectedExecutorResult],
+        path: str,
+        method: str = "GET",
+        headers: Optional[Headers] = None,
+        json_body: Optional[Any] = None,
+    ) -> AsyncIterator[ExpectedExecutorResult]:
+        async with self._fetch_result(
+            path=path, method=method, headers=headers, json_body=json_body
+        ) as result:
+            if not isinstance(result, result_type):
+                if isinstance(self, PlainTextExecutorResult):
+                    text = await self.text()
+                else:
+                    text = None
+                raise ApiError(
+                    status=result.status, trace=result.trace, data=text
+                )
+            yield result
+
+    async def execute_graphql_query(
+        self,
+        query: str,
+        variables: Optional[Mapping[str, Any]] = None,
+    ) -> Any:
+        async with self.execute(
+            path="/graphql",
+            result_type=JsonExecutorResult,
+            method="POST",
+            json_body={"query": query, "variables": variables or {}},
+        ) as result:
+            data = result.json_data()
+        if data.get("errors"):
+            raise ApiError(status=result.status, trace=result.trace, data=data)
+        return data["data"]
 
 
-async def execute_graphql_query(
-    executor: Executor,
-    query: str,
-    variables: Optional[Mapping[str, Any]] = None,
-) -> Any:
-    async with executor.execute(
-        path="/graphql",
-        method="POST",
-        json_body={"query": query, "variables": variables or {}},
-    ) as result:
-        data = result.json_data()
-    if data.get("errors"):
-        raise ApiError(status=result.status, trace=result.trace, data=data)
-    return data["data"]
-
-
-def default_headers(client: str) -> Headers:
+def _default_headers(client: str) -> Headers:
     return {
         "accept": "application/json;q=1, text/*;q=0.1",
         "opvious-client": f"Python SDK ({client})",
