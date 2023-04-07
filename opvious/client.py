@@ -27,7 +27,6 @@ from typing import (
     Any,
     cast,
     Dict,
-    List,
     Mapping,
     Optional,
     Tuple,
@@ -52,6 +51,7 @@ from .data import (
     SolveOptions,
     SolveOutputs,
     SolveResponse,
+    solve_options_to_json,
     Summary,
     Tensor,
     TensorArgument,
@@ -261,8 +261,8 @@ class Client:
         tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        relaxation: Union[None, List[Label], Relaxation] = None,
         options: Optional[SolveOptions] = None,
+        relaxation: Union[None, Relaxation] = None,
     ) -> Tuple[Any, Outline]:
         # First we fetch the outline to validate/coerce inputs later on
         if formulation_name:
@@ -299,19 +299,7 @@ class Client:
             builder.parameter_entry_count,
         )
 
-        # Then we add any relaxation options
-        if relaxation:
-            if isinstance(relaxation, list):
-                data = Relaxation.from_constraint_labels(relaxation)
-            else:
-                data = relaxation
-            relaxation_data = data.to_json()
-        else:
-            relaxation_data = None
-
         # Finally we put everything together
-        if not options:
-            options = SolveOptions()
         body = {
             "formulation": formulation,
             "inputs": strip_nones(
@@ -320,16 +308,7 @@ class Client:
                     "parameters": inputs.raw_parameters,
                 }
             ),
-            "options": strip_nones(
-                {
-                    "absoluteGapThreshold": options.absolute_gap_threshold,
-                    "relativeGapThreshold": options.relative_gap_threshold,
-                    "timeoutMillis": options.timeout_millis,
-                    "zeroValueThreshold": options.zero_value_threshold,
-                    "infinityValueThreshold": options.infinity_value_threshold,
-                    "relaxation": relaxation_data,
-                }
-            ),
+            "options": solve_options_to_json(options, relaxation),
         }
         return (body, outline)
 
@@ -392,20 +371,11 @@ class Client:
     async def start_attempt(
         self,
         request: AttemptRequest,
-        relaxation: Union[None, List[Label], Relaxation] = None,
-        pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
         options: Optional[SolveOptions] = None,
+        relaxation: Union[None, Relaxation] = None,
+        pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
     ) -> Attempt:
         """Starts a new asynchronous solve attempt."""
-        if relaxation:
-            if isinstance(relaxation, list):
-                data = Relaxation.from_constraint_labels(relaxation)
-            else:
-                data = relaxation
-            relaxation_data = data.to_json()
-        else:
-            relaxation_data = None
-
         pins = []
         if pinned_variables:
             for label, arg in pinned_variables.items():
@@ -419,7 +389,6 @@ class Client:
                     raise Exception("Pinned variables may not have defaults")
                 pins.append({"label": label, "entries": tensor.entries})
 
-        o = options if options else SolveOptions()
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path="/attempts/start",
@@ -434,16 +403,7 @@ class Client:
                         "pinnedVariables": pins,
                     }
                 ),
-                "options": strip_nones(
-                    {
-                        "absoluteGapThreshold": o.absolute_gap_threshold,
-                        "relativeGapThreshold": o.relative_gap_threshold,
-                        "timeoutMillis": o.timeout_millis,
-                        "zeroValueThreshold": o.zero_value_threshold,
-                        "infinityValueThreshold": o.infinity_value_threshold,
-                        "relaxation": relaxation_data,
-                    }
-                ),
+                "options": solve_options_to_json(options, relaxation),
             },
         ) as res:
             uuid = res.json_data()["uuid"]

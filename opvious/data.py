@@ -514,6 +514,24 @@ class SolveOptions:
     timeout_millis: Optional[float] = None
 
 
+def solve_options_to_json(
+    options: Optional[SolveOptions] = None,
+    relaxation: Optional[Relaxation] = None,
+):
+    if not options:
+        options = SolveOptions()
+    return strip_nones(
+        {
+            "absoluteGapThreshold": options.absolute_gap_threshold,
+            "relativeGapThreshold": options.relative_gap_threshold,
+            "timeoutMillis": options.timeout_millis,
+            "zeroValueThreshold": options.zero_value_threshold,
+            "infinityValueThreshold": options.infinity_value_threshold,
+            "relaxation": relaxation.to_json() if relaxation else None,
+        }
+    )
+
+
 @dataclasses.dataclass(frozen=True)
 class Attempt:
     uuid: str
