@@ -51,7 +51,7 @@ from .data import (
     SolveInputs,
     SolveOptions,
     SolveOutputs,
-    SolveResult,
+    SolveResponse,
     Summary,
     Tensor,
     TensorArgument,
@@ -159,7 +159,7 @@ class Client:
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relaxation: Optional[Relaxation] = None,
         options: Optional[SolveOptions] = None,
-    ) -> SolveResult:
+    ) -> SolveResponse:
         """Solves an optimization problem. See also `start_attempt` for an
         alternative for long-running solves.
         """
@@ -247,7 +247,7 @@ class Client:
                 data=solved_data["outputs"],
                 outline=outline,
             )
-        return SolveResult(
+        return SolveResponse(
             status=status,
             outcome=outcome,
             summary=summary,

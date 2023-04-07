@@ -390,7 +390,7 @@ class SolveOutputs:
 
 
 @dataclasses.dataclass(frozen=True)
-class SolveResult:
+class SolveResponse:
     """Solve outputs"""
 
     status: str
