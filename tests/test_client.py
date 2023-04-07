@@ -5,11 +5,13 @@ import pytest
 
 client = opvious.Client.from_token(
     token=os.environ.get("OPVIOUS_AUTHORIZATION", ""),
-    domain=os.environ.get("OPVIOUS_DOMAIN")
+    domain=os.environ.get("OPVIOUS_DOMAIN"),
 )
 
 
-@pytest.mark.skipif(not client.authenticated, reason="No access token detected")
+@pytest.mark.skipif(
+    not client.authenticated, reason="No access token detected"
+)
 class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_feasible_attempt(self):

@@ -96,8 +96,8 @@ class Client:
     @classmethod
     def from_token(cls, token: str, domain: Optional[str] = None) -> "Client":
         """
-        Creates a client from an API token. You can use an empty token to create
-        an unauthenticated client with limited functionality.
+        Creates a client from an API token. You can use an empty token to
+        create an unauthenticated client with limited functionality.
         """
         token = token.strip()
         api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
@@ -112,9 +112,7 @@ class Client:
 
     @classmethod
     def from_environment(
-        cls,
-        env=os.environ,
-        require_authenticated=False
+        cls, env=os.environ, require_authenticated=False
     ) -> "Client":
         """
         Creates a client from environment variables. If present, OPVIOUS_TOKEN
@@ -130,7 +128,9 @@ class Client:
 
     @property
     def authenticated(self):
-        """Returns true if the client was created with a non-empty API token."""
+        """
+        Returns true if the client was created with a non-empty API token.
+        """
         return self._executor.authenticated
 
     async def inspect(
