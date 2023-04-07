@@ -338,39 +338,15 @@ class Summary:
 # Solve data
 
 
-@dataclasses.dataclass
-class SolveInputData:
-    outline: Outline
-    raw_parameters: List[Any]
-    raw_dimensions: Optional[List[Any]]
-
-    def parameter(self, label: Label) -> pd.Series:
-        for param in self.raw_parameters:
-            if param["label"] == label:
-                entries = param["entries"]
-                outline = self.outline.parameters[label]
-                return pd.Series(
-                    data=(decode_extended_float(e["value"]) for e in entries),
-                    index=_entry_index(entries, outline.bindings),
-                )
-        raise Exception(f"Unknown parameter: {label}")
-
-    def dimension(self, label: Label) -> pd.Index:
-        for dim in self.raw_dimensions or []:
-            if dim["label"] == label:
-                return pd.Index(dim["items"])
-        raise Exception(f"Unknown dimension: {label}")
-
-
-@dataclasses.dataclass
-class SolveOutputData:
+@dataclasses.dataclass(frozen=True)
+class SolveOutputs:
     outline: Outline
     raw_variables: List[Any]
     raw_constraints: List[Any]
 
     @classmethod
     def from_json(cls, data, outline):
-        return SolveOutputData(
+        return SolveOutputs(
             outline=outline,
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
@@ -413,6 +389,45 @@ class SolveOutputData:
         raise Exception(f"Unknown constraint {label}")
 
 
+@dataclasses.dataclass(frozen=True)
+class SolveResult:
+    """Solve outputs"""
+
+    status: str
+    outcome: Outcome
+    summary: Summary
+    outputs: Optional[SolveOutputs] = dataclasses.field(
+        default=None, repr=False
+    )
+
+
+# Attempt data
+
+
+@dataclasses.dataclass
+class SolveInputs:
+    outline: Outline
+    raw_parameters: List[Any]
+    raw_dimensions: Optional[List[Any]]
+
+    def parameter(self, label: Label) -> pd.Series:
+        for param in self.raw_parameters:
+            if param["label"] == label:
+                entries = param["entries"]
+                outline = self.outline.parameters[label]
+                return pd.Series(
+                    data=(decode_extended_float(e["value"]) for e in entries),
+                    index=_entry_index(entries, outline.bindings),
+                )
+        raise Exception(f"Unknown parameter: {label}")
+
+    def dimension(self, label: Label) -> pd.Index:
+        for dim in self.raw_dimensions or []:
+            if dim["label"] == label:
+                return pd.Index(dim["items"])
+        raise Exception(f"Unknown dimension: {label}")
+
+
 def _entry_index(entries, bindings):
     if not bindings:
         return None
@@ -429,24 +444,12 @@ def _entry_index(entries, bindings):
 
 
 @dataclasses.dataclass
-class SolveInputs:
-    """Solve inputs"""
+class AttemptRequest:
+    """Attempt inputs"""
 
     formulation_name: str
     tag_name: str
-    data: SolveInputData = dataclasses.field(repr=False)
-
-
-@dataclasses.dataclass
-class SolveOutputs:
-    """Solve outputs"""
-
-    status: str
-    outcome: Outcome
-    summary: Summary
-    data: Optional[SolveOutputData] = dataclasses.field(
-        default=None, repr=False
-    )
+    inputs: SolveInputs = dataclasses.field(repr=False)
 
 
 # Attempt options
