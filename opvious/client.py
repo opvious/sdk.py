@@ -138,9 +138,6 @@ class Client:
             result_type=PlainTextExecutorResult,
             path="/solves/inspect/instructions",
             method="POST",
-            headers={
-                "accept": "text/plain",
-            },
             json_data={
                 "runRequest": body,
             },
@@ -180,9 +177,6 @@ class Client:
             result_type=JsonSeqExecutorResult,
             path="/solves/run",
             method="POST",
-            headers={
-                "accept": "application/json-seq;q=1, text/*;q=0.1",
-            },
             json_data=body,
         ) as res:
             async for data in res.json_seq_data():

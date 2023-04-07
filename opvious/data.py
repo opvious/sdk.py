@@ -143,7 +143,7 @@ class _Keyifier:
 # Outlines
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class SourceBinding:
     dimension_label: Optional[Label]
     qualifier: Optional[Label]
@@ -156,7 +156,7 @@ class SourceBinding:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class ObjectiveOutline:
     is_maximization: bool
 
@@ -165,7 +165,7 @@ class ObjectiveOutline:
         return ObjectiveOutline(is_maximization=data["isMaximization"])
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class DimensionOutline:
     label: Label
     is_numeric: bool
@@ -177,7 +177,7 @@ class DimensionOutline:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class TensorOutline:
     label: Label
     lower_bound: Optional[Value]
@@ -205,7 +205,7 @@ class TensorOutline:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class ConstraintOutline:
     label: Label
     bindings: List[SourceBinding]
@@ -218,7 +218,7 @@ class ConstraintOutline:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class Outline:
     objective: Optional[ObjectiveOutline]
     dimensions: Mapping[Label, DimensionOutline]
@@ -245,12 +245,12 @@ def _map_outlines(cls, data):
 # Outcomes
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class CancelledOutcome:
     reached_at: datetime
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class FailedOutcome:
     reached_at: datetime
     status: str
@@ -270,7 +270,7 @@ class FailedOutcome:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class FeasibleOutcome:
     reached_at: datetime
     is_optimal: bool
@@ -287,12 +287,12 @@ class FeasibleOutcome:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class InfeasibleOutcome:
     reached_at: datetime
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class UnboundedOutcome:
     reached_at: datetime
 
@@ -308,7 +308,7 @@ Outcome = Union[
 # Summaries
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class Summary:
     column_count: int
     row_count: int
@@ -511,12 +511,12 @@ class SolveOptions:
     timeout_millis: Optional[float] = None
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class Attempt:
     uuid: str
     started_at: datetime
-    outline: Outline
-    url: str
+    url: str = dataclasses.field(repr=False)
+    outline: Outline = dataclasses.field(repr=False)
 
     @classmethod
     def from_graphql(cls, data: Any, outline: Outline, url: str):
@@ -528,7 +528,7 @@ class Attempt:
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class Notification:
     dequeued: bool
     relative_gap: Optional[Value]
