@@ -469,7 +469,7 @@ class Relaxation:
         cls,
         labels: list[Label],
         penalty: Penalty = _DEFAULT_PENALTY,
-        objective_weight: Optional[float] = None
+        objective_weight: Optional[float] = None,
     ) -> Relaxation:
         """Relaxes all input constraints using a common penalty."""
         return Relaxation(

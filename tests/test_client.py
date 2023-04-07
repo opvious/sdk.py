@@ -135,9 +135,11 @@ class TestClient:
         )
         attempt = await client.start_attempt(
             request,
-            relaxation=opvious.Relaxation.from_constraint_labels([
-                "greaterThanBound",
-            ])
+            relaxation=opvious.Relaxation.from_constraint_labels(
+                [
+                    "greaterThanBound",
+                ]
+            ),
         )
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
