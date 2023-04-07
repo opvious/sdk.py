@@ -37,21 +37,21 @@ from typing import (
 from .common import format_percent, strip_nones
 from .data import (
     Attempt,
+    AttemptRequest,
     CancelledOutcome,
     DimensionArgument,
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    SolveInputData,
-    SolveInputs,
     Label,
     Notification,
     Outcome,
     Outline,
-    SolveOutputData,
+    Relaxation,
+    SolveInputs,
     SolveOptions,
     SolveOutputs,
-    Relaxation,
+    SolveResult,
     Summary,
     Tensor,
     TensorArgument,
@@ -138,9 +138,6 @@ class Client:
             result_type=PlainTextExecutorResult,
             path="/solves/inspect/instructions",
             method="POST",
-            headers={
-                "accept": "text/plain",
-            },
             json_data={
                 "runRequest": body,
             },
@@ -162,7 +159,7 @@ class Client:
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relaxation: Optional[Relaxation] = None,
         options: Optional[SolveOptions] = None,
-    ) -> SolveOutputs:
+    ) -> SolveResult:
         """Solves an optimization problem. See also `start_attempt` for an
         alternative for long-running solves.
         """
@@ -180,9 +177,6 @@ class Client:
             result_type=JsonSeqExecutorResult,
             path="/solves/run",
             method="POST",
-            headers={
-                "accept": "application/json-seq;q=1, text/*;q=0.1",
-            },
             json_data=body,
         ) as res:
             async for data in res.json_seq_data():
@@ -247,17 +241,17 @@ class Client:
                 objective_value=outcome_data.get("objectiveValue"),
                 relative_gap=outcome_data.get("relativeGap"),
             )
-        outputs_data = None
+        outputs = None
         if isinstance(outcome, FeasibleOutcome):
-            outputs_data = SolveOutputData.from_json(
+            outputs = SolveOutputs.from_json(
                 data=solved_data["outputs"],
                 outline=outline,
             )
-        return SolveOutputs(
+        return SolveResult(
             status=status,
             outcome=outcome,
             summary=summary,
-            data=outputs_data,
+            outputs=outputs,
         )
 
     async def _assemble_solve_request(
@@ -292,7 +286,7 @@ class Client:
             formulation = {"sources": sources}
 
         # Then we assemble the inputs
-        builder = _InputDataBuilder(outline=outline)
+        builder = _SolveInputsBuilder(outline=outline)
         if dimensions:
             for label, dim in dimensions.items():
                 builder.set_dimension(label, dim)
@@ -369,35 +363,35 @@ class Client:
         outline = Outline.from_json(spec["outline"])
         return (outline, tag["name"])
 
-    async def assemble_solve_inputs(
+    async def prepare_attempt_request(
         self,
         formulation_name: str,
         tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-    ) -> SolveInputs:
+    ) -> AttemptRequest:
         """Assembles and validates inputs for a given formulation. The returned
         object can be used to start an asynchronous solve via `start_attempt`.
         """
         outline, tag = await self._fetch_formulation_outline(
             formulation_name, tag_name
         )
-        builder = _InputDataBuilder(outline)
+        builder = _SolveInputsBuilder(outline)
         if dimensions:
             for label, dim in dimensions.items():
                 builder.set_dimension(label, dim)
         if parameters:
             for label, param in parameters.items():
                 builder.set_parameter(label, param)
-        return SolveInputs(
+        return AttemptRequest(
             formulation_name=formulation_name,
             tag_name=tag,
-            data=builder.build(),
+            inputs=builder.build(),
         )
 
     async def start_attempt(
         self,
-        inputs: SolveInputs,
+        request: AttemptRequest,
         relaxation: Union[None, List[Label], Relaxation] = None,
         pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
         options: Optional[SolveOptions] = None,
@@ -415,7 +409,7 @@ class Client:
         pins = []
         if pinned_variables:
             for label, arg in pinned_variables.items():
-                var_outline = inputs.data.outline.variables.get(label)
+                var_outline = request.inputs.outline.variables.get(label)
                 if not var_outline:
                     raise Exception(f"Unknown variable {label}")
                 tensor = Tensor.from_argument(
@@ -431,12 +425,12 @@ class Client:
             path="/attempts/start",
             method="POST",
             json_data={
-                "formulationName": inputs.formulation_name,
-                "specificationTagName": inputs.tag_name,
+                "formulationName": request.formulation_name,
+                "specificationTagName": request.tag_name,
                 "inputs": strip_nones(
                     {
-                        "dimensions": inputs.data.raw_dimensions,
-                        "parameters": inputs.data.raw_parameters,
+                        "dimensions": request.inputs.raw_dimensions,
+                        "parameters": request.inputs.raw_parameters,
                         "pinnedVariables": pins,
                     }
                 ),
@@ -456,7 +450,7 @@ class Client:
         return Attempt(
             uuid=uuid,
             started_at=datetime.now(timezone.utc),
-            outline=inputs.data.outline,
+            outline=request.inputs.outline,
             url=self._attempt_url(uuid),
         )
 
@@ -586,34 +580,32 @@ class Client:
             raise Exception(f"Unexpected outcome: {outcome}")
         return outcome
 
-    async def fetch_solve_input_data(self, attempt: Attempt) -> SolveInputData:
+    async def fetch_attempt_inputs(self, attempt: Attempt) -> SolveInputs:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path=f"/attempts/{attempt.uuid}/inputs",
         ) as res:
             data = res.json_data()
-        return SolveInputData(
+        return SolveInputs(
             outline=attempt.outline,
             raw_parameters=data["parameters"],
             raw_dimensions=data["dimensions"],
         )
 
-    async def fetch_solve_output_data(
-        self, attempt: Attempt
-    ) -> SolveOutputData:
+    async def fetch_attempt_outputs(self, attempt: Attempt) -> SolveOutputs:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path=f"/attempts/{attempt.uuid}/outputs",
         ) as res:
             data = res.json_data()
-        return SolveOutputData(
+        return SolveOutputs(
             outline=attempt.outline,
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )
 
 
-class _InputDataBuilder:
+class _SolveInputsBuilder:
     def __init__(self, outline: Outline):
         self._outline = outline
         self._dimensions: Dict[Label, Any] = {}
@@ -648,7 +640,7 @@ class _InputDataBuilder:
         }
         self.parameter_entry_count += len(tensor.entries)
 
-    def build(self) -> SolveInputData:
+    def build(self) -> SolveInputs:
         missing_labels = set()
 
         for label in self._outline.parameters:
@@ -663,7 +655,7 @@ class _InputDataBuilder:
         if missing_labels:
             raise Exception(f"Missing label(s): {missing_labels}")
 
-        return SolveInputData(
+        return SolveInputs(
             outline=self._outline,
             raw_parameters=list(self._parameters.values()),
             raw_dimensions=list(self._dimensions.values()) or None,

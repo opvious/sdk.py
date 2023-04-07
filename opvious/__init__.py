@@ -23,6 +23,7 @@ from .client import Client
 from .executors import ApiError, Executor
 from .data import (
     Attempt,
+    AttemptRequest,
     CancelledOutcome,
     ConstraintRelaxation,
     DimensionArgument,
@@ -36,10 +37,8 @@ from .data import (
     Outcome,
     Penalty,
     Relaxation,
-    SolveInputData,
     SolveInputs,
     SolveOptions,
-    SolveOutputData,
     SolveOutputs,
     SparseTensorArgument,
     Summary,
@@ -53,6 +52,7 @@ from .data import (
 __all__ = [
     "ApiError",
     "Attempt",
+    "AttemptRequest",
     "CancelledOutcome",
     "Client",
     "ConstraintRelaxation",
@@ -68,10 +68,8 @@ __all__ = [
     "Outcome",
     "Penalty",
     "Relaxation",
-    "SolveInputData",
     "SolveInputs",
     "SolveOptions",
-    "SolveOutputData",
     "SolveOutputs",
     "SparseTensorArgument",
     "Summary",
