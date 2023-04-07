@@ -119,7 +119,6 @@ class ExecutorResult:
 class PlainTextExecutorResult(ExecutorResult):
     """Plain text execution result"""
 
-    accept = "text/plain"
     content_type = "text/plain"
     reader: Any = dataclasses.field(repr=False)
 
@@ -180,7 +179,6 @@ class _LineSplitter:
 class JsonExecutorResult(ExecutorResult):
     """Unary JSON execution result"""
 
-    accept = "application/json;q=1 text/plain;q=0.1"
     content_type = "application/json"
     text: str = dataclasses.field(repr=False)
 
@@ -193,7 +191,6 @@ class JsonExecutorResult(ExecutorResult):
 class JsonSeqExecutorResult(ExecutorResult):
     """Streaming JSON execution result"""
 
-    accept = "application/json-seq;q=1 text/plain;q=0.1"
     content_type = "application/json-seq"
     reader: Any = dataclasses.field(repr=False)
 
@@ -253,9 +250,9 @@ class Executor:
             all_headers.update(headers)
 
         if result_type == JsonExecutorResult:
-            accept = "application/json;q=1 text/plain;q=0.1"
+            accept = "application/json;q=1, text/plain;q=0.1"
         elif result_type == JsonSeqExecutorResult:
-            accept = "application/json-seq;q=1 text/plain;q=0.1"
+            accept = "application/json-seq;q=1, text/plain;q=0.1"
         elif result_type == PlainTextExecutorResult:
             accept = "text/plain"
         else:
