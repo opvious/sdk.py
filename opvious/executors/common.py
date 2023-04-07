@@ -32,6 +32,8 @@ from typing import (
 )
 import urllib.parse
 
+from ..common import __version__
+
 
 _logger = logging.getLogger(__name__)
 
@@ -300,5 +302,5 @@ class Executor:
 
 def _default_headers(client: str) -> Headers:
     return {
-        "opvious-client": f"Python SDK ({client})",
+        "opvious-client": f"Python SDK v{__version__} ({client})",
     }
