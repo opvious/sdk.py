@@ -20,6 +20,7 @@ with the License.  You may obtain a copy of the License at
 import logging
 
 from .client import Client
+from .common import __version__
 from .executors import ApiError, Executor
 from .data import (
     Attempt,
@@ -51,6 +52,7 @@ from .data import (
 
 
 __all__ = [
+    "__version__",
     "ApiError",
     "Attempt",
     "AttemptRequest",

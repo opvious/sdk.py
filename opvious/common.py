@@ -17,6 +17,14 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
+from importlib import metadata
+
+
+__version__ = metadata.version(__package__)
+
+
+del metadata
+
 
 def format_percent(val):
     if val == "Infinity":
