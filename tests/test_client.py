@@ -301,3 +301,11 @@ class TestClient:
             parameters={"size": 2},
         )
         assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_inspect(self, client):
+        instructions = await client.inspect(
+            formulation_name="sudoku",
+            parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
+        )
+        assert "decisions" in instructions
