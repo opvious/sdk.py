@@ -27,7 +27,7 @@ import opvious
 client = opvious.Client.from_token(TOKEN)
 
 # Solve a simple portfolio selection optimization model
-outputs = await client.solve(
+response = await client.solve(
     sources=[
       r"""
           We find an allocation of assets which minimizes risk while satisfying
@@ -62,10 +62,10 @@ outputs = await client.solve(
 )
 
 # Print the optimal allocation, if any
-if isinstance(outputs.outcome, opvious.FeasibleOutcome):
-  print(outputs.data.variable("allocation"))
+if isinstance(response.outcome, opvious.FeasibleOutcome):
+  print(response.outputs.variable("allocation"))
 else:
-  print(f"Problem was {outputs.status}.") # INFEASIBLE, UNBOUNDED
+  print(f"Problem was {response.status}.") # INFEASIBLE, UNBOUNDED
 ```
 
 
