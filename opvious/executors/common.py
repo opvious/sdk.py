@@ -36,9 +36,6 @@ import urllib.parse
 _logger = logging.getLogger(__name__)
 
 
-GRAPHQL_ENDPOINT = "/graphql"
-
-
 TRACE_HEADER = "opvious-trace"
 
 
@@ -303,6 +300,5 @@ class Executor:
 
 def _default_headers(client: str) -> Headers:
     return {
-        "accept": "application/json;q=1, text/*;q=0.1",
         "opvious-client": f"Python SDK ({client})",
     }
