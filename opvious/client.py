@@ -73,8 +73,9 @@ _logger = logging.getLogger(__name__)
 _DEFAULT_DOMAIN = "beta.opvious.io"
 
 
-class Environment(enum.Enum):
+class Settings(enum.Enum):
     """Environment variable names"""
+
     TOKEN = "OPVIOUS_TOKEN"
     DOMAIN = "OPVIOUS_DOMAIN"
 
@@ -103,7 +104,7 @@ class Client:
         token = token.strip()
         authorization = None
         if token:
-            authorization = token if " " in token else f"Bearer {token}",
+            authorization = token if " " in token else f"Bearer {token}"
         api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
         return Client(
             executor=default_executor(
@@ -129,8 +130,7 @@ class Client:
                 f"Missing or empty {Settings.TOKEN.value} environment variable"
             )
         return Client.from_token(
-            token=token,
-            domain=env.get(Settings.DOMAIN.value)
+            token=token, domain=env.get(Settings.DOMAIN.value)
         )
 
     @property
