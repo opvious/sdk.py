@@ -41,6 +41,30 @@ __all__ = [
 ]
 
 
+def aiohttp_executor(
+    api_url: str, authorization: Optional[str] = None
+) -> Executor:
+    from .aiohttp import AiohttpExecutor
+
+    return AiohttpExecutor(api_url, authorization)
+
+
+def pyodide_executor(
+    api_url: str, authorization: Optional[str] = None
+) -> Executor:
+    from .pyodide import PyodideExecutor
+
+    return PyodideExecutor(api_url=api_url, authorization=authorization)
+
+
+def urllib_executor(
+    api_url: str, authorization: Optional[str] = None
+) -> Executor:
+    from .urllib import UrllibExecutor
+
+    return UrllibExecutor(api_url=api_url, authorization=authorization)
+
+
 def _is_using_pyodide():
     # https://pyodide.org/en/stable/usage/faq.html#how-to-detect-that-code-is-run-with-pyodide
     return "pyodide" in sys.modules
@@ -51,17 +75,8 @@ def default_executor(
 ) -> Executor:
     """Infers the best executor for the current environment"""
     if _is_using_pyodide():
-        from .pyodide import PyodideExecutor
-
-        return PyodideExecutor(api_url=api_url, authorization=authorization)
-    else:
-        try:
-            from .aiohttp import AiohttpExecutor
-        except ImportError:
-            from .urllib import UrllibExecutor
-
-            return UrllibExecutor(api_url=api_url, authorization=authorization)
-        else:
-            return AiohttpExecutor(
-                api_url=api_url, authorization=authorization
-            )
+        return pyodide_executor(api_url=api_url, authorization=authorization)
+    try:
+        return aiohttp_executor(api_url=api_url, authorization=authorization)
+    except ImportError:
+        return urllib_executor(api_url=api_url, authorization=authorization)

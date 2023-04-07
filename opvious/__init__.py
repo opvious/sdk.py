@@ -21,7 +21,14 @@ import logging
 
 from .client import Client
 from .common import __version__
-from .executors import ApiError, Executor
+from .executors import (
+    ApiError,
+    Executor,
+    aiohttp_executor,
+    default_executor,
+    pyodide_executor,
+    urllib_executor,
+)
 from .data import (
     Attempt,
     AttemptRequest,
@@ -52,7 +59,6 @@ from .data import (
 
 
 __all__ = [
-    "__version__",
     "ApiError",
     "Attempt",
     "AttemptRequest",
@@ -81,6 +87,11 @@ __all__ = [
     "TensorArgument",
     "UnboundedOutcome",
     "Value",
+    "__version__",
+    "aiohttp_executor",
+    "default_executor",
+    "pyodide_executor",
+    "urllib_executor",
 ]
 
 

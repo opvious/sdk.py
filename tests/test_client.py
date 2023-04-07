@@ -3,21 +3,18 @@ import os
 import pytest
 
 
-AUTHORIZATION = os.environ.get("OPVIOUS_AUTHORIZATION")
+client = opvious.Client.from_token(
+    token=os.environ.get("OPVIOUS_AUTHORIZATION", ""),
+    domain=os.environ.get("OPVIOUS_DOMAIN"),
+)
 
 
-@pytest.fixture
-def client():
-    if not AUTHORIZATION:
-        return None
-    domain = os.environ.get("OPVIOUS_DOMAIN")
-    return opvious.Client.from_token(AUTHORIZATION, domain)
-
-
-@pytest.mark.skipif(not AUTHORIZATION, reason="No access token detected")
+@pytest.mark.skipif(
+    not client.authenticated, reason="No access token detected"
+)
 class TestClient:
     @pytest.mark.asyncio
-    async def test_run_bounded_feasible_attempt(self, client):
+    async def test_run_bounded_feasible_attempt(self):
         request = await client.prepare_attempt_request(
             formulation_name="bounded", parameters={"bound": 0.1}
         )
@@ -28,7 +25,7 @@ class TestClient:
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
-    async def test_run_bounded_infeasible_attempt(self, client):
+    async def test_run_bounded_infeasible_attempt(self):
         request = await client.prepare_attempt_request(
             formulation_name="bounded", parameters={"bound": 3}
         )
@@ -37,7 +34,7 @@ class TestClient:
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_run_simple_unbounded_attempt(self, client):
+    async def test_run_simple_unbounded_attempt(self):
         request = await client.prepare_attempt_request(
             formulation_name="unbounded"
         )
@@ -46,7 +43,7 @@ class TestClient:
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
-    async def test_run_diet_attempt(self, client):
+    async def test_run_diet_attempt(self):
         request = await client.prepare_attempt_request(
             formulation_name="diet",
             parameters={
@@ -97,7 +94,7 @@ class TestClient:
         }
 
     @pytest.mark.asyncio
-    async def test_run_pinned_diet_attempt(self, client):
+    async def test_run_pinned_diet_attempt(self):
         request = await client.prepare_attempt_request(
             formulation_name="diet",
             parameters={
@@ -129,7 +126,7 @@ class TestClient:
         assert quantities["value"].to_dict() == {"pizza": 1, "lasagna": 4}
 
     @pytest.mark.asyncio
-    async def test_run_relaxed_attempt(self, client):
+    async def test_run_relaxed_attempt(self):
         request = await client.prepare_attempt_request(
             formulation_name="bounded", parameters={"bound": 3}
         )
@@ -145,7 +142,7 @@ class TestClient:
         assert isinstance(outcome, opvious.FeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_run_bounded_relaxed_attempt(self, client):
+    async def test_run_bounded_relaxed_attempt(self):
         request = await client.prepare_attempt_request(
             formulation_name="bounded", parameters={"bound": 3}
         )
@@ -166,7 +163,7 @@ class TestClient:
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_run_sudoku(self, client):
+    async def test_run_sudoku(self):
         request = await client.prepare_attempt_request(
             formulation_name="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
@@ -181,7 +178,7 @@ class TestClient:
         assert (0, 0, 3) in decisions.index
 
     @pytest.mark.asyncio
-    async def test_solve_bounded_feasible(self, client):
+    async def test_solve_bounded_feasible(self):
         outputs = await client.solve(
             sources=[
                 r"""
@@ -198,7 +195,7 @@ class TestClient:
         assert outputs.outcome.objective_value == 2
 
     @pytest.mark.asyncio
-    async def test_solve_bounded_infeasible(self, client):
+    async def test_solve_bounded_infeasible(self):
         outputs = await client.solve(
             sources=[
                 r"""
@@ -213,7 +210,7 @@ class TestClient:
         assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_solve_portfolio_selection(self, client):
+    async def test_solve_portfolio_selection(self):
         source = r"""
             We find an allocation of assets which minimizes risk while
             satisfying a minimum expected return and allocation per group.
@@ -251,7 +248,7 @@ class TestClient:
         assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_solve_diet(self, client):
+    async def test_solve_diet(self):
         outputs = await client.solve(
             formulation_name="diet",
             parameters={
@@ -271,7 +268,7 @@ class TestClient:
         assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_solve_no_objective(self, client):
+    async def test_solve_no_objective(self):
         source = r"""
         # N queens
 
@@ -303,7 +300,7 @@ class TestClient:
         assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_inspect(self, client):
+    async def test_inspect(self):
         instructions = await client.inspect(
             formulation_name="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},

@@ -95,7 +95,11 @@ class Client:
 
     @classmethod
     def from_token(cls, token: str, domain: Optional[str] = None) -> "Client":
-        """Creates a client from an API token."""
+        """
+        Creates a client from an API token. You can use an empty token to
+        create an unauthenticated client with limited functionality.
+        """
+        token = token.strip()
         api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
         return Client(
             executor=default_executor(
@@ -107,14 +111,27 @@ class Client:
         )
 
     @classmethod
-    def from_environment(cls, env=os.environ) -> "Client":
-        """Creates a client from environment variables. OPVIOUS_TOKEN should
-        contain a valid API token. OPVIOUS_DOMAIN can optionally be set to use
-        a custom domain.
+    def from_environment(
+        cls, env=os.environ, require_authenticated=False
+    ) -> "Client":
         """
-        return Client.from_token(
-            token=env[_TOKEN_EVAR], domain=env.get(_DOMAIN_EVAR)
-        )
+        Creates a client from environment variables. If present, OPVIOUS_TOKEN
+        should contain a valid API token. OPVIOUS_DOMAIN can optionally be set
+        to use a custom domain.
+        """
+        token = env.get(_TOKEN_EVAR, "")
+        if not token and require_authenticated:
+            raise Exception(
+                f"Missing or empty {_TOKEN_EVAR} environment variable"
+            )
+        return Client.from_token(token=token, domain=env.get(_DOMAIN_EVAR))
+
+    @property
+    def authenticated(self):
+        """
+        Returns true if the client was created with a non-empty API token.
+        """
+        return self._executor.authenticated
 
     async def inspect(
         self,

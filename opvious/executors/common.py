@@ -41,6 +41,9 @@ _logger = logging.getLogger(__name__)
 TRACE_HEADER = "opvious-trace"
 
 
+AUTHORIZATION_HEADER = "authorization"
+
+
 CONTENT_TYPE_HEADER = "content-type"
 
 
@@ -227,8 +230,12 @@ class Executor:
         self._api_url = api_url
         self._headers = _default_headers(variant)
         if authorization:
-            self._headers["authorization"] = authorization
+            self._headers[AUTHORIZATION_HEADER] = authorization
         _logger.debug("Instantiated %s executor. [url=%s]", variant, api_url)
+
+    @property
+    def authenticated(self):
+        return AUTHORIZATION_HEADER in self._headers
 
     def _send(
         self, url: str, method: str, headers: Headers, body: Optional[bytes]
