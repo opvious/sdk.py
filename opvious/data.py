@@ -23,7 +23,7 @@ import dataclasses
 from datetime import datetime
 import math
 import pandas as pd
-from typing import Any, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Iterable, Mapping, Optional, Tuple, Union
 
 from .common import strip_nones
 
@@ -84,7 +84,7 @@ def decode_extended_float(val: ExtendedFloat):
 
 @dataclasses.dataclass
 class Tensor:
-    entries: List[Any]
+    entries: list[Any]
     default_value: ExtendedFloat = 0
 
     @classmethod
@@ -183,7 +183,7 @@ class TensorOutline:
     lower_bound: Optional[Value]
     upper_bound: Optional[Value]
     is_integral: bool
-    bindings: List[SourceBinding]
+    bindings: list[SourceBinding]
 
     def is_indicator(self) -> bool:
         return (
@@ -208,7 +208,7 @@ class TensorOutline:
 @dataclasses.dataclass(frozen=True)
 class ConstraintOutline:
     label: Label
-    bindings: List[SourceBinding]
+    bindings: list[SourceBinding]
 
     @classmethod
     def from_json(cls, data: Any) -> ConstraintOutline:
@@ -338,11 +338,35 @@ class Summary:
 # Solve data
 
 
+@dataclasses.dataclass
+class SolveInputs:
+    outline: Outline
+    raw_parameters: list[Any]
+    raw_dimensions: Optional[list[Any]]
+
+    def parameter(self, label: Label) -> pd.Series:
+        for param in self.raw_parameters:
+            if param["label"] == label:
+                entries = param["entries"]
+                outline = self.outline.parameters[label]
+                return pd.Series(
+                    data=(decode_extended_float(e["value"]) for e in entries),
+                    index=_entry_index(entries, outline.bindings),
+                )
+        raise Exception(f"Unknown parameter: {label}")
+
+    def dimension(self, label: Label) -> pd.Index:
+        for dim in self.raw_dimensions or []:
+            if dim["label"] == label:
+                return pd.Index(dim["items"])
+        raise Exception(f"Unknown dimension: {label}")
+
+
 @dataclasses.dataclass(frozen=True)
 class SolveOutputs:
     outline: Outline
-    raw_variables: List[Any]
-    raw_constraints: List[Any]
+    raw_variables: list[Any]
+    raw_constraints: list[Any]
 
     @classmethod
     def from_json(cls, data, outline):
@@ -391,8 +415,6 @@ class SolveOutputs:
 
 @dataclasses.dataclass(frozen=True)
 class SolveResponse:
-    """Solve outputs"""
-
     status: str
     outcome: Outcome
     summary: Summary
@@ -402,30 +424,6 @@ class SolveResponse:
 
 
 # Attempt data
-
-
-@dataclasses.dataclass
-class SolveInputs:
-    outline: Outline
-    raw_parameters: List[Any]
-    raw_dimensions: Optional[List[Any]]
-
-    def parameter(self, label: Label) -> pd.Series:
-        for param in self.raw_parameters:
-            if param["label"] == label:
-                entries = param["entries"]
-                outline = self.outline.parameters[label]
-                return pd.Series(
-                    data=(decode_extended_float(e["value"]) for e in entries),
-                    index=_entry_index(entries, outline.bindings),
-                )
-        raise Exception(f"Unknown parameter: {label}")
-
-    def dimension(self, label: Label) -> pd.Index:
-        for dim in self.raw_dimensions or []:
-            if dim["label"] == label:
-                return pd.Index(dim["items"])
-        raise Exception(f"Unknown dimension: {label}")
 
 
 def _entry_index(entries, bindings):
@@ -462,14 +460,21 @@ _DEFAULT_PENALTY = "TOTAL_DEVIATION"
 
 @dataclasses.dataclass
 class Relaxation:
-    penalty: Penalty
+    penalty: Penalty = _DEFAULT_PENALTY
     objective_weight: Optional[float] = None
-    constraints: Optional[List[ConstraintRelaxation]] = None
+    constraints: Optional[list[ConstraintRelaxation]] = None
 
     @classmethod
-    def from_constraint_labels(cls, labels: List[Label]) -> Relaxation:
+    def from_constraint_labels(
+        cls,
+        labels: list[Label],
+        penalty: Penalty = _DEFAULT_PENALTY,
+        objective_weight: Optional[float] = None,
+    ) -> Relaxation:
+        """Relaxes all input constraints using a common penalty."""
         return Relaxation(
-            penalty=_DEFAULT_PENALTY,
+            penalty=penalty,
+            objective_weight=objective_weight,
             constraints=[ConstraintRelaxation(label=n) for n in labels],
         )
 
@@ -512,6 +517,24 @@ class SolveOptions:
     zero_value_threshold: Optional[float] = None
     infinity_value_threshold: Optional[float] = None
     timeout_millis: Optional[float] = None
+
+
+def solve_options_to_json(
+    options: Optional[SolveOptions] = None,
+    relaxation: Optional[Relaxation] = None,
+):
+    if not options:
+        options = SolveOptions()
+    return strip_nones(
+        {
+            "absoluteGapThreshold": options.absolute_gap_threshold,
+            "relativeGapThreshold": options.relative_gap_threshold,
+            "timeoutMillis": options.timeout_millis,
+            "zeroValueThreshold": options.zero_value_threshold,
+            "infinityValueThreshold": options.infinity_value_threshold,
+            "relaxation": relaxation.to_json() if relaxation else None,
+        }
+    )
 
 
 @dataclasses.dataclass(frozen=True)
