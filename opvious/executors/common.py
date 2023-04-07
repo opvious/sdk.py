@@ -98,21 +98,16 @@ class ExecutorResult:
         )
 
     @property
+    def accept(self) -> str:
+        raise NotImplementedError()
+
+    @property
     def content_type(self) -> str:
         raise NotImplementedError()
 
     def _assert_status(self, status: int, text: Optional[str] = None) -> None:
         if self.status == status:
             return
-        raise ApiError(status=self.status, trace=self.trace, data=text)
-
-    async def assert_content_type(self, ctype: str) -> None:
-        if self.content_type == ctype:
-            return
-        if isinstance(self, PlainTextExecutorResult):
-            text = await self.text()
-        else:
-            text = None
         raise ApiError(status=self.status, trace=self.trace, data=text)
 
     @classmethod
@@ -124,8 +119,9 @@ class ExecutorResult:
 class PlainTextExecutorResult(ExecutorResult):
     """Plain text execution result"""
 
-    reader: Any = dataclasses.field(repr=False)
+    accept = "text/plain"
     content_type = "text/plain"
+    reader: Any = dataclasses.field(repr=False)
 
     async def text(self) -> str:
         lines = []
@@ -184,8 +180,9 @@ class _LineSplitter:
 class JsonExecutorResult(ExecutorResult):
     """Unary JSON execution result"""
 
-    text: str = dataclasses.field(repr=False)
+    accept = "application/json;q=1 text/plain;q=0.1"
     content_type = "application/json"
+    text: str = dataclasses.field(repr=False)
 
     def json_data(self, status: int = 200) -> Any:
         self._assert_status(status, self.text)
@@ -196,8 +193,9 @@ class JsonExecutorResult(ExecutorResult):
 class JsonSeqExecutorResult(ExecutorResult):
     """Streaming JSON execution result"""
 
-    reader: Any = dataclasses.field(repr=False)
+    accept = "application/json-seq;q=1 text/plain;q=0.1"
     content_type = "application/json-seq"
+    reader: Any = dataclasses.field(repr=False)
 
     async def json_seq_data(self) -> AsyncIterator[Any]:
         self._assert_status(200)
@@ -253,11 +251,23 @@ class Executor:
         all_headers = self._headers.copy()
         if headers:
             all_headers.update(headers)
+
+        if result_type == JsonExecutorResult:
+            accept = "application/json;q=1 text/plain;q=0.1"
+        elif result_type == JsonSeqExecutorResult:
+            accept = "application/json-seq;q=1 text/plain;q=0.1"
+        elif result_type == PlainTextExecutorResult:
+            accept = "text/plain"
+        else:
+            raise Exception(f"Unsupported result type: {result_type}")
+        all_headers["accept"] = accept
+
         if json_data:
             all_headers["content-type"] = "application/json"
             body = json.dumps(json_data).encode("utf8")
         else:
             body = None
+
         _logger.debug(
             "Sending API request... [size=%s]", len(body) if body else 0
         )
