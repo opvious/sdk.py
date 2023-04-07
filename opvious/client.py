@@ -42,14 +42,15 @@ from .data import (
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    InputData,
-    Inputs,
+    SolveInputData,
+    SolveInputs,
     Label,
     Notification,
     Outcome,
     Outline,
-    OutputData,
-    Outputs,
+    SolveOutputData,
+    SolveOptions,
+    SolveOutputs,
     Relaxation,
     Summary,
     Tensor,
@@ -140,7 +141,7 @@ class Client:
             headers={
                 "accept": "text/plain",
             },
-            json_body={
+            json_data={
                 "runRequest": body,
             },
         ) as res:
@@ -159,13 +160,9 @@ class Client:
         tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        relative_gap_threshold: Optional[float] = None,
-        absolute_gap_threshold: Optional[float] = None,
-        zero_value_threshold: Optional[float] = None,
-        infinity_value_threshold: Optional[float] = None,
-        timeout_millis: Optional[float] = None,
-        relaxation: Union[None, List[Label], Relaxation] = None,
-    ) -> Outputs:
+        relaxation: Optional[Relaxation] = None,
+        options: Optional[SolveOptions] = None,
+    ) -> SolveOutputs:
         """Solves an optimization problem. See also `start_attempt` for an
         alternative for long-running solves.
         """
@@ -175,12 +172,8 @@ class Client:
             tag_name=tag_name,
             parameters=parameters,
             dimensions=dimensions,
-            relative_gap_threshold=relative_gap_threshold,
-            absolute_gap_threshold=absolute_gap_threshold,
-            zero_value_threshold=zero_value_threshold,
-            infinity_value_threshold=infinity_value_threshold,
-            timeout_millis=timeout_millis,
             relaxation=relaxation,
+            options=options,
         )
         solved_data = None
         async with self._executor.execute(
@@ -190,7 +183,7 @@ class Client:
             headers={
                 "accept": "application/json-seq;q=1, text/*;q=0.1",
             },
-            json_body=body,
+            json_data=body,
         ) as res:
             async for data in res.json_seq_data():
                 kind = data["kind"]
@@ -256,11 +249,11 @@ class Client:
             )
         outputs_data = None
         if isinstance(outcome, FeasibleOutcome):
-            outputs_data = OutputData.from_json(
+            outputs_data = SolveOutputData.from_json(
                 data=solved_data["outputs"],
                 outline=outline,
             )
-        return Outputs(
+        return SolveOutputs(
             status=status,
             outcome=outcome,
             summary=summary,
@@ -274,12 +267,8 @@ class Client:
         tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        relative_gap_threshold: Optional[float] = None,
-        absolute_gap_threshold: Optional[float] = None,
-        zero_value_threshold: Optional[float] = None,
-        infinity_value_threshold: Optional[float] = None,
-        timeout_millis: Optional[float] = None,
         relaxation: Union[None, List[Label], Relaxation] = None,
+        options: Optional[SolveOptions] = None,
     ) -> Tuple[Any, Outline]:
         # First we fetch the outline to validate/coerce inputs later on
         if formulation_name:
@@ -327,6 +316,8 @@ class Client:
             relaxation_data = None
 
         # Finally we put everything together
+        if not options:
+            options = SolveOptions()
         body = {
             "formulation": formulation,
             "inputs": strip_nones(
@@ -337,11 +328,11 @@ class Client:
             ),
             "options": strip_nones(
                 {
-                    "absoluteGapThreshold": absolute_gap_threshold,
-                    "relativeGapThreshold": relative_gap_threshold,
-                    "timeoutMillis": timeout_millis,
-                    "zeroValueThreshold": zero_value_threshold,
-                    "infinityValueThreshold": infinity_value_threshold,
+                    "absoluteGapThreshold": options.absolute_gap_threshold,
+                    "relativeGapThreshold": options.relative_gap_threshold,
+                    "timeoutMillis": options.timeout_millis,
+                    "zeroValueThreshold": options.zero_value_threshold,
+                    "infinityValueThreshold": options.infinity_value_threshold,
                     "relaxation": relaxation_data,
                 }
             ),
@@ -353,7 +344,7 @@ class Client:
             result_type=JsonExecutorResult,
             path="/sources/parse",
             method="POST",
-            json_body={"sources": sources, "outline": True},
+            json_data={"sources": sources, "outline": True},
         ) as res:
             outline_data = res.json_data()
         errors = outline_data.get("errors")
@@ -378,13 +369,13 @@ class Client:
         outline = Outline.from_json(spec["outline"])
         return (outline, tag["name"])
 
-    async def assemble_inputs(
+    async def assemble_solve_inputs(
         self,
         formulation_name: str,
         tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-    ) -> Inputs:
+    ) -> SolveInputs:
         """Assembles and validates inputs for a given formulation. The returned
         object can be used to start an asynchronous solve via `start_attempt`.
         """
@@ -398,7 +389,7 @@ class Client:
         if parameters:
             for label, param in parameters.items():
                 builder.set_parameter(label, param)
-        return Inputs(
+        return SolveInputs(
             formulation_name=formulation_name,
             tag_name=tag,
             data=builder.build(),
@@ -406,14 +397,10 @@ class Client:
 
     async def start_attempt(
         self,
-        inputs: Inputs,
-        relative_gap_threshold: Optional[float] = None,
-        absolute_gap_threshold: Optional[float] = None,
-        zero_value_threshold: Optional[float] = None,
-        infinity_value_threshold: Optional[float] = None,
-        timeout_millis: Optional[float] = None,
+        inputs: SolveInputs,
         relaxation: Union[None, List[Label], Relaxation] = None,
         pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
+        options: Optional[SolveOptions] = None,
     ) -> Attempt:
         """Starts a new asynchronous solve attempt."""
         if relaxation:
@@ -424,6 +411,7 @@ class Client:
             relaxation_data = data.to_json()
         else:
             relaxation_data = None
+
         pins = []
         if pinned_variables:
             for label, arg in pinned_variables.items():
@@ -436,11 +424,13 @@ class Client:
                 if tensor.default_value:
                     raise Exception("Pinned variables may not have defaults")
                 pins.append({"label": label, "entries": tensor.entries})
+
+        o = options if options else SolveOptions()
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path="/attempts/start",
             method="POST",
-            json_body={
+            json_data={
                 "formulationName": inputs.formulation_name,
                 "specificationTagName": inputs.tag_name,
                 "inputs": strip_nones(
@@ -452,11 +442,11 @@ class Client:
                 ),
                 "options": strip_nones(
                     {
-                        "absoluteGapThreshold": absolute_gap_threshold,
-                        "relativeGapThreshold": relative_gap_threshold,
-                        "timeoutMillis": timeout_millis,
-                        "zeroValueThreshold": zero_value_threshold,
-                        "infinityValueThreshold": infinity_value_threshold,
+                        "absoluteGapThreshold": o.absolute_gap_threshold,
+                        "relativeGapThreshold": o.relative_gap_threshold,
+                        "timeoutMillis": o.timeout_millis,
+                        "zeroValueThreshold": o.zero_value_threshold,
+                        "infinityValueThreshold": o.infinity_value_threshold,
                         "relaxation": relaxation_data,
                     }
                 ),
@@ -596,25 +586,27 @@ class Client:
             raise Exception(f"Unexpected outcome: {outcome}")
         return outcome
 
-    async def fetch_input_data(self, attempt: Attempt) -> InputData:
+    async def fetch_solve_input_data(self, attempt: Attempt) -> SolveInputData:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path=f"/attempts/{attempt.uuid}/inputs",
         ) as res:
             data = res.json_data()
-        return InputData(
+        return SolveInputData(
             outline=attempt.outline,
             raw_parameters=data["parameters"],
             raw_dimensions=data["dimensions"],
         )
 
-    async def fetch_output_data(self, attempt: Attempt) -> OutputData:
+    async def fetch_solve_output_data(
+        self, attempt: Attempt
+    ) -> SolveOutputData:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path=f"/attempts/{attempt.uuid}/outputs",
         ) as res:
             data = res.json_data()
-        return OutputData(
+        return SolveOutputData(
             outline=attempt.outline,
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
@@ -656,7 +648,7 @@ class _InputDataBuilder:
         }
         self.parameter_entry_count += len(tensor.entries)
 
-    def build(self) -> InputData:
+    def build(self) -> SolveInputData:
         missing_labels = set()
 
         for label in self._outline.parameters:
@@ -671,7 +663,7 @@ class _InputDataBuilder:
         if missing_labels:
             raise Exception(f"Missing label(s): {missing_labels}")
 
-        return InputData(
+        return SolveInputData(
             outline=self._outline,
             raw_parameters=list(self._parameters.values()),
             raw_dimensions=list(self._dimensions.values()) or None,

@@ -339,7 +339,7 @@ class Summary:
 
 
 @dataclasses.dataclass
-class InputData:
+class SolveInputData:
     outline: Outline
     raw_parameters: List[Any]
     raw_dimensions: Optional[List[Any]]
@@ -363,14 +363,14 @@ class InputData:
 
 
 @dataclasses.dataclass
-class OutputData:
+class SolveOutputData:
     outline: Outline
     raw_variables: List[Any]
     raw_constraints: List[Any]
 
     @classmethod
     def from_json(cls, data, outline):
-        return OutputData(
+        return SolveOutputData(
             outline=outline,
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
@@ -401,7 +401,10 @@ class OutputData:
                 outline = self.outline.constraints[label]
                 df = pd.DataFrame(
                     data=(
-                        {"slack": e["value"], "dual_value": e.get("dualValue")}
+                        {
+                            "slack": e["value"],
+                            "dual_value": e.get("dualValue"),
+                        }
                         for e in entries
                     ),
                     index=_entry_index(entries, outline.bindings),
@@ -426,22 +429,24 @@ def _entry_index(entries, bindings):
 
 
 @dataclasses.dataclass
-class Inputs:
+class SolveInputs:
     """Solve inputs"""
 
     formulation_name: str
     tag_name: str
-    data: InputData = dataclasses.field(repr=False)
+    data: SolveInputData = dataclasses.field(repr=False)
 
 
 @dataclasses.dataclass
-class Outputs:
+class SolveOutputs:
     """Solve outputs"""
 
     status: str
     outcome: Outcome
     summary: Summary
-    data: Optional[OutputData] = dataclasses.field(default=None, repr=False)
+    data: Optional[SolveOutputData] = dataclasses.field(
+        default=None, repr=False
+    )
 
 
 # Attempt options
@@ -495,6 +500,15 @@ class ConstraintRelaxation:
                 "surplusBound": self.bound,
             }
         )
+
+
+@dataclasses.dataclass
+class SolveOptions:
+    relative_gap_threshold: Optional[float] = None
+    absolute_gap_threshold: Optional[float] = None
+    zero_value_threshold: Optional[float] = None
+    infinity_value_threshold: Optional[float] = None
+    timeout_millis: Optional[float] = None
 
 
 @dataclasses.dataclass

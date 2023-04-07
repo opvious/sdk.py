@@ -18,7 +18,7 @@ def client():
 class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_feasible_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 0.1}
         )
         attempt = await client.start_attempt(inputs)
@@ -29,7 +29,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_bounded_infeasible_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(inputs)
@@ -38,14 +38,16 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_simple_unbounded_attempt(self, client):
-        inputs = await client.assemble_inputs(formulation_name="unbounded")
+        inputs = await client.assemble_solve_inputs(
+            formulation_name="unbounded"
+        )
         attempt = await client.start_attempt(inputs)
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
     async def test_run_diet_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="diet",
             parameters={
                 "costPerRecipe": {
@@ -75,7 +77,7 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 33
 
-        input_data = await client.fetch_input_data(attempt)
+        input_data = await client.fetch_solve_input_data(attempt)
         costs = input_data.parameter("costPerRecipe")
         assert costs.to_dict() == {
             "lasagna": 12,
@@ -84,7 +86,7 @@ class TestClient:
             "caviar": 23,
         }
 
-        output_data = await client.fetch_output_data(attempt)
+        output_data = await client.fetch_solve_output_data(attempt)
         quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
         nutrients = output_data.constraint("enoughNutrients")
@@ -96,7 +98,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_pinned_diet_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="diet",
             parameters={
                 "costPerRecipe": {
@@ -122,13 +124,13 @@ class TestClient:
         assert outcome.is_optimal
         assert outcome.objective_value == 60
 
-        output_data = await client.fetch_output_data(attempt)
+        output_data = await client.fetch_solve_output_data(attempt)
         quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "lasagna": 4}
 
     @pytest.mark.asyncio
     async def test_run_relaxed_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(
@@ -139,7 +141,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_bounded_relaxed_attempt(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(
@@ -160,7 +162,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_sudoku(self, client):
-        inputs = await client.assemble_inputs(
+        inputs = await client.assemble_solve_inputs(
             formulation_name="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
         )
@@ -169,7 +171,7 @@ class TestClient:
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
 
-        output_data = await client.fetch_output_data(attempt)
+        output_data = await client.fetch_solve_output_data(attempt)
         decisions = output_data.variable("decisions")
         assert (0, 0, 3) in decisions.index
 
