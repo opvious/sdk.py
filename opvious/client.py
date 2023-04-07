@@ -592,9 +592,7 @@ class Client:
             raw_dimensions=data["dimensions"],
         )
 
-    async def fetch_attempt_outputs(
-        self, attempt: Attempt
-    ) -> SolveOutputs:
+    async def fetch_attempt_outputs(self, attempt: Attempt) -> SolveOutputs:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path=f"/attempts/{attempt.uuid}/outputs",
