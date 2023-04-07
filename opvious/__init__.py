@@ -19,7 +19,7 @@ with the License.  You may obtain a copy of the License at
 
 import logging
 
-from .client import Client
+from .client import Client, Settings
 from .common import __version__
 from .executors import (
     ApiError,
@@ -77,6 +77,7 @@ __all__ = [
     "Outcome",
     "Penalty",
     "Relaxation",
+    "Settings",
     "SolveInputs",
     "SolveOptions",
     "SolveOutputs",

@@ -19,6 +19,7 @@ with the License.  You may obtain a copy of the License at
 
 import backoff
 from datetime import datetime, timezone
+import enum
 import json
 import humanize
 import logging
@@ -72,10 +73,11 @@ _logger = logging.getLogger(__name__)
 _DEFAULT_DOMAIN = "beta.opvious.io"
 
 
-_TOKEN_EVAR = "OPVIOUS_TOKEN"
+class Settings(enum.Enum):
+    """Environment variable names"""
 
-
-_DOMAIN_EVAR = "OPVIOUS_DOMAIN"
+    TOKEN = "OPVIOUS_TOKEN"
+    DOMAIN = "OPVIOUS_DOMAIN"
 
 
 class Client:
@@ -100,11 +102,14 @@ class Client:
         create an unauthenticated client with limited functionality.
         """
         token = token.strip()
+        authorization = None
+        if token:
+            authorization = token if " " in token else f"Bearer {token}"
         api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
         return Client(
             executor=default_executor(
                 api_url=api_url,
-                authorization=token if " " in token else f"Bearer {token}",
+                authorization=authorization,
             ),
             api_url=api_url,
             hub_url=f"https://hub.{domain}",
@@ -115,16 +120,18 @@ class Client:
         cls, env=os.environ, require_authenticated=False
     ) -> "Client":
         """
-        Creates a client from environment variables. If present, OPVIOUS_TOKEN
-        should contain a valid API token. OPVIOUS_DOMAIN can optionally be set
-        to use a custom domain.
+        Creates a client from environment variables. If present, the token
+        should contain a valid API token. A custom domain can optionally be
+        set.
         """
-        token = env.get(_TOKEN_EVAR, "")
+        token = env.get(Settings.TOKEN.value, "")
         if not token and require_authenticated:
             raise Exception(
-                f"Missing or empty {_TOKEN_EVAR} environment variable"
+                f"Missing or empty {Settings.TOKEN.value} environment variable"
             )
-        return Client.from_token(token=token, domain=env.get(_DOMAIN_EVAR))
+        return Client.from_token(
+            token=token, domain=env.get(Settings.DOMAIN.value)
+        )
 
     @property
     def authenticated(self):
