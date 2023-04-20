@@ -179,7 +179,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_solve_bounded_feasible(self):
-        outputs = await client.solve(
+        outputs = await client.run_solve(
             sources=[
                 r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
@@ -196,7 +196,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_solve_bounded_infeasible(self):
-        outputs = await client.solve(
+        outputs = await client.run_solve(
             sources=[
                 r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
@@ -229,7 +229,7 @@ class TestClient:
             + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
             + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
         """
-        outputs = await client.solve(
+        outputs = await client.run_solve(
             sources=[source],
             parameters={
                 "covariance": {
@@ -249,7 +249,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_solve_diet(self):
-        outputs = await client.solve(
+        outputs = await client.run_solve(
             formulation_name="diet",
             parameters={
                 "costPerRecipe": {
@@ -294,7 +294,7 @@ class TestClient:
         \end{align}
         $$
         """
-        outputs = await client.solve(
+        outputs = await client.run_solve(
             sources=[source],
             parameters={"size": 2},
         )
@@ -302,7 +302,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_inspect(self):
-        instructions = await client.inspect(
+        instructions = await client.inspect_solve_instructions(
             formulation_name="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
         )

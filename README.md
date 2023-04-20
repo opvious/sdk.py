@@ -23,11 +23,10 @@ With these steps out of the way, you are ready to optimize!
 ```python
 import opvious
 
-# Instantiate an API client from an API token
 client = opvious.Client.from_token(TOKEN)
 
 # Solve a simple portfolio selection optimization model
-response = await client.solve(
+response = await client.run_solve(
     sources=[
       r"""
           We find an allocation of assets which minimizes risk while satisfying

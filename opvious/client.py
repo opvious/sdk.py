@@ -140,16 +140,18 @@ class Client:
         """
         return self._executor.authenticated
 
-    async def inspect(
+    async def inspect_solve_instructions(
         self,
         sources: Optional[list[str]] = None,
         formulation_name: Optional[str] = None,
         tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
+        relaxation: Optional[Relaxation] = None,
+        options: Optional[SolveOptions] = None,
     ) -> str:
-        """Inspects an optimization problem, returning its underlying solver
-        instructions.
+        """Inspects an optimization problem's instructions, returning its
+        LP formatted representation.
         """
         body, _outline = await self._assemble_solve_request(
             sources=sources,
@@ -157,6 +159,8 @@ class Client:
             tag_name=tag_name,
             parameters=parameters,
             dimensions=dimensions,
+            relaxation=relaxation,
+            options=options,
         )
         async with self._executor.execute(
             result_type=PlainTextExecutorResult,
@@ -174,7 +178,7 @@ class Client:
                     lines.append(line)
             return "".join(lines)
 
-    async def solve(
+    async def run_solve(
         self,
         sources: Optional[list[str]] = None,
         formulation_name: Optional[str] = None,
