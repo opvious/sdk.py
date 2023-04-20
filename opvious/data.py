@@ -516,6 +516,7 @@ class SolveOptions:
     absolute_gap_threshold: Optional[float] = None
     zero_value_threshold: Optional[float] = None
     infinity_value_threshold: Optional[float] = None
+    free_bound_threshold: Optional[float] = None
     timeout_millis: Optional[float] = None
 
 
@@ -532,6 +533,7 @@ def solve_options_to_json(
             "timeoutMillis": options.timeout_millis,
             "zeroValueThreshold": options.zero_value_threshold,
             "infinityValueThreshold": options.infinity_value_threshold,
+            "freeBoundThreshold": options.free_bound_threshold,
             "relaxation": relaxation.to_json() if relaxation else None,
         }
     )

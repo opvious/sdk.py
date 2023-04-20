@@ -264,6 +264,7 @@ class TestClient:
                     ("carbs", "pizza"): 5,
                 },
             },
+            options=opvious.SolveOptions(free_bound_threshold=1e9),
         )
         assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
 

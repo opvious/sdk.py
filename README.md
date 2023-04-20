@@ -61,11 +61,9 @@ response = await client.solve(
     },
 )
 
-# Print the optimal allocation, if any
-if isinstance(response.outcome, opvious.FeasibleOutcome):
+print(f"Problem was {response.status}.") # OPTIMAL, INFEASIBLE, ...
+if response.outputs: # Present if the problem was feasible
   print(response.outputs.variable("allocation"))
-else:
-  print(f"Problem was {response.status}.") # INFEASIBLE, UNBOUNDED
 ```
 
 
@@ -87,7 +85,7 @@ more performant (this is the default if the `aio` dependencies were specified).
 ## Next steps
 
 This SDK is focused on solving optimization models. For convenient access to the
-rest of Opvious API's functionality, consider using the [TypeScript SDK and
+rest of Opvious' functionality, consider using the [TypeScript SDK and
 CLI][cli].
 
 
