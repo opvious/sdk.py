@@ -140,16 +140,18 @@ class Client:
         """
         return self._executor.authenticated
 
-    async def inspect(
+    async def inspect_solve_instructions(
         self,
         sources: Optional[list[str]] = None,
         formulation_name: Optional[str] = None,
         tag_name: Optional[str] = None,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
+        relaxation: Optional[Relaxation] = None,
+        options: Optional[SolveOptions] = None,
     ) -> str:
-        """Inspects an optimization problem, returning its underlying solver
-        instructions.
+        """Inspects an optimization problem's instructions, returning its
+        LP formatted representation.
         """
         body, _outline = await self._assemble_solve_request(
             sources=sources,
@@ -157,6 +159,8 @@ class Client:
             tag_name=tag_name,
             parameters=parameters,
             dimensions=dimensions,
+            relaxation=relaxation,
+            options=options,
         )
         async with self._executor.execute(
             result_type=PlainTextExecutorResult,
@@ -174,7 +178,7 @@ class Client:
                     lines.append(line)
             return "".join(lines)
 
-    async def solve(
+    async def run_solve(
         self,
         sources: Optional[list[str]] = None,
         formulation_name: Optional[str] = None,
@@ -509,7 +513,6 @@ class Client:
                     delta, minimum_unit="milliseconds"
                 )
                 if ret.dequeued:
-                    msg = "Attempt is running..."
                     details = [f"elapsed={elapsed}"]
                     if ret.relative_gap is not None:
                         details.append(
@@ -519,11 +522,11 @@ class Client:
                         details.append(f"cuts={ret.cut_count}")
                     if ret.lp_iteration_count is not None:
                         details.append(f"iterations={ret.lp_iteration_count}")
-                    if details:
-                        msg += f" [{', '.join(details)}]"
-                    print(msg)
+                    _logger.info(
+                        "Attempt is running... [%s]", ", ".join(details)
+                    )
                 else:
-                    print(f"Attempt is queued... [elapsed={elapsed}]")
+                    _logger.info("Attempt is queued... [elapsed=%s]", elapsed)
             else:
                 delta = ret.reached_at - attempt.started_at
                 elapsed = humanize.naturaldelta(
@@ -548,23 +551,27 @@ class Client:
                         details.append(
                             f"gap={format_percent(ret.relative_gap)}"
                         )
-                    print(f"Attempt is {adj}. [{', '.join(details)}]")
+                    _logger.info(
+                        "Attempt is %s. [%s]", adj, ", ".join(details)
+                    )
         return ret
 
     async def wait_for_outcome(
         self,
         attempt: Attempt,
-        silent: bool = False,
         assert_feasible: bool = False,
     ) -> Outcome:
-        """Waits for the attempt to complete and returns its outcome."""
-        print(f"Tracking attempt... [url={attempt.url}]")
-        outcome = await self._track_attempt(attempt, silent=silent)
+        """
+        Waits for the attempt to complete and returns its outcome. Enable INFO
+        logging to view progress messages.
+        """
+        outcome = await self._track_attempt(attempt)
         if assert_feasible and not isinstance(outcome, FeasibleOutcome):
             raise Exception(f"Unexpected outcome: {outcome}")
         return outcome
 
     async def fetch_attempt_inputs(self, attempt: Attempt) -> SolveInputs:
+        """Retrieves an attempt's inputs."""
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path=f"/attempts/{attempt.uuid}/inputs",
@@ -577,6 +584,7 @@ class Client:
         )
 
     async def fetch_attempt_outputs(self, attempt: Attempt) -> SolveOutputs:
+        """Retrieves a successful attempt's outputs."""
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             path=f"/attempts/{attempt.uuid}/outputs",

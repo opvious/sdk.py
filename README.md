@@ -23,11 +23,10 @@ With these steps out of the way, you are ready to optimize!
 ```python
 import opvious
 
-# Instantiate an API client from an API token
 client = opvious.Client.from_token(TOKEN)
 
 # Solve a simple portfolio selection optimization model
-response = await client.solve(
+response = await client.run_solve(
     sources=[
       r"""
           We find an allocation of assets which minimizes risk while satisfying
@@ -61,11 +60,9 @@ response = await client.solve(
     },
 )
 
-# Print the optimal allocation, if any
-if isinstance(response.outcome, opvious.FeasibleOutcome):
+print(f"Problem was {response.status}.") # OPTIMAL, INFEASIBLE, ...
+if response.outputs: # Present if the problem was feasible
   print(response.outputs.variable("allocation"))
-else:
-  print(f"Problem was {response.status}.") # INFEASIBLE, UNBOUNDED
 ```
 
 
@@ -87,7 +84,7 @@ more performant (this is the default if the `aio` dependencies were specified).
 ## Next steps
 
 This SDK is focused on solving optimization models. For convenient access to the
-rest of Opvious API's functionality, consider using the [TypeScript SDK and
+rest of Opvious' functionality, consider using the [TypeScript SDK and
 CLI][cli].
 
 
