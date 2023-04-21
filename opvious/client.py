@@ -357,7 +357,7 @@ class Client:
             async with asyncio.TaskGroup() as tg:
                 for source in sources:
                     tasks.append(tg.create_task(_resolve(source)))
-        except BaseExceptionGroup as exc:
+        except BaseExceptionGroup as exc:  # noqa
             cause = exc.exceptions[0] if exc.exceptions else None
             raise Exception("Unable to read source") from cause
         return [t.result() for t in tasks]
