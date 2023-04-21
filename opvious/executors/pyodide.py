@@ -41,7 +41,9 @@ class PyodideExecutor(Executor):
     """`pyodide`-powered executor"""
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
-        super().__init__("pyodide", api_url, authorization)
+        super().__init__(
+            variant="pyodide", api_url=api_url, authorization=authorization
+        )
 
     @contextlib.asynccontextmanager
     async def _send(
@@ -66,7 +68,6 @@ class PyodideExecutor(Executor):
                 status=status, trace=trace, reader=text
             )
         else:
-            # TODO: Support streaming responses.
             raise unsupported_content_type_error(
                 content_type=ctype,
                 trace=trace,

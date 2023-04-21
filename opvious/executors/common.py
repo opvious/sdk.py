@@ -225,12 +225,17 @@ ExpectedExecutorResult = TypeVar(
 
 class Executor:
     def __init__(
-        self, variant: str, api_url: str, authorization: Optional[str] = None
+        self,
+        variant: str,
+        api_url: str,
+        authorization: Optional[str] = None,
+        supports_streaming=False,
     ):
         self._api_url = api_url
         self._headers = _default_headers(variant)
         if authorization:
             self._headers[AUTHORIZATION_HEADER] = authorization
+        self.supports_streaming = supports_streaming
         _logger.debug("Instantiated %s executor. [url=%s]", variant, api_url)
 
     @property

@@ -29,7 +29,6 @@ from .common import (
     Executor,
     ExecutorResult,
     JsonExecutorResult,
-    JsonSeqExecutorResult,
     PlainTextExecutorResult,
     TRACE_HEADER,
     unsupported_content_type_error,
@@ -46,7 +45,9 @@ class UrllibExecutor(Executor):
     """
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
-        super().__init__("urllib", api_url, authorization)
+        super().__init__(
+            variant="urllib", api_url=api_url, authorization=authorization
+        )
 
     @contextlib.asynccontextmanager
     async def _send(
@@ -72,9 +73,6 @@ class UrllibExecutor(Executor):
             yield PlainTextExecutorResult(
                 status=status, trace=trace, reader=res
             )
-        elif JsonSeqExecutorResult.is_eligible(ctype):
-            # TODO: Check compatible
-            yield JsonSeqExecutorResult(status=status, trace=trace, reader=res)
         else:
             raise unsupported_content_type_error(
                 content_type=ctype,
