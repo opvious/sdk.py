@@ -295,11 +295,13 @@ class TestClient:
             await client.run_solve(
                 formulation_name="diet",
                 parameters={
-                    "costPerRecipe": {},
+                    "costPerRecipe": {
+                        "pasta": 10,
+                    },
                     "minimalNutrients": {
                         "carbs": 5,
                     },
-                    "nutrientsPerRecipe": {},
+                    "nutrientsPerRecipe": {},  # No carbs
                 },
                 assert_feasible=True,
             )
