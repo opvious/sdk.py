@@ -326,9 +326,11 @@ class TestClient:
         response = await client.run_solve(
             formulation_name="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 3)]},
-            relaxation=opvious.Relaxation.from_constraint_labels([
-                "hintsObserved",
-            ]),
+            relaxation=opvious.Relaxation.from_constraint_labels(
+                [
+                    "hintsObserved",
+                ]
+            ),
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
         deficit = response.outputs.variable("hintsObserved_deficit")
