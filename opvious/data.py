@@ -376,11 +376,17 @@ class SolveOutputs:
             raw_constraints=data["constraints"],
         )
 
+    def _variable_bindings(self, label: Label) -> list[SourceBinding]:
+        prefix = label.split("_", 1)[0]
+        if prefix == label:
+            return self.outline.variables[prefix].bindings
+        return self.outline.constraints[prefix].bindings
+
     def variable(self, label: Label) -> pd.DataFrame:
         for res in self.raw_variables:
             if res["label"] == label:
                 entries = res["entries"]
-                outline = self.outline.variables[label]
+                bindings = self._variable_bindings(label)
                 df = pd.DataFrame(
                     data=(
                         {
@@ -389,7 +395,7 @@ class SolveOutputs:
                         }
                         for e in entries
                     ),
-                    index=_entry_index(entries, outline.bindings),
+                    index=_entry_index(entries, bindings),
                 )
                 return df.dropna(axis=1, how="all").fillna(0)
         raise Exception(f"Unknown variable {label}")
