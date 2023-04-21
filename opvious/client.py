@@ -34,9 +34,8 @@ from typing import (
     Tuple,
     Union,
 )
-import urllib.parse
 
-from .common import format_percent, strip_nones
+from .common import format_percent, is_url, strip_nones
 from .data import (
     Attempt,
     AttemptRequest,
@@ -340,17 +339,14 @@ class Client:
 
     async def _resolving_sources(self, sources: list[str]) -> list[str]:
         async def _resolve(source: str) -> str:
-            try:
-                urllib.parse.urlparse(source)
-            except ValueError:
+            if not is_url(source):
                 return source
-            else:
-                _logger.debug("Resolving source URL... [url=%s]", source)
-                async with self._executor.execute(
-                    result_type=PlainTextExecutorResult,
-                    url=source,
-                ) as res:
-                    return await res.text()
+            _logger.debug("Resolving source URL... [url=%s]", source)
+            async with self._executor.execute(
+                result_type=PlainTextExecutorResult,
+                url=source,
+            ) as res:
+                return await res.text()
 
         tasks = [_resolve(source) for source in sources]
         try:
