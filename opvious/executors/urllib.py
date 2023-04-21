@@ -44,9 +44,9 @@ class UrllibExecutor(Executor):
     the `aiohttp` equivalent.
     """
 
-    def __init__(self, api_url: str, authorization: Optional[str] = None):
+    def __init__(self, root_url: str, authorization: Optional[str] = None):
         super().__init__(
-            variant="urllib", api_url=api_url, authorization=authorization
+            variant="urllib", root_url=root_url, authorization=authorization
         )
 
     @contextlib.asynccontextmanager

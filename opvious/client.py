@@ -17,6 +17,7 @@ with the License.  You may obtain a copy of the License at
   under the License.
 """
 
+import asyncio
 import backoff
 from datetime import datetime, timezone
 import enum
@@ -33,6 +34,7 @@ from typing import (
     Tuple,
     Union,
 )
+import urllib.parse
 
 from .common import format_percent, strip_nones
 from .data import (
@@ -109,7 +111,7 @@ class Client:
         api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
         return Client(
             executor=default_executor(
-                api_url=api_url,
+                root_url=api_url,
                 authorization=authorization,
             ),
             api_url=api_url,
@@ -165,7 +167,7 @@ class Client:
         )
         async with self._executor.execute(
             result_type=PlainTextExecutorResult,
-            path="/solves/inspect/instructions",
+            url="/solves/inspect/instructions",
             method="POST",
             json_data={
                 "runRequest": body,
@@ -209,7 +211,7 @@ class Client:
             response_json = None
             async with self._executor.execute(
                 result_type=JsonSeqExecutorResult,
-                path="/solves/run",
+                url="/solves/run",
                 method="POST",
                 json_data=body,
             ) as res:
@@ -262,7 +264,7 @@ class Client:
         else:
             async with self._executor.execute(
                 result_type=JsonExecutorResult,
-                path="/solves/run",
+                url="/solves/run",
                 method="POST",
                 json_data=body,
             ) as res:
@@ -305,6 +307,7 @@ class Client:
         else:
             if not sources:
                 raise Exception("Sources or formulation name must be set")
+            sources = await self._resolving_sources(sources)
             outline = await self._fetch_sources_outline(sources)
             formulation = {"sources": sources}
 
@@ -335,10 +338,34 @@ class Client:
         }
         return (body, outline)
 
+    async def _resolving_sources(self, sources: list[str]) -> list[str]:
+        async def _resolve(source: str) -> str:
+            try:
+                urllib.parse.urlparse(source)
+            except ValueError:
+                return source
+            else:
+                _logger.debug('Resolving source URL... [url=%s]', source)
+                async with self._executor.execute(
+                    result_type=PlainTextExecutorResult,
+                    url=source,
+                ) as res:
+                    return await res.text()
+
+        tasks = []
+        try:
+            async with asyncio.TaskGroup() as tg:
+                for source in sources:
+                    tasks.append(tg.create_task(_resolve(source)))
+        except BaseExceptionGroup as exc:
+            cause = exc.exceptions[0] if exc.exceptions else None
+            raise Exception("Unable to read source") from cause
+        return [t.result() for t in tasks]
+
     async def _fetch_sources_outline(self, sources: list[str]) -> Outline:
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            path="/sources/parse",
+            url="/sources/parse",
             method="POST",
             json_data={"sources": sources, "outline": True},
         ) as res:
@@ -414,7 +441,7 @@ class Client:
 
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            path="/attempts/start",
+            url="/attempts/start",
             method="POST",
             json_data={
                 "formulationName": request.formulation_name,
@@ -537,7 +564,7 @@ class Client:
         """Retrieves an attempt's inputs."""
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            path=f"/attempts/{attempt.uuid}/inputs",
+            url=f"/attempts/{attempt.uuid}/inputs",
         ) as res:
             data = res.json_data()
         return SolveInputs(
@@ -550,7 +577,7 @@ class Client:
         """Retrieves a successful attempt's outputs."""
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            path=f"/attempts/{attempt.uuid}/outputs",
+            url=f"/attempts/{attempt.uuid}/outputs",
         ) as res:
             data = res.json_data()
         return SolveOutputs(

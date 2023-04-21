@@ -20,10 +20,10 @@ class TestExecutors:
     )
     _executors = [
         AiohttpExecutor(
-            api_url=f"https://api.{DOMAIN}", authorization=_authorization
+            root_url=f"https://api.{DOMAIN}", authorization=_authorization
         ),
         UrllibExecutor(
-            api_url=f"https://api.{DOMAIN}", authorization=_authorization
+            root_url=f"https://api.{DOMAIN}", authorization=_authorization
         ),
     ]
 

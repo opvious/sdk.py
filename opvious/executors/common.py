@@ -227,16 +227,16 @@ class Executor:
     def __init__(
         self,
         variant: str,
-        api_url: str,
+        root_url: str,
         authorization: Optional[str] = None,
         supports_streaming=False,
     ):
-        self._api_url = api_url
+        self._root_url = root_url
         self._headers = _default_headers(variant)
         if authorization:
             self._headers[AUTHORIZATION_HEADER] = authorization
         self.supports_streaming = supports_streaming
-        _logger.debug("Instantiated %s executor. [url=%s]", variant, api_url)
+        _logger.debug("Instantiated %s executor. [url=%s]", variant, root_url)
 
     @property
     def authenticated(self):
@@ -251,7 +251,7 @@ class Executor:
     async def execute(
         self,
         result_type: Type[ExpectedExecutorResult],
-        path: str,
+        url: str,
         method: str = "GET",
         headers: Optional[Headers] = None,
         json_data: Optional[Any] = None,
@@ -280,7 +280,7 @@ class Executor:
             "Sending API request... [size=%s]", len(body) if body else 0
         )
         async with self._send(
-            url=urllib.parse.urljoin(self._api_url, path),
+            url=urllib.parse.urljoin(self._root_url, url),
             method=method,
             headers=all_headers,
             body=body,
@@ -302,7 +302,7 @@ class Executor:
     ) -> Any:
         async with self.execute(
             result_type=JsonExecutorResult,
-            path="/graphql",
+            url="/graphql",
             method="POST",
             json_data={"query": query, "variables": variables or {}},
         ) as result:
