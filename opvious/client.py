@@ -352,15 +352,11 @@ class Client:
                 ) as res:
                     return await res.text()
 
-        tasks = []
+        tasks = [_resolve(source) for source in sources]
         try:
-            async with asyncio.TaskGroup() as tg:
-                for source in sources:
-                    tasks.append(tg.create_task(_resolve(source)))
-        except BaseExceptionGroup as exc:  # noqa
-            cause = exc.exceptions[0] if exc.exceptions else None
-            raise Exception("Unable to read source") from cause
-        return [t.result() for t in tasks]
+            return await asyncio.gather(*tasks)
+        except Exception as exc:
+            raise Exception("Unable to read source") from exc
 
     async def _fetch_sources_outline(self, sources: list[str]) -> Outline:
         async with self._executor.execute(
