@@ -345,7 +345,7 @@ class Client:
             except ValueError:
                 return source
             else:
-                _logger.debug('Resolving source URL... [url=%s]', source)
+                _logger.debug("Resolving source URL... [url=%s]", source)
                 async with self._executor.execute(
                     result_type=PlainTextExecutorResult,
                     url=source,
