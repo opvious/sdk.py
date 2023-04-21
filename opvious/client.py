@@ -57,6 +57,7 @@ from .data import (
     Tensor,
     TensorArgument,
     UnboundedOutcome,
+    UnexpectedOutcomeError,
 )
 from .executors import (
     default_executor,
@@ -187,6 +188,7 @@ class Client:
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relaxation: Optional[Relaxation] = None,
         options: Optional[SolveOptions] = None,
+        assert_feasible=False,
         prefer_streaming=True,
     ) -> SolveResponse:
         """Solves an optimization problem. See also `start_attempt` for an
@@ -202,74 +204,78 @@ class Client:
             options=options,
         )
 
-        if not prefer_streaming or not self._executor.supports_streaming:
+        if prefer_streaming and self._executor.supports_streaming:
+            summary = None
+            response_json = None
+            async with self._executor.execute(
+                result_type=JsonSeqExecutorResult,
+                path="/solves/run",
+                method="POST",
+                json_data=body,
+            ) as res:
+                async for data in res.json_seq_data():
+                    kind = data["kind"]
+                    if kind == "reifying":
+                        progress = data["progress"]
+                        if progress["kind"] == "constraint":
+                            summary = progress["summary"]
+                            _logger.debug(
+                                "Reified constraint %r. [columns=%s, rows=%s]",
+                                summary["label"],
+                                summary["columnCount"],
+                                summary["rowCount"],
+                            )
+                    elif kind == "reified":
+                        summary = Summary.from_json(data["summary"])
+                        _logger.info(
+                            "Solving problem... [columns=%s, rows=%s]",
+                            summary.column_count,
+                            summary.row_count,
+                        )
+                    elif kind == "solving":
+                        progress = data["progress"]
+                        iter_count = progress.get("lpIterationCount")
+                        gap = progress.get("relativeGap")
+                        if iter_count is not None:
+                            _logger.info(
+                                "Solve in progress... [iters=%s, gap=%s]",
+                                iter_count,
+                                "n/a" if gap is None else format_percent(gap),
+                            )
+                    elif kind == "solved":
+                        _logger.debug("Downloaded outputs.")
+                        response_json = data
+                    elif kind == "error":
+                        message = data["error"]["message"]
+                        raise Exception(f"Solve failed: {message}")
+                    else:
+                        raise Exception(
+                            f"Unexpected response: {json.dumps(data)}"
+                        )
+            if not summary or not response_json:
+                raise Exception("Streaming solve terminated early")
+            response = SolveResponse.from_json(
+                outline=outline,
+                response_json=response_json,
+                summary=summary,
+            )
+        else:
             async with self._executor.execute(
                 result_type=JsonExecutorResult,
                 path="/solves/run",
                 method="POST",
                 json_data=body,
             ) as res:
-                return SolveResponse.from_json(
+                response = SolveResponse.from_json(
                     outline=outline,
                     response_json=res.json_data(),
                 )
 
-        summary = None
-        response_json = None
-        async with self._executor.execute(
-            result_type=JsonSeqExecutorResult,
-            path="/solves/run",
-            method="POST",
-            json_data=body,
-        ) as res:
-            async for data in res.json_seq_data():
-                kind = data["kind"]
-                if kind == "reifying":
-                    progress = data["progress"]
-                    if progress["kind"] == "constraint":
-                        summary = progress["summary"]
-                        _logger.debug(
-                            "Reified constraint %r. [columns=%s, rows=%s]",
-                            summary["label"],
-                            summary["columnCount"],
-                            summary["rowCount"],
-                        )
-                elif kind == "reified":
-                    summary = Summary.from_json(data["summary"])
-                    density = summary.density()
-                    _logger.info(
-                        "Solving problem... [columns=%s, rows=%s]",
-                        summary.column_count,
-                        summary.row_count,
-                        summary.weight_count,
-                        format_percent(density),
-                    )
-                elif kind == "solving":
-                    progress = data["progress"]
-                    iter_count = progress.get("lpIterationCount")
-                    gap = progress.get("relativeGap")
-                    if iter_count is not None:
-                        _logger.info(
-                            "Solve in progress... [iters=%s, cuts=%s, gap=%s]",
-                            iter_count,
-                            progress.get("cutCount"),
-                            "n/a" if gap is None else format_percent(gap),
-                        )
-                elif kind == "solved":
-                    _logger.debug("Downloaded outputs.")
-                    response_json = data
-                elif kind == "error":
-                    message = data["error"]["message"]
-                    raise Exception(f"Solve failed: {message}")
-                else:
-                    raise Exception(f"Unexpected response: {json.dumps(data)}")
-        if not summary or not response_json:
-            raise Exception("Streaming solve terminated early")
-        return SolveResponse.from_json(
-            outline=outline,
-            response_json=response_json,
-            summary=summary,
-        )
+        if assert_feasible and not isinstance(
+            response.outcome, FeasibleOutcome
+        ):
+            raise UnexpectedOutcomeError(response.outcome)
+        return response
 
     async def _assemble_solve_request(
         self,
@@ -514,17 +520,17 @@ class Client:
     async def wait_for_outcome(
         self,
         attempt: Attempt,
-        assert_feasible: bool = False,
+        assert_feasible=False,
     ) -> Outcome:
         """
         Waits for the attempt to complete and returns its outcome. Enable INFO
         logging to view progress messages.
         """
         outcome = await self._track_attempt(attempt)
-        if assert_feasible and not isinstance(outcome, FeasibleOutcome):
-            raise Exception(f"Unexpected outcome: {outcome}")
         if not outcome:
             raise Exception("Missing outcome")
+        if assert_feasible and not isinstance(outcome, FeasibleOutcome):
+            raise UnexpectedOutcomeError(outcome)
         return outcome
 
     async def fetch_attempt_inputs(self, attempt: Attempt) -> SolveInputs:
