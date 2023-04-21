@@ -290,6 +290,24 @@ class TestClient:
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
 
     @pytest.mark.asyncio
+    async def test_solve_assert_feasible(self):
+        try:
+            await client.run_solve(
+                formulation_name="diet",
+                parameters={
+                    "costPerRecipe": {},
+                    "minimalNutrients": {
+                        "carbs": 5,
+                    },
+                    "nutrientsPerRecipe": {},
+                },
+                assert_feasible=True,
+            )
+            raise Exception()
+        except opvious.UnexpectedOutcomeError as exc:
+            assert isinstance(exc.outcome, opvious.InfeasibleOutcome)
+
+    @pytest.mark.asyncio
     async def test_solve_no_objective(self):
         source = r"""
         # N queens
@@ -337,7 +355,7 @@ class TestClient:
         assert len(deficit) == 1
 
     @pytest.mark.asyncio
-    async def test_inspect(self):
+    async def test_inspect_solve_instructions(self):
         instructions = await client.inspect_solve_instructions(
             formulation_name="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},

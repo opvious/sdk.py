@@ -54,6 +54,7 @@ from .data import (
     Tensor,
     TensorArgument,
     UnboundedOutcome,
+    UnexpectedOutcomeError,
     Value,
 )
 
@@ -87,6 +88,7 @@ __all__ = [
     "Tensor",
     "TensorArgument",
     "UnboundedOutcome",
+    "UnexpectedOutcomeError",
     "Value",
     "__version__",
     "aiohttp_executor",

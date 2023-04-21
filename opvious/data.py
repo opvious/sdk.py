@@ -305,6 +305,11 @@ Outcome = Union[
 ]
 
 
+class UnexpectedOutcomeError(Exception):
+    def __init__(self, outcome: Outcome):
+        self.outcome = outcome
+
+
 # Summaries
 
 
