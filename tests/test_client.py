@@ -179,7 +179,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_solve_bounded_feasible(self):
-        outputs = await client.run_solve(
+        response = await client.run_solve(
             sources=[
                 r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
@@ -190,13 +190,13 @@ class TestClient:
             ],
             parameters={"bound": 0.1},
         )
-        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
-        assert outputs.outcome.is_optimal
-        assert outputs.outcome.objective_value == 2
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)
+        assert response.outcome.is_optimal
+        assert response.outcome.objective_value == 2
 
     @pytest.mark.asyncio
     async def test_solve_bounded_infeasible(self):
-        outputs = await client.run_solve(
+        response = await client.run_solve(
             sources=[
                 r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
@@ -207,7 +207,7 @@ class TestClient:
             ],
             parameters={"bound": 30},
         )
-        assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)
+        assert isinstance(response.outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_solve_portfolio_selection(self):
@@ -229,7 +229,7 @@ class TestClient:
             + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
             + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
         """
-        outputs = await client.run_solve(
+        response = await client.run_solve(
             sources=[source],
             parameters={
                 "covariance": {
@@ -245,11 +245,11 @@ class TestClient:
                 "desiredReturn": 0.1,
             },
         )
-        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_solve_diet(self):
-        outputs = await client.run_solve(
+        response = await client.run_solve(
             formulation_name="diet",
             parameters={
                 "costPerRecipe": {
@@ -266,7 +266,28 @@ class TestClient:
             },
             options=opvious.SolveOptions(free_bound_threshold=1e9),
         )
-        assert isinstance(outputs.outcome, opvious.FeasibleOutcome)
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_solve_diet_non_streaming(self):
+        response = await client.run_solve(
+            formulation_name="diet",
+            parameters={
+                "costPerRecipe": {
+                    "lasagna": 12,
+                    "pizza": 15,
+                },
+                "minimalNutrients": {
+                    "carbs": 5,
+                },
+                "nutrientsPerRecipe": {
+                    ("carbs", "lasagna"): 3,
+                    ("carbs", "pizza"): 5,
+                },
+            },
+            prefer_streaming=False,
+        )
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_solve_no_objective(self):
@@ -294,11 +315,24 @@ class TestClient:
         \end{align}
         $$
         """
-        outputs = await client.run_solve(
+        response = await client.run_solve(
             sources=[source],
             parameters={"size": 2},
         )
-        assert isinstance(outputs.outcome, opvious.InfeasibleOutcome)
+        assert isinstance(response.outcome, opvious.InfeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_solve_relaxed_sudoku(self):
+        response = await client.run_solve(
+            formulation_name="sudoku",
+            parameters={"hints": [(0, 0, 3), (1, 1, 3)]},
+            relaxation=opvious.Relaxation.from_constraint_labels([
+                "hintsObserved",
+            ]),
+        )
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)
+        deficit = response.outputs.variable("hintsObserved_deficit")
+        assert len(deficit) == 1
 
     @pytest.mark.asyncio
     async def test_inspect(self):
