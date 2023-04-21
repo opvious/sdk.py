@@ -187,6 +187,7 @@ class Client:
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relaxation: Optional[Relaxation] = None,
         options: Optional[SolveOptions] = None,
+        prefer_streaming=True,
     ) -> SolveResponse:
         """Solves an optimization problem. See also `start_attempt` for an
         alternative for long-running solves.
@@ -200,7 +201,21 @@ class Client:
             relaxation=relaxation,
             options=options,
         )
-        solved_data = None
+
+        if not prefer_streaming or not self._executor.supports_streaming:
+            async with self._executor.execute(
+                result_type=JsonExecutorResult,
+                path="/solves/run",
+                method="POST",
+                json_data=body,
+            ) as res:
+                return SolveResponse.from_json(
+                    outline=outline,
+                    response_json=res.json_data(),
+                )
+
+        summary = None
+        response_json = None
         async with self._executor.execute(
             result_type=JsonSeqExecutorResult,
             path="/solves/run",
@@ -223,10 +238,7 @@ class Client:
                     summary = Summary.from_json(data["summary"])
                     density = summary.density()
                     _logger.info(
-                        (
-                            "Solving problem... [columns=%s, rows=%s, "
-                            "weights=%s (%s)]"
-                        ),
+                        "Solving problem... [columns=%s, rows=%s]",
                         summary.column_count,
                         summary.row_count,
                         summary.weight_count,
@@ -245,41 +257,18 @@ class Client:
                         )
                 elif kind == "solved":
                     _logger.debug("Downloaded outputs.")
-                    reached_at = datetime.now(timezone.utc)
-                    solved_data = data
+                    response_json = data
                 elif kind == "error":
                     message = data["error"]["message"]
                     raise Exception(f"Solve failed: {message}")
                 else:
                     raise Exception(f"Unexpected response: {json.dumps(data)}")
-        if not solved_data:
-            raise Exception("Solve terminated without any data")
-
-        # Finally we gather the outputs
-        outcome_data = solved_data["outcome"]
-        status = outcome_data["status"]
-        if status == "INFEASIBLE":
-            outcome = cast(Outcome, InfeasibleOutcome(reached_at))
-        elif status == "UNBOUNDED":
-            outcome = UnboundedOutcome(reached_at)
-        else:
-            outcome = FeasibleOutcome(
-                reached_at=reached_at,
-                is_optimal=status == "OPTIMAL",
-                objective_value=outcome_data.get("objectiveValue"),
-                relative_gap=outcome_data.get("relativeGap"),
-            )
-        outputs = None
-        if isinstance(outcome, FeasibleOutcome):
-            outputs = SolveOutputs.from_json(
-                data=solved_data["outputs"],
-                outline=outline,
-            )
-        return SolveResponse(
-            status=status,
-            outcome=outcome,
+        if not summary or not response_json:
+            raise Exception("Streaming solve terminated early")
+        return SolveResponse.from_json(
+            outline=outline,
+            response_json=response_json,
             summary=summary,
-            outputs=outputs,
         )
 
     async def _assemble_solve_request(
@@ -484,76 +473,42 @@ class Client:
                 dequeued=bool(attempt_data["dequeuedAt"]),
                 data=edges[0]["node"] if edges else None,
             )
-        reached_at = datetime.fromisoformat(attempt_data["endedAt"])
         if status == "CANCELLED":
-            return cast(Outcome, CancelledOutcome(reached_at))
+            return cast(Outcome, CancelledOutcome())
         if status == "INFEASIBLE":
-            return InfeasibleOutcome(reached_at)
+            return InfeasibleOutcome()
         if status == "UNBOUNDED":
-            return UnboundedOutcome(reached_at)
+            return UnboundedOutcome()
         outcome = attempt_data["outcome"]
         if status == "ERRORED":
-            return FailedOutcome.from_graphql(reached_at, outcome)
+            return FailedOutcome.from_graphql(outcome)
         if status == "FEASIBLE" or status == "OPTIMAL":
-            return FeasibleOutcome.from_graphql(reached_at, outcome)
+            return FeasibleOutcome.from_graphql(outcome)
         raise Exception(f"Unexpected status {status}")
 
     @backoff.on_predicate(
         backoff.fibo,
-        lambda ret: isinstance(ret, Notification),
+        lambda ret: ret is None,
         max_value=45,
         logger=None,
     )
-    async def _track_attempt(self, attempt: Attempt, silent=False) -> Any:
+    async def _track_attempt(self, attempt: Attempt) -> Optional[Outcome]:
         ret = await self.poll_attempt(attempt)
-        if not silent:
-            if isinstance(ret, Notification):
-                delta = datetime.now(timezone.utc) - attempt.started_at
-                elapsed = humanize.naturaldelta(
-                    delta, minimum_unit="milliseconds"
-                )
-                if ret.dequeued:
-                    details = [f"elapsed={elapsed}"]
-                    if ret.relative_gap is not None:
-                        details.append(
-                            f"gap={format_percent(ret.relative_gap)}"
-                        )
-                    if ret.cut_count is not None:
-                        details.append(f"cuts={ret.cut_count}")
-                    if ret.lp_iteration_count is not None:
-                        details.append(f"iterations={ret.lp_iteration_count}")
-                    _logger.info(
-                        "Attempt is running... [%s]", ", ".join(details)
-                    )
-                else:
-                    _logger.info("Attempt is queued... [elapsed=%s]", elapsed)
-            else:
-                delta = ret.reached_at - attempt.started_at
-                elapsed = humanize.naturaldelta(
-                    delta, minimum_unit="milliseconds"
-                )
+        if isinstance(ret, Notification):
+            delta = datetime.now(timezone.utc) - attempt.started_at
+            elapsed = humanize.naturaldelta(delta, minimum_unit="milliseconds")
+            if ret.dequeued:
                 details = [f"elapsed={elapsed}"]
-                if isinstance(ret, InfeasibleOutcome):
-                    print(f"Attempt is infeasible. [{', '.join(details)}]")
-                elif isinstance(ret, UnboundedOutcome):
-                    print(f"Attempt is unbounded. [{', '.join(details)}]")
-                elif isinstance(ret, CancelledOutcome):
-                    print(f"Attempt cancelled. [{', '.join(details)}]")
-                elif isinstance(ret, FailedOutcome):
-                    details.append(f"status={ret.status}")
-                    details.append(f"message={ret.message}")
-                    print(f"Attempt failed. [{', '.join(details)}]")
-                else:
-                    adj = "optimal" if ret.is_optimal else "feasible"
-                    if ret.objective_value is not None:
-                        details.append(f"objective={ret.objective_value}")
-                    if ret.relative_gap is not None:
-                        details.append(
-                            f"gap={format_percent(ret.relative_gap)}"
-                        )
-                    _logger.info(
-                        "Attempt is %s. [%s]", adj, ", ".join(details)
-                    )
+                if ret.relative_gap is not None:
+                    details.append(f"gap={format_percent(ret.relative_gap)}")
+                if ret.cut_count is not None:
+                    details.append(f"cuts={ret.cut_count}")
+                if ret.lp_iteration_count is not None:
+                    details.append(f"iterations={ret.lp_iteration_count}")
+                _logger.info("Attempt is running... [%s]", ", ".join(details))
+            else:
+                _logger.info("Attempt is queued... [elapsed=%s]", elapsed)
+            return None
         return ret
 
     async def wait_for_outcome(
@@ -568,6 +523,8 @@ class Client:
         outcome = await self._track_attempt(attempt)
         if assert_feasible and not isinstance(outcome, FeasibleOutcome):
             raise Exception(f"Unexpected outcome: {outcome}")
+        if not outcome:
+            raise Exception("Missing outcome")
         return outcome
 
     async def fetch_attempt_inputs(self, attempt: Attempt) -> SolveInputs:

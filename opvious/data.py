@@ -23,7 +23,7 @@ import dataclasses
 from datetime import datetime
 import math
 import pandas as pd
-from typing import Any, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, cast, Iterable, Mapping, Optional, Tuple, Union
 
 from .common import strip_nones
 
@@ -247,22 +247,22 @@ def _map_outlines(cls, data):
 
 @dataclasses.dataclass(frozen=True)
 class CancelledOutcome:
-    reached_at: datetime
+    """The solve was cancelled before a solution was found"""
 
 
 @dataclasses.dataclass(frozen=True)
 class FailedOutcome:
-    reached_at: datetime
+    """The solve failed"""
+
     status: str
     message: str
     code: Optional[str]
     tags: Any
 
     @classmethod
-    def from_graphql(cls, reached_at: datetime, data: Any) -> FailedOutcome:
+    def from_graphql(cls, data: Any) -> FailedOutcome:
         failure = data["failure"]
         return FailedOutcome(
-            reached_at=reached_at,
             status=failure["status"],
             message=failure["message"],
             code=failure.get("code"),
@@ -272,15 +272,15 @@ class FailedOutcome:
 
 @dataclasses.dataclass(frozen=True)
 class FeasibleOutcome:
-    reached_at: datetime
+    """A solution exists"""
+
     is_optimal: bool
     objective_value: Optional[Value]
     relative_gap: Optional[Value]
 
     @classmethod
-    def from_graphql(cls, reached_at: datetime, data: Any) -> FeasibleOutcome:
+    def from_graphql(cls, data: Any) -> FeasibleOutcome:
         return FeasibleOutcome(
-            reached_at=reached_at,
             is_optimal=data["isOptimal"],
             objective_value=data.get("objectiveValue"),
             relative_gap=data.get("relativeGap"),
@@ -289,12 +289,12 @@ class FeasibleOutcome:
 
 @dataclasses.dataclass(frozen=True)
 class InfeasibleOutcome:
-    reached_at: datetime
+    """No feasible solution exists"""
 
 
 @dataclasses.dataclass(frozen=True)
 class UnboundedOutcome:
-    reached_at: datetime
+    """No bounded optimal solution exists"""
 
 
 Outcome = Union[
@@ -421,6 +421,38 @@ class SolveResponse:
     outputs: Optional[SolveOutputs] = dataclasses.field(
         default=None, repr=False
     )
+
+    @classmethod
+    def from_json(
+        cls,
+        outline: Outline,
+        response_json: Any,
+        summary: Optional[Summary] = None,
+    ) -> "SolveResponse":
+        outcome_json = response_json["outcome"]
+        status = outcome_json["status"]
+        if status == "INFEASIBLE":
+            outcome = cast(Outcome, InfeasibleOutcome())
+        elif status == "UNBOUNDED":
+            outcome = UnboundedOutcome()
+        else:
+            outcome = FeasibleOutcome(
+                is_optimal=status == "OPTIMAL",
+                objective_value=outcome_json.get("objectiveValue"),
+                relative_gap=outcome_json.get("relativeGap"),
+            )
+        outputs = None
+        if isinstance(outcome, FeasibleOutcome):
+            outputs = SolveOutputs.from_json(
+                data=response_json["outputs"],
+                outline=outline,
+            )
+        return SolveResponse(
+            status=status,
+            outcome=outcome,
+            summary=summary or Summary.from_json(response_json["summary"]),
+            outputs=outputs,
+        )
 
 
 # Attempt data

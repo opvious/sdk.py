@@ -56,7 +56,12 @@ class AiohttpExecutor(Executor):
     """`aiohttp`-powered executor"""
 
     def __init__(self, api_url: str, authorization: Optional[str] = None):
-        super().__init__("aiohttp", api_url, authorization)
+        super().__init__(
+            variant="aiohttp",
+            api_url=api_url,
+            authorization=authorization,
+            supports_streaming=True,
+        )
 
     @contextlib.asynccontextmanager
     async def _send(
