@@ -40,7 +40,6 @@ from .data.solves import (
     SolveOptions,
     SolveOutputs,
     SolveResponse,
-    solve_options_to_json,
     SolveSummary,
 )
 from .data.tensors import (
@@ -80,6 +79,7 @@ __all__ = [
     "Label",
     "Notification",
     "Outcome",
+    "Outline",
     "RelaxationPenalty",
     "Relaxation",
     "SolveInputs",

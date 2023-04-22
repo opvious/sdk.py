@@ -29,21 +29,6 @@ from .solves import SolveInputs
 from .tensors import Value
 
 
-def _entry_index(entries, bindings):
-    if not bindings:
-        return None
-    if len(bindings) == 1:
-        binding = bindings[0]
-        return pd.Index(
-            data=[e["key"][0] for e in entries],
-            name=binding.qualifier or binding.dimension_label,
-        )
-    return pd.MultiIndex.from_tuples(
-        tuples=[tuple(e["key"]) for e in entries],
-        names=[b.qualifier or b.dimension_label for b in bindings],
-    )
-
-
 @dataclasses.dataclass(frozen=True)
 class AttemptRequest:
     """Attempt inputs"""
@@ -51,9 +36,6 @@ class AttemptRequest:
     formulation_name: str
     tag_name: str
     inputs: SolveInputs = dataclasses.field(repr=False)
-
-
-# Attempt options
 
 
 @dataclasses.dataclass(frozen=True)

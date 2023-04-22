@@ -41,9 +41,6 @@ def is_value(arg: Any) -> bool:
 DimensionArgument = Iterable[KeyItem]
 
 
-# Tensors
-
-
 SparseTensorArgument = Union[
     pd.Series,
     Mapping[Key, Value],
