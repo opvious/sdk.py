@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import dataclasses
 import glob
+import os
 from typing import Optional, Union
 
 from .executors import Executor, PlainTextExecutorResult
@@ -49,11 +50,17 @@ class LocalSpecification(AnonymousSpecification):
 
     @classmethod
     def globs(
-        cls, *likes: str, root_dir: Optional[str] = None
+        cls, *likes: str, root: Optional[str] = None
     ) -> LocalSpecification:
+        if root:
+            root = os.path.realpath(root)
+            if os.path.isfile(root):
+                root = os.path.dirname(root)
         paths = []
         for like in likes:
-            for path in glob.iglob(like, root_dir=root_dir, recursive=True):
+            for path in glob.iglob(like, root_dir=root, recursive=True):
+                if root:
+                    path = os.path.join(root, path)
                 paths.append(path)
         return LocalSpecification(paths)
 
