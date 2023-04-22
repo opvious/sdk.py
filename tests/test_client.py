@@ -181,14 +181,16 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_bounded_feasible(self):
         response = await client.run_solve(
-            specification=opvious.InlineSpecification([
-                r"""
+            specification=opvious.InlineSpecification(
+                [
+                    r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
                     $\S^{p}_{bound}: b \in \mathbb{R}_+$
                     $\S^{c}_{greaterThanBound}: \alpha \geq b$
                     $\S^o_{maximize}: \max 2 \alpha$
                 """,
-            ]),
+                ]
+            ),
             parameters={"bound": 0.1},
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
@@ -198,14 +200,16 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_bounded_infeasible(self):
         response = await client.run_solve(
-            specification=opvious.InlineSpecification([
-                r"""
+            specification=opvious.InlineSpecification(
+                [
+                    r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
                     $\S^{p}_{bound}: b \in \mathbb{R}_+$
                     $\S^{c}_{greaterThanBound}: \alpha \geq b$
                     $\S^o_{maximize}: \max 2 \alpha$
                 """,
-            ]),
+                ]
+            ),
             parameters={"bound": 30},
         )
         assert isinstance(response.outcome, opvious.InfeasibleOutcome)
