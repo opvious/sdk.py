@@ -21,8 +21,8 @@ import sys
 from typing import Optional
 
 from .common import (
-    ApiError,
     Executor,
+    ExecutorError,
     ExecutorResult,
     JsonExecutorResult,
     JsonSeqExecutorResult,
@@ -32,8 +32,8 @@ from .common import (
 
 __all__ = [
     "default_executor",
-    "ApiError",
     "Executor",
+    "ExecutorError",
     "ExecutorResult",
     "JsonExecutorResult",
     "JsonSeqExecutorResult",

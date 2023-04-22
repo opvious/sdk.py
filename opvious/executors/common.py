@@ -50,8 +50,8 @@ CONTENT_TYPE_HEADER = "content-type"
 Headers = dict[str, str]
 
 
-class ApiError(Exception):
-    """Local representation of an error returned by the API"""
+class ExecutorError(Exception):
+    """Local representation of an error during an executor's request"""
 
     def __init__(
         self,
@@ -59,7 +59,7 @@ class ApiError(Exception):
         trace: Optional[str] = None,
         data: Optional[Any] = None,
     ):
-        message = f"API call failed with status {status}"
+        message = f"Request failed with status {status}"
         if trace:
             message += f" ({trace})"
         if data:
@@ -96,7 +96,9 @@ class ExecutorResult:
 
     def __post_init__(self):
         _logger.debug(
-            "Got API response. [status=%s, trace=%s]", self.status, self.trace
+            "Got executor result. [status=%s, trace=%s]",
+            self.status,
+            self.trace,
         )
 
     @property
@@ -110,7 +112,7 @@ class ExecutorResult:
     def _assert_status(self, status: int, text: Optional[str] = None) -> None:
         if self.status == status:
             return
-        raise ApiError(status=self.status, trace=self.trace, data=text)
+        raise ExecutorError(status=self.status, trace=self.trace, data=text)
 
     @classmethod
     def is_eligible(cls, ctype: Optional[str]) -> bool:
@@ -124,9 +126,9 @@ class PlainTextExecutorResult(ExecutorResult):
     content_type = "text/plain"
     reader: Any = dataclasses.field(repr=False)
 
-    async def text(self) -> str:
+    async def text(self, assert_status: Optional[int] = None) -> str:
         lines = []
-        async for line in self.lines(assert_status=None):
+        async for line in self.lines(assert_status=assert_status):
             lines.append(line)
         return "".join(lines)
 
@@ -231,6 +233,7 @@ class Executor:
         authorization: Optional[str] = None,
         supports_streaming=False,
     ):
+        self._variant = variant
         self._root_url = root_url
         self._headers = _default_headers(variant)
         if authorization:
@@ -276,11 +279,18 @@ class Executor:
         else:
             body = None
 
+        url = urllib.parse.urljoin(self._root_url, url)
+        if not url.startswith(self._root_url):
+            all_headers.pop(AUTHORIZATION_HEADER, None)
+
         _logger.debug(
-            "Sending API request... [size=%s]", len(body) if body else 0
+            "Sending %s executor request... [size=%s, url=%s]",
+            self._variant,
+            len(body) if body else 0,
+            url,
         )
         async with self._send(
-            url=urllib.parse.urljoin(self._root_url, url),
+            url=url,
             method=method,
             headers=all_headers,
             body=body,
@@ -290,7 +300,7 @@ class Executor:
                     text = await self.text()
                 else:
                     text = None
-                raise ApiError(
+                raise ExecutorError(
                     status=result.status, trace=result.trace, data=text
                 )
             yield result
@@ -308,7 +318,9 @@ class Executor:
         ) as result:
             data = result.json_data()
         if data.get("errors"):
-            raise ApiError(status=result.status, trace=result.trace, data=data)
+            raise ExecutorError(
+                status=result.status, trace=result.trace, data=data
+            )
         return data["data"]
 
 

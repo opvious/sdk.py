@@ -22,8 +22,8 @@ import logging
 from .client import Client, Settings
 from .common import __version__
 from .executors import (
-    ApiError,
     Executor,
+    ExecutorError,
     aiohttp_executor,
     default_executor,
     pyodide_executor,
@@ -60,7 +60,6 @@ from .data import (
 
 
 __all__ = [
-    "ApiError",
     "Attempt",
     "AttemptRequest",
     "CancelledOutcome",
@@ -68,6 +67,7 @@ __all__ = [
     "ConstraintRelaxation",
     "DimensionArgument",
     "Executor",
+    "ExecutorError",
     "FailedOutcome",
     "FeasibleOutcome",
     "InfeasibleOutcome",

@@ -33,3 +33,6 @@ aio = ["aiohttp", "Brotli"]
 [tool.black]
 line-length = 79
 include = '\.py$'
+
+[tool.pytest.ini_options]
+log_level = 'DEBUG'

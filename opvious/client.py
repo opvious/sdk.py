@@ -342,17 +342,19 @@ class Client:
             if not is_url(source):
                 return source
             _logger.debug("Resolving source URL... [url=%s]", source)
-            async with self._executor.execute(
-                result_type=PlainTextExecutorResult,
-                url=source,
-            ) as res:
-                return await res.text()
+            try:
+                async with self._executor.execute(
+                    result_type=PlainTextExecutorResult,
+                    url=source,
+                ) as res:
+                    return await res.text(assert_status=200)
+            except Exception as exc:
+                raise Exception(
+                    f"Unable to read source from {source}"
+                ) from exc
 
         tasks = [_resolve(source) for source in sources]
-        try:
-            return await asyncio.gather(*tasks)
-        except Exception as exc:
-            raise Exception("Unable to read source") from exc
+        return await asyncio.gather(*tasks)
 
     async def _fetch_sources_outline(self, sources: list[str]) -> Outline:
         async with self._executor.execute(
