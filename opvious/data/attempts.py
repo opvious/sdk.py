@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
-import pandas as pd
 from typing import Any, Optional
 
 from .outlines import Outline
