@@ -10,7 +10,7 @@ from opvious.executors.urllib import UrllibExecutor
 AUTHORIZATION = os.environ.get("OPVIOUS_AUTHORIZATION", "")
 
 
-DOMAIN = os.environ.get("OPVIOUS_DOMAIN", "alpha.opvious.io")
+DOMAIN = os.environ.get("OPVIOUS_DOMAIN", "beta.opvious.io")
 
 
 @pytest.mark.skipif(not AUTHORIZATION, reason="No access token detected")
@@ -20,10 +20,10 @@ class TestExecutors:
     )
     _executors = [
         AiohttpExecutor(
-            api_url=f"https://api.{DOMAIN}", authorization=_authorization
+            root_url=f"https://api.{DOMAIN}", authorization=_authorization
         ),
         UrllibExecutor(
-            api_url=f"https://api.{DOMAIN}", authorization=_authorization
+            root_url=f"https://api.{DOMAIN}", authorization=_authorization
         ),
     ]
 
@@ -36,14 +36,14 @@ class TestExecutors:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("executor", _executors)
     async def test_execute_missing_argument(self, executor):
-        with pytest.raises(opvious.ApiError) as info:
+        with pytest.raises(opvious.ExecutorError) as info:
             await executor.execute_graphql_query("@PaginateFormulations")
         assert info.value.status == 400
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("executor", _executors)
     async def test_execute_not_found(self, executor):
-        with pytest.raises(opvious.ApiError) as info:
+        with pytest.raises(opvious.ExecutorError) as info:
             await executor.execute_graphql_query(
                 "@CancelAttempt",
                 {"uuid": "00000000-0000-0000-0000-000000000000"},

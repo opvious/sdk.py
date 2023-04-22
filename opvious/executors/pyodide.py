@@ -40,9 +40,9 @@ _logger = logging.getLogger(__name__)
 class PyodideExecutor(Executor):
     """`pyodide`-powered executor"""
 
-    def __init__(self, api_url: str, authorization: Optional[str] = None):
+    def __init__(self, root_url: str, authorization: Optional[str] = None):
         super().__init__(
-            variant="pyodide", api_url=api_url, authorization=authorization
+            variant="pyodide", root_url=root_url, authorization=authorization
         )
 
     @contextlib.asynccontextmanager

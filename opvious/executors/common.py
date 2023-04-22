@@ -50,8 +50,8 @@ CONTENT_TYPE_HEADER = "content-type"
 Headers = dict[str, str]
 
 
-class ApiError(Exception):
-    """Local representation of an error returned by the API"""
+class ExecutorError(Exception):
+    """Local representation of an error during an executor's request"""
 
     def __init__(
         self,
@@ -59,7 +59,7 @@ class ApiError(Exception):
         trace: Optional[str] = None,
         data: Optional[Any] = None,
     ):
-        message = f"API call failed with status {status}"
+        message = f"Request failed with status {status}"
         if trace:
             message += f" ({trace})"
         if data:
@@ -96,7 +96,9 @@ class ExecutorResult:
 
     def __post_init__(self):
         _logger.debug(
-            "Got API response. [status=%s, trace=%s]", self.status, self.trace
+            "Got executor result. [status=%s, trace=%s]",
+            self.status,
+            self.trace,
         )
 
     @property
@@ -110,7 +112,7 @@ class ExecutorResult:
     def _assert_status(self, status: int, text: Optional[str] = None) -> None:
         if self.status == status:
             return
-        raise ApiError(status=self.status, trace=self.trace, data=text)
+        raise ExecutorError(status=self.status, trace=self.trace, data=text)
 
     @classmethod
     def is_eligible(cls, ctype: Optional[str]) -> bool:
@@ -124,9 +126,9 @@ class PlainTextExecutorResult(ExecutorResult):
     content_type = "text/plain"
     reader: Any = dataclasses.field(repr=False)
 
-    async def text(self) -> str:
+    async def text(self, assert_status: Optional[int] = None) -> str:
         lines = []
-        async for line in self.lines(assert_status=None):
+        async for line in self.lines(assert_status=assert_status):
             lines.append(line)
         return "".join(lines)
 
@@ -227,20 +229,21 @@ class Executor:
     def __init__(
         self,
         variant: str,
-        api_url: str,
+        root_url: str,
         authorization: Optional[str] = None,
         supports_streaming=False,
     ):
-        self._api_url = api_url
-        self._headers = _default_headers(variant)
+        self._variant = variant
+        self._root_url = root_url
+        self._root_headers = _default_headers(variant)
         if authorization:
-            self._headers[AUTHORIZATION_HEADER] = authorization
+            self._root_headers[AUTHORIZATION_HEADER] = authorization
         self.supports_streaming = supports_streaming
-        _logger.debug("Instantiated %s executor. [url=%s]", variant, api_url)
+        _logger.debug("Instantiated %s executor. [url=%s]", variant, root_url)
 
     @property
     def authenticated(self):
-        return AUTHORIZATION_HEADER in self._headers
+        return AUTHORIZATION_HEADER in self._root_headers
 
     def _send(
         self, url: str, method: str, headers: Headers, body: Optional[bytes]
@@ -251,12 +254,16 @@ class Executor:
     async def execute(
         self,
         result_type: Type[ExpectedExecutorResult],
-        path: str,
+        url: str,
         method: str = "GET",
         headers: Optional[Headers] = None,
         json_data: Optional[Any] = None,
     ) -> AsyncIterator[ExpectedExecutorResult]:
-        all_headers = self._headers.copy()
+        full_url = urllib.parse.urljoin(self._root_url, url)
+        if full_url.startswith(self._root_url):
+            all_headers = self._root_headers.copy()
+        else:
+            all_headers = {}
         if headers:
             all_headers.update(headers)
 
@@ -277,10 +284,13 @@ class Executor:
             body = None
 
         _logger.debug(
-            "Sending API request... [size=%s]", len(body) if body else 0
+            "Sending %s executor request... [size=%s, url=%s]",
+            self._variant,
+            len(body) if body else 0,
+            full_url,
         )
         async with self._send(
-            url=urllib.parse.urljoin(self._api_url, path),
+            url=full_url,
             method=method,
             headers=all_headers,
             body=body,
@@ -290,7 +300,7 @@ class Executor:
                     text = await self.text()
                 else:
                     text = None
-                raise ApiError(
+                raise ExecutorError(
                     status=result.status, trace=result.trace, data=text
                 )
             yield result
@@ -302,13 +312,15 @@ class Executor:
     ) -> Any:
         async with self.execute(
             result_type=JsonExecutorResult,
-            path="/graphql",
+            url="/graphql",
             method="POST",
             json_data={"query": query, "variables": variables or {}},
         ) as result:
             data = result.json_data()
         if data.get("errors"):
-            raise ApiError(status=result.status, trace=result.trace, data=data)
+            raise ExecutorError(
+                status=result.status, trace=result.trace, data=data
+            )
         return data["data"]
 
 

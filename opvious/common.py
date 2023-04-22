@@ -18,6 +18,7 @@ with the License.  You may obtain a copy of the License at
 """
 
 from importlib import metadata
+import urllib.parse
 
 
 __version__ = metadata.version(__package__)
@@ -34,3 +35,12 @@ def format_percent(val):
 
 def strip_nones(d):
     return {k: v for k, v in d.items() if v is not None}
+
+
+def is_url(s: str) -> bool:
+    """Checks if a string is a URL."""
+    try:
+        res = urllib.parse.urlparse(s)
+        return bool(res.scheme and res.netloc)
+    except ValueError:
+        return False

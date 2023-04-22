@@ -363,3 +363,13 @@ class TestClient:
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
         )
         assert "decisions" in instructions
+
+    @pytest.mark.asyncio
+    async def test_solve_sudoku_from_url(self):
+        response = await client.run_solve(
+            sources=[
+                "https://raw.githubusercontent.com/opvious/examples/main/sources/sudoku.md",  # noqa
+            ],
+            parameters={"input": [(0, 0, 3)]},
+        )
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)

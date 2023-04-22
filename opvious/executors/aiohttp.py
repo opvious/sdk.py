@@ -55,10 +55,10 @@ _REQUEST_TIMEOUT_SECONDS = 900  # 15 minutes
 class AiohttpExecutor(Executor):
     """`aiohttp`-powered executor"""
 
-    def __init__(self, api_url: str, authorization: Optional[str] = None):
+    def __init__(self, root_url: str, authorization: Optional[str] = None):
         super().__init__(
             variant="aiohttp",
-            api_url=api_url,
+            root_url=root_url,
             authorization=authorization,
             supports_streaming=True,
         )
