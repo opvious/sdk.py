@@ -36,30 +36,27 @@ from typing import (
 )
 
 from .common import format_percent, is_url, strip_nones
-from .data import (
-    Attempt,
-    AttemptRequest,
+from .data.attempts import Attempt, AttemptRequest, Notification
+from .data.outcomes import (
     CancelledOutcome,
-    DimensionArgument,
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    Label,
-    Notification,
     Outcome,
-    Outline,
+    UnboundedOutcome,
+    UnexpectedOutcomeError,
+)
+from .data.outlines import Label, Outline
+from .data.solves import (
     Relaxation,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
     SolveResponse,
     solve_options_to_json,
-    Summary,
-    Tensor,
-    TensorArgument,
-    UnboundedOutcome,
-    UnexpectedOutcomeError,
+    SolveSummary,
 )
+from .data.tensors import DimensionArgument, Tensor, TensorArgument
 from .executors import (
     default_executor,
     Executor,
@@ -75,7 +72,7 @@ _logger = logging.getLogger(__name__)
 _DEFAULT_DOMAIN = "beta.opvious.io"
 
 
-class Settings(enum.Enum):
+class ClientSettings(enum.Enum):
     """Environment variable names"""
 
     TOKEN = "OPVIOUS_TOKEN"
@@ -126,13 +123,14 @@ class Client:
         should contain a valid API token. A custom domain can optionally be
         set.
         """
-        token = env.get(Settings.TOKEN.value, "")
+        token = env.get(ClientSettings.TOKEN.value, "")
         if not token and require_authenticated:
             raise Exception(
-                f"Missing or empty {Settings.TOKEN.value} environment variable"
+                f"Missing or empty {ClientSettings.TOKEN.value} environment "
+                + "variable"
             )
         return Client.from_token(
-            token=token, domain=env.get(Settings.DOMAIN.value)
+            token=token, domain=env.get(ClientSettings.DOMAIN.value)
         )
 
     @property
@@ -227,7 +225,7 @@ class Client:
                                 summary["rowCount"],
                             )
                     elif kind == "reified":
-                        summary = Summary.from_json(data["summary"])
+                        summary = SolveSummary.from_json(data["summary"])
                         _logger.info(
                             "Solving problem... [columns=%s, rows=%s]",
                             summary.column_count,

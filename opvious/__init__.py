@@ -19,8 +19,38 @@ with the License.  You may obtain a copy of the License at
 
 import logging
 
-from .client import Client, Settings
+from .client import Client, ClientSettings
 from .common import __version__
+from .data.attempts import Attempt, AttemptRequest, Notification
+from .data.outcomes import (
+    CancelledOutcome,
+    FailedOutcome,
+    FeasibleOutcome,
+    InfeasibleOutcome,
+    Outcome,
+    UnboundedOutcome,
+    UnexpectedOutcomeError,
+)
+from .data.outlines import Label, Outline
+from .data.solves import (
+    ConstraintRelaxation,
+    RelaxationPenalty,
+    Relaxation,
+    SolveInputs,
+    SolveOptions,
+    SolveOutputs,
+    SolveResponse,
+    SolveSummary,
+)
+from .data.tensors import (
+    DimensionArgument,
+    Key,
+    KeyItem,
+    SparseTensorArgument,
+    Tensor,
+    TensorArgument,
+    Value,
+)
 from .executors import (
     Executor,
     ExecutorError,
@@ -29,34 +59,6 @@ from .executors import (
     pyodide_executor,
     urllib_executor,
 )
-from .data import (
-    Attempt,
-    AttemptRequest,
-    CancelledOutcome,
-    ConstraintRelaxation,
-    DimensionArgument,
-    FailedOutcome,
-    FeasibleOutcome,
-    InfeasibleOutcome,
-    Key,
-    KeyItem,
-    Label,
-    Notification,
-    Outcome,
-    Penalty,
-    Relaxation,
-    SolveInputs,
-    SolveOptions,
-    SolveOutputs,
-    SolveResponse,
-    SparseTensorArgument,
-    Summary,
-    Tensor,
-    TensorArgument,
-    UnboundedOutcome,
-    UnexpectedOutcomeError,
-    Value,
-)
 
 
 __all__ = [
@@ -64,6 +66,7 @@ __all__ = [
     "AttemptRequest",
     "CancelledOutcome",
     "Client",
+    "ClientSettings",
     "ConstraintRelaxation",
     "DimensionArgument",
     "Executor",
@@ -76,15 +79,15 @@ __all__ = [
     "Label",
     "Notification",
     "Outcome",
-    "Penalty",
+    "Outline",
+    "RelaxationPenalty",
     "Relaxation",
-    "Settings",
     "SolveInputs",
     "SolveOptions",
     "SolveOutputs",
     "SolveResponse",
+    "SolveSummary",
     "SparseTensorArgument",
-    "Summary",
     "Tensor",
     "TensorArgument",
     "UnboundedOutcome",

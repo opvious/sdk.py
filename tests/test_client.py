@@ -5,7 +5,7 @@ import pytest
 
 client = opvious.Client.from_token(
     token=os.environ.get("OPVIOUS_AUTHORIZATION", ""),
-    domain=os.environ.get(opvious.Settings.DOMAIN.value),
+    domain=os.environ.get(opvious.ClientSettings.DOMAIN.value),
 )
 
 
