@@ -25,6 +25,9 @@ from typing import Any, Optional, Union
 from .tensors import Value
 
 
+SolveStatus = str
+
+
 @dataclasses.dataclass(frozen=True)
 class CancelledOutcome:
     """The solve was cancelled before a solution was found"""
@@ -52,7 +55,7 @@ class FailedOutcome:
 
 @dataclasses.dataclass(frozen=True)
 class FeasibleOutcome:
-    """A solution exists"""
+    """A solution was found"""
 
     is_optimal: bool
     objective_value: Optional[Value]
@@ -85,6 +88,23 @@ Outcome = Union[
 ]
 
 
+def outcome_status(outcome: Outcome) -> SolveStatus:
+    """Returns the status corresponding to a given outcome"""
+    if isinstance(outcome, CancelledOutcome):
+        return "CANCELLED"
+    if isinstance(outcome, FailedOutcome):
+        return "ERRORED"
+    if isinstance(outcome, FeasibleOutcome):
+        return "OPTIMAL" if outcome.is_optimal else "FEASIBLE"
+    if isinstance(outcome, InfeasibleOutcome):
+        return "INFEASIBLE"
+    if isinstance(outcome, UnboundedOutcome):
+        return "INFEASIBLE"
+    raise TypeError(f"Unexpected outcome: {outcome}")
+
+
 class UnexpectedOutcomeError(Exception):
+    """The solve ended with an unexpected outcome"""
+
     def __init__(self, outcome: Outcome):
         self.outcome = outcome

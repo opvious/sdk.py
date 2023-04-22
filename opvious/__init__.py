@@ -28,6 +28,8 @@ from .data.outcomes import (
     FeasibleOutcome,
     InfeasibleOutcome,
     Outcome,
+    outcome_status,
+    SolveStatus,
     UnboundedOutcome,
     UnexpectedOutcomeError,
 )
@@ -98,6 +100,7 @@ __all__ = [
     "SolveOutputs",
     "SolveResponse",
     "SolveSummary",
+    "SolveStatus",
     "SparseTensorArgument",
     "Specification",
     "Tensor",
@@ -108,6 +111,7 @@ __all__ = [
     "__version__",
     "aiohttp_executor",
     "default_executor",
+    "outcome_status",
     "pyodide_executor",
     "urllib_executor",
 ]
