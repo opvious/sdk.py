@@ -235,15 +235,15 @@ class Executor:
     ):
         self._variant = variant
         self._root_url = root_url
-        self._headers = _default_headers(variant)
+        self._root_headers = _default_headers(variant)
         if authorization:
-            self._headers[AUTHORIZATION_HEADER] = authorization
+            self._root_headers[AUTHORIZATION_HEADER] = authorization
         self.supports_streaming = supports_streaming
         _logger.debug("Instantiated %s executor. [url=%s]", variant, root_url)
 
     @property
     def authenticated(self):
-        return AUTHORIZATION_HEADER in self._headers
+        return AUTHORIZATION_HEADER in self._root_headers
 
     def _send(
         self, url: str, method: str, headers: Headers, body: Optional[bytes]
@@ -259,7 +259,11 @@ class Executor:
         headers: Optional[Headers] = None,
         json_data: Optional[Any] = None,
     ) -> AsyncIterator[ExpectedExecutorResult]:
-        all_headers = self._headers.copy()
+        full_url = urllib.parse.urljoin(self._root_url, url)
+        if full_url.startswith(self._root_url):
+            all_headers = self._root_headers.copy()
+        else:
+            all_headers = {}
         if headers:
             all_headers.update(headers)
 
@@ -279,18 +283,14 @@ class Executor:
         else:
             body = None
 
-        url = urllib.parse.urljoin(self._root_url, url)
-        if not url.startswith(self._root_url):
-            all_headers.pop(AUTHORIZATION_HEADER, None)
-
         _logger.debug(
             "Sending %s executor request... [size=%s, url=%s]",
             self._variant,
             len(body) if body else 0,
-            url,
+            full_url,
         )
         async with self._send(
-            url=url,
+            url=full_url,
             method=method,
             headers=all_headers,
             body=body,
