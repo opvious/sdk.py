@@ -49,9 +49,7 @@ class LocalSpecification(AnonymousSpecification):
 
     @classmethod
     def globs(
-        cls,
-        *likes: str,
-        root_dir: Optional[str] = None
+        cls, *likes: str, root_dir: Optional[str] = None
     ) -> LocalSpecification:
         paths = []
         for like in likes:

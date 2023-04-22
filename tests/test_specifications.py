@@ -1,5 +1,3 @@
-import opvious
-import os
 import pytest
 from typing import Any, cast
 
@@ -10,9 +8,7 @@ from opvious.specifications import LocalSpecification
 class TestSpecifications:
     def test_local_globs(self):
         spec = LocalSpecification.globs(
-            "**/*bounded.md",
-            "sources/sudo*",
-            root_dir="tests"
+            "**/*bounded.md", "sources/sudo*", root_dir="tests"
         )
         assert len(spec.paths) == 3
 
