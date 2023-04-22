@@ -33,7 +33,7 @@ class AttemptRequest:
     """Attempt inputs"""
 
     formulation_name: str
-    tag_name: str
+    specification_tag_name: str
     inputs: SolveInputs = dataclasses.field(repr=False)
 
 
