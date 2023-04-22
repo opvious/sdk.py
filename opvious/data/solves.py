@@ -29,6 +29,7 @@ from .outcomes import (
     InfeasibleOutcome,
     UnboundedOutcome,
     Outcome,
+    SolveStatus,
 )
 from .outlines import Label, Outline, SourceBinding
 from .tensors import decode_extended_float
@@ -159,7 +160,7 @@ class SolveOutputs:
 
 @dataclasses.dataclass(frozen=True)
 class SolveResponse:
-    status: str
+    status: SolveStatus
     outcome: Outcome
     summary: SolveSummary
     outputs: Optional[SolveOutputs] = dataclasses.field(

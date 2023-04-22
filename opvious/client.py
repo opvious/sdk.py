@@ -43,6 +43,7 @@ from .data.outcomes import (
     FeasibleOutcome,
     InfeasibleOutcome,
     Outcome,
+    outcome_status,
     UnboundedOutcome,
     UnexpectedOutcomeError,
 )
@@ -74,7 +75,7 @@ _DEFAULT_DOMAIN = "beta.opvious.io"
 
 
 class ClientSettings(enum.Enum):
-    """Environment variable names"""
+    """Client configuration environment variables"""
 
     TOKEN = "OPVIOUS_TOKEN"
     DOMAIN = "OPVIOUS_DOMAIN"
@@ -230,7 +231,7 @@ class Client:
                         gap = progress.get("relativeGap")
                         if iter_count is not None:
                             _logger.info(
-                                "Solve in progress... [iters=%s, gap=%s]",
+                                "Solve in progress... [iterations=%s, gap=%s]",
                                 iter_count,
                                 "n/a" if gap is None else format_percent(gap),
                             )
@@ -263,10 +264,19 @@ class Client:
                     response_json=res.json_data(),
                 )
 
-        if assert_feasible and not isinstance(
-            response.outcome, FeasibleOutcome
-        ):
+        outcome = response.outcome
+        if isinstance(outcome, FeasibleOutcome):
+            details = _feasible_outcome_details(outcome)
+            _logger.info(
+                "Solve completed with status %s.%s",
+                response.status,
+                f" [{details}]" if details else "",
+            )
+        elif assert_feasible:
             raise UnexpectedOutcomeError(response.outcome)
+        else:
+            _logger.info("Solve completed with status %s.", response.status)
+
         return response
 
     async def _assemble_solve_request(
@@ -385,6 +395,8 @@ class Client:
             specification = FormulationSpecification(
                 formulation_name=specification
             )
+        elif not isinstance(specification, FormulationSpecification):
+            raise TypeError(f"Unsupported specification type: {specification}")
         outline, tag_name = await self._fetch_formulation_outline(
             specification
         )
@@ -539,8 +551,18 @@ class Client:
         outcome = await self._track_attempt(attempt)
         if not outcome:
             raise Exception("Missing outcome")
-        if assert_feasible and not isinstance(outcome, FeasibleOutcome):
+        status = outcome_status(outcome)
+        if isinstance(outcome, FeasibleOutcome):
+            details = _feasible_outcome_details(outcome)
+            _logger.info(
+                "Attempt completed with status %s.%s",
+                status,
+                f" [{details}]" if details else "",
+            )
+        elif assert_feasible:
             raise UnexpectedOutcomeError(outcome)
+        else:
+            _logger.info("Attempt completed with status %s.", status)
         return outcome
 
     async def fetch_attempt_inputs(self, attempt: Attempt) -> SolveInputs:
@@ -625,3 +647,12 @@ class _SolveInputsBuilder:
             raw_parameters=list(self._parameters.values()),
             raw_dimensions=list(self._dimensions.values()) or None,
         )
+
+
+def _feasible_outcome_details(outcome: FeasibleOutcome) -> Optional[str]:
+    details = []
+    if outcome.objective_value:
+        details.append(f"objective={outcome.objective_value}")
+    if outcome.relative_gap:
+        details.append(f"gap={format_percent(outcome.relative_gap)}")
+    return ", ".join(details) if details else None

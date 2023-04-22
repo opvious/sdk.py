@@ -28,13 +28,21 @@ from .executors import Executor, PlainTextExecutorResult
 
 
 class AnonymousSpecification:
+    """
+    An unnamed model specification. Its sources will be fetched at runtime.
+    This type of specification cannot be used to start attempts.
+    """
+
     async def fetch_sources(self, executor: Executor) -> list[str]:
         raise NotImplementedError()
 
 
 @dataclasses.dataclass(frozen=True)
 class InlineSpecification(AnonymousSpecification):
-    """A specification from inline sources"""
+    """
+    A model specification from inline sources. See also `LocalSpecification`
+    for reading specifications from locally stored files.
+    """
 
     sources: list[str]
 
@@ -44,7 +52,10 @@ class InlineSpecification(AnonymousSpecification):
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecification(AnonymousSpecification):
-    """A specification from a local file"""
+    """
+    A model specification from local files. See also `InlineSpecification` for
+    creating specifications directly from strings.
+    """
 
     paths: list[str]
 
@@ -52,6 +63,11 @@ class LocalSpecification(AnonymousSpecification):
     def globs(
         cls, *likes: str, root: Optional[str] = None
     ) -> LocalSpecification:
+        """
+        Creates a local specification from file globs. As a convenience the
+        root can be a file's name, in which case it will be interpreted as its
+        parent directory (this is typically handy when used with `__file__`).
+        """
         if root:
             root = os.path.realpath(root)
             if os.path.isfile(root):
@@ -79,7 +95,7 @@ _EXAMPLE_URL_PREFIX = (
 
 @dataclasses.dataclass(frozen=True)
 class RemoteSpecification(AnonymousSpecification):
-    """A specification from a remote URL"""
+    """A model specification from a remote URL"""
 
     url: str
 
@@ -98,7 +114,11 @@ class RemoteSpecification(AnonymousSpecification):
 
 @dataclasses.dataclass(frozen=True)
 class FormulationSpecification:
-    """A specification from a stored formulation"""
+    """
+    A specification from a stored formulation. This type of specification
+    allows starting attempts and is recommended for production use as it
+    provides history and reproducibility when combined with tag names.
+    """
 
     formulation_name: str
     tag_name: Optional[str] = None
