@@ -27,7 +27,7 @@ client = opvious.Client.from_token(TOKEN)
 
 # Solve a simple portfolio selection optimization model
 response = await client.run_solve(
-    sources=[
+    specification=opvious.InlineSpecification([
       r"""
           We find an allocation of assets which minimizes risk while satisfying
           a minimum expected return:
@@ -46,7 +46,7 @@ response = await client.run_solve(
           + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
           + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
       """
-    ],
+    ]),
     parameters={
         "covariance": {
             ("AAPL", "AAPL"): 0.08,

@@ -59,6 +59,13 @@ from .executors import (
     pyodide_executor,
     urllib_executor,
 )
+from .specifications import (
+    FormulationSpecification,
+    InlineSpecification,
+    LocalSpecification,
+    RemoteSpecification,
+    Specification,
+)
 
 
 __all__ = [
@@ -73,21 +80,26 @@ __all__ = [
     "ExecutorError",
     "FailedOutcome",
     "FeasibleOutcome",
+    "FormulationSpecification",
     "InfeasibleOutcome",
+    "InlineSpecification",
     "Key",
     "KeyItem",
     "Label",
+    "LocalSpecification",
     "Notification",
     "Outcome",
     "Outline",
-    "RelaxationPenalty",
     "Relaxation",
+    "RelaxationPenalty",
+    "RemoteSpecification",
     "SolveInputs",
     "SolveOptions",
     "SolveOutputs",
     "SolveResponse",
     "SolveSummary",
     "SparseTensorArgument",
+    "Specification",
     "Tensor",
     "TensorArgument",
     "UnboundedOutcome",

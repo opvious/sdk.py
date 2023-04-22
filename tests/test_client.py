@@ -16,7 +16,8 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_feasible_attempt(self):
         request = await client.prepare_attempt_request(
-            formulation_name="bounded", parameters={"bound": 0.1}
+            specification=opvious.FormulationSpecification("bounded"),
+            parameters={"bound": 0.1},
         )
         attempt = await client.start_attempt(request)
         outcome = await client.wait_for_outcome(attempt, assert_feasible=True)
@@ -27,7 +28,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_infeasible_attempt(self):
         request = await client.prepare_attempt_request(
-            formulation_name="bounded", parameters={"bound": 3}
+            specification="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(request)
         outcome = await client.wait_for_outcome(attempt)
@@ -36,7 +37,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_simple_unbounded_attempt(self):
         request = await client.prepare_attempt_request(
-            formulation_name="unbounded"
+            specification="unbounded"
         )
         attempt = await client.start_attempt(request)
         outcome = await client.wait_for_outcome(attempt)
@@ -45,7 +46,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_diet_attempt(self):
         request = await client.prepare_attempt_request(
-            formulation_name="diet",
+            specification="diet",
             parameters={
                 "costPerRecipe": {
                     "lasagna": 12,
@@ -96,7 +97,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_pinned_diet_attempt(self):
         request = await client.prepare_attempt_request(
-            formulation_name="diet",
+            specification="diet",
             parameters={
                 "costPerRecipe": {
                     "lasagna": 10,
@@ -128,7 +129,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_relaxed_attempt(self):
         request = await client.prepare_attempt_request(
-            formulation_name="bounded", parameters={"bound": 3}
+            specification="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(
             request,
@@ -144,7 +145,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_relaxed_attempt(self):
         request = await client.prepare_attempt_request(
-            formulation_name="bounded", parameters={"bound": 3}
+            specification="bounded", parameters={"bound": 3}
         )
         attempt = await client.start_attempt(
             request,
@@ -165,7 +166,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_run_sudoku(self):
         request = await client.prepare_attempt_request(
-            formulation_name="sudoku",
+            specification="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
         )
         attempt = await client.start_attempt(request)
@@ -180,14 +181,16 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_bounded_feasible(self):
         response = await client.run_solve(
-            sources=[
-                r"""
+            specification=opvious.InlineSpecification(
+                [
+                    r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
                     $\S^{p}_{bound}: b \in \mathbb{R}_+$
                     $\S^{c}_{greaterThanBound}: \alpha \geq b$
                     $\S^o_{maximize}: \max 2 \alpha$
                 """,
-            ],
+                ]
+            ),
             parameters={"bound": 0.1},
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
@@ -197,14 +200,16 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_bounded_infeasible(self):
         response = await client.run_solve(
-            sources=[
-                r"""
+            specification=opvious.InlineSpecification(
+                [
+                    r"""
                     $\S^{v}_{target}: \alpha \in \{0,1\}$
                     $\S^{p}_{bound}: b \in \mathbb{R}_+$
                     $\S^{c}_{greaterThanBound}: \alpha \geq b$
                     $\S^o_{maximize}: \max 2 \alpha$
                 """,
-            ],
+                ]
+            ),
             parameters={"bound": 30},
         )
         assert isinstance(response.outcome, opvious.InfeasibleOutcome)
@@ -230,7 +235,7 @@ class TestClient:
             + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
         """
         response = await client.run_solve(
-            sources=[source],
+            specification=opvious.InlineSpecification([source]),
             parameters={
                 "covariance": {
                     ("AAPL", "AAPL"): 0.2,
@@ -250,7 +255,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_diet(self):
         response = await client.run_solve(
-            formulation_name="diet",
+            specification=opvious.FormulationSpecification("diet"),
             parameters={
                 "costPerRecipe": {
                     "lasagna": 12,
@@ -271,7 +276,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_diet_non_streaming(self):
         response = await client.run_solve(
-            formulation_name="diet",
+            specification=opvious.FormulationSpecification("diet"),
             parameters={
                 "costPerRecipe": {
                     "lasagna": 12,
@@ -293,7 +298,7 @@ class TestClient:
     async def test_solve_assert_feasible(self):
         try:
             await client.run_solve(
-                formulation_name="diet",
+                specification=opvious.FormulationSpecification("diet"),
                 parameters={
                     "costPerRecipe": {
                         "pasta": 10,
@@ -336,7 +341,7 @@ class TestClient:
         $$
         """
         response = await client.run_solve(
-            sources=[source],
+            specification=opvious.InlineSpecification([source]),
             parameters={"size": 2},
         )
         assert isinstance(response.outcome, opvious.InfeasibleOutcome)
@@ -344,7 +349,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_relaxed_sudoku(self):
         response = await client.run_solve(
-            formulation_name="sudoku",
+            specification=opvious.FormulationSpecification("sudoku"),
             parameters={"hints": [(0, 0, 3), (1, 1, 3)]},
             relaxation=opvious.Relaxation.from_constraint_labels(
                 [
@@ -359,7 +364,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_inspect_solve_instructions(self):
         instructions = await client.inspect_solve_instructions(
-            formulation_name="sudoku",
+            specification=opvious.FormulationSpecification("sudoku"),
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
         )
         assert "decisions" in instructions
@@ -367,9 +372,7 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_solve_sudoku_from_url(self):
         response = await client.run_solve(
-            sources=[
-                "https://raw.githubusercontent.com/opvious/examples/main/sources/sudoku.md",  # noqa
-            ],
+            specification=opvious.RemoteSpecification.example("sudoku"),
             parameters={"input": [(0, 0, 3)]},
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)

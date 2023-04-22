@@ -64,6 +64,7 @@ from .executors import (
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
 )
+from .specifications import FormulationSpecification, Specification
 
 
 _logger = logging.getLogger(__name__)
@@ -142,9 +143,7 @@ class Client:
 
     async def inspect_solve_instructions(
         self,
-        sources: Optional[list[str]] = None,
-        formulation_name: Optional[str] = None,
-        tag_name: Optional[str] = None,
+        specification: Specification,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relaxation: Optional[Relaxation] = None,
@@ -154,9 +153,7 @@ class Client:
         LP formatted representation.
         """
         body, _outline = await self._assemble_solve_request(
-            sources=sources,
-            formulation_name=formulation_name,
-            tag_name=tag_name,
+            specification=specification,
             parameters=parameters,
             dimensions=dimensions,
             relaxation=relaxation,
@@ -180,9 +177,7 @@ class Client:
 
     async def run_solve(
         self,
-        sources: Optional[list[str]] = None,
-        formulation_name: Optional[str] = None,
-        tag_name: Optional[str] = None,
+        specification: Specification,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         relaxation: Optional[Relaxation] = None,
@@ -194,9 +189,7 @@ class Client:
         alternative for long-running solves.
         """
         body, outline = await self._assemble_solve_request(
-            sources=sources,
-            formulation_name=formulation_name,
-            tag_name=tag_name,
+            specification=specification,
             parameters=parameters,
             dimensions=dimensions,
             relaxation=relaxation,
@@ -278,33 +271,25 @@ class Client:
 
     async def _assemble_solve_request(
         self,
-        sources: Optional[list[str]] = None,
-        formulation_name: Optional[str] = None,
-        tag_name: Optional[str] = None,
+        specification: Specification,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         options: Optional[SolveOptions] = None,
         relaxation: Union[None, Relaxation] = None,
     ) -> Tuple[Any, Outline]:
         # First we fetch the outline to validate/coerce inputs later on
-        if formulation_name:
-            if sources:
-                raise Exception(
-                    "Sources and formulation name are mutually exclusive"
-                )
-            outline, _tag = await self._fetch_formulation_outline(
-                formulation_name, tag_name
+        if isinstance(specification, FormulationSpecification):
+            outline, tag_name = await self._fetch_formulation_outline(
+                specification
             )
             formulation = strip_nones(
                 {
-                    "name": formulation_name,
+                    "name": specification.formulation_name,
                     "specificationTagName": tag_name,
                 }
             )
         else:
-            if not sources:
-                raise Exception("Sources or formulation name must be set")
-            sources = await self._resolving_sources(sources)
+            sources = await specification.fetch_sources(self._executor)
             outline = await self._fetch_sources_outline(sources)
             formulation = {"sources": sources}
 
@@ -368,11 +353,14 @@ class Client:
         return Outline.from_json(outline_data["outline"])
 
     async def _fetch_formulation_outline(
-        self, name: str, tag_name: Optional[str] = None
+        self, specification: FormulationSpecification
     ) -> Tuple[Outline, str]:
         data = await self._executor.execute_graphql_query(
             query="@FetchOutline",
-            variables={"formulationName": name, "tagName": tag_name},
+            variables={
+                "formulationName": specification.formulation_name,
+                "tagName": specification.tag_name,
+            },
         )
         formulation = data.get("formulation")
         if not formulation:
@@ -386,16 +374,19 @@ class Client:
 
     async def prepare_attempt_request(
         self,
-        formulation_name: str,
-        tag_name: Optional[str] = None,
+        specification: Union[str, FormulationSpecification],
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
     ) -> AttemptRequest:
         """Assembles and validates inputs for a given formulation. The returned
         object can be used to start an asynchronous solve via `start_attempt`.
         """
-        outline, tag = await self._fetch_formulation_outline(
-            formulation_name, tag_name
+        if isinstance(specification, str):
+            specification = FormulationSpecification(
+                formulation_name=specification
+            )
+        outline, tag_name = await self._fetch_formulation_outline(
+            specification
         )
         builder = _SolveInputsBuilder(outline)
         if dimensions:
@@ -405,8 +396,8 @@ class Client:
             for label, param in parameters.items():
                 builder.set_parameter(label, param)
         return AttemptRequest(
-            formulation_name=formulation_name,
-            tag_name=tag,
+            formulation_name=specification.formulation_name,
+            specification_tag_name=tag_name,
             inputs=builder.build(),
         )
 
@@ -437,7 +428,7 @@ class Client:
             method="POST",
             json_data={
                 "formulationName": request.formulation_name,
-                "specificationTagName": request.tag_name,
+                "specificationTagName": request.specification_tag_name,
                 "inputs": strip_nones(
                     {
                         "dimensions": request.inputs.raw_dimensions,
