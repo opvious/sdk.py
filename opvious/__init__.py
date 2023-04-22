@@ -62,6 +62,7 @@ from .executors import (
 from .specifications import (
     FormulationSpecification,
     InlineSpecification,
+    LocalSpecification,
     RemoteSpecification,
     Specification,
 )
@@ -85,6 +86,7 @@ __all__ = [
     "Key",
     "KeyItem",
     "Label",
+    "LocalSpecification",
     "Notification",
     "Outcome",
     "Outline",

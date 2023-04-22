@@ -20,6 +20,7 @@ with the License.  You may obtain a copy of the License at
 from __future__ import annotations
 
 import dataclasses
+import glob
 from typing import Optional, Union
 
 from .executors import Executor, PlainTextExecutorResult
@@ -32,12 +33,38 @@ class AnonymousSpecification:
 
 @dataclasses.dataclass(frozen=True)
 class InlineSpecification(AnonymousSpecification):
-    """A model specification from inline sources"""
+    """A specification from inline sources"""
 
     sources: list[str]
 
     async def fetch_sources(self, _executor: Executor) -> list[str]:
         return self.sources
+
+
+@dataclasses.dataclass(frozen=True)
+class LocalSpecification(AnonymousSpecification):
+    """A specification from a local file"""
+
+    paths: list[str]
+
+    @classmethod
+    def globs(
+        cls,
+        *likes: str,
+        root_dir: Optional[str] = None
+    ) -> LocalSpecification:
+        paths = []
+        for like in likes:
+            for path in glob.iglob(like, root_dir=root_dir, recursive=True):
+                paths.append(path)
+        return LocalSpecification(paths)
+
+    async def fetch_sources(self, _executor: Executor) -> list[str]:
+        sources = []
+        for path in self.paths:
+            with open(path, "r", encoding="utf-8") as reader:
+                sources.append(reader.read())
+        return sources
 
 
 _EXAMPLE_URL_PREFIX = (
@@ -47,7 +74,7 @@ _EXAMPLE_URL_PREFIX = (
 
 @dataclasses.dataclass(frozen=True)
 class RemoteSpecification(AnonymousSpecification):
-    """A model specification from a URL"""
+    """A specification from a remote URL"""
 
     url: str
 
@@ -66,7 +93,7 @@ class RemoteSpecification(AnonymousSpecification):
 
 @dataclasses.dataclass(frozen=True)
 class FormulationSpecification:
-    """A model specification from inline sources"""
+    """A specification from a stored formulation"""
 
     formulation_name: str
     tag_name: Optional[str] = None
