@@ -1,5 +1,4 @@
 import opvious
-import os
 import pytest
 
 
