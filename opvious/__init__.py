@@ -1,3 +1,5 @@
+"""Opvious Python SDK"""
+
 import logging
 
 from .client import Client, ClientSettings
