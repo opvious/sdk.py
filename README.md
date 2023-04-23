@@ -65,20 +65,7 @@ if response.outputs: # Present if the problem was feasible
   print(response.outputs.variable("allocation"))
 ```
 
-
-## Environments
-
-Clients are compatible with Pyodide environments, for example [JupyterLite][]
-kernels. Simply install the package as usual in a notebook, omitting the `aio`
-optional dependencies:
-
-```python
-import piplite
-await piplite.install('opvious')
-```
-
-In other environments, prefer using the `aiohttp`-powered clients as they are
-more performant (this is the default if the `aio` dependencies were specified).
+The full API reference is available here: https://opvious.readthedocs.io
 
 
 ## Next steps

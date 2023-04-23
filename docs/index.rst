@@ -8,6 +8,7 @@ A lightweight SDK for solving optimization models with the Opvious API
 + `Project homepage on GitHub`_
 + `PyPI entry`_
 
+
 Installation
 ------------
 
@@ -18,6 +19,13 @@ Using `pip`:
   $ pip install opvious[aio]
 
 The optional `aio` dependency is recommended for improved performance.
+It may be omitted for compatibility with Pyodide environments, for example in
+[JupyterLite][] kernels:
+
+.. code-block:: python
+
+  import piplite
+  await piplite.install('opvious')
 
 
 Resources
