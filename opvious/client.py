@@ -64,7 +64,7 @@ _logger = logging.getLogger(__name__)
 _DEFAULT_DOMAIN = "beta.opvious.io"
 
 
-class ClientSettings(enum.Enum):
+class ClientSetting(enum.Enum):
     """Client configuration environment variables"""
 
     TOKEN = ("OPVIOUS_TOKEN", "")
@@ -134,14 +134,14 @@ class Client:
             require_authenticated: Throw if the environment does not include a
                 valid API token.
         """
-        token = ClientSettings.TOKEN.read(env)
+        token = ClientSetting.TOKEN.read(env)
         if not token and require_authenticated:
             raise Exception(
-                f"Missing or empty {ClientSettings.TOKEN.value} environment "
+                f"Missing or empty {ClientSetting.TOKEN.value} environment "
                 + "variable"
             )
         return Client.from_token(
-            token=token, domain=ClientSettings.DOMAIN.read(env)
+            token=token, domain=ClientSetting.DOMAIN.read(env)
         )
 
     @property
