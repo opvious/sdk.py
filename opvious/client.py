@@ -37,7 +37,7 @@ from .data.outcomes import (
     UnboundedOutcome,
     UnexpectedOutcomeError,
 )
-from .data.outlines import Label, Outline
+from .data.outlines import Label, Outline, outline_from_json
 from .data.solves import (
     Relaxation,
     SolveInputs,
@@ -45,6 +45,8 @@ from .data.solves import (
     SolveOutputs,
     SolveResponse,
     solve_options_to_json,
+    solve_response_from_json,
+    solve_summary_from_json,
     SolveSummary,
 )
 from .data.tensors import DimensionArgument, Tensor, TensorArgument
@@ -245,7 +247,7 @@ class Client:
                                 summary["rowCount"],
                             )
                     elif kind == "reified":
-                        summary = SolveSummary.from_json(data["summary"])
+                        summary = solve_summary_from_json(data["summary"])
                         _logger.info(
                             "Solving problem... [columns=%s, rows=%s]",
                             summary.column_count,
@@ -273,7 +275,7 @@ class Client:
                         )
             if not summary or not response_json:
                 raise Exception("Streaming solve terminated early")
-            response = SolveResponse.from_json(
+            response = solve_response_from_json(
                 outline=outline,
                 response_json=response_json,
                 summary=summary,
@@ -285,7 +287,7 @@ class Client:
                 method="POST",
                 json_data=body,
             ) as res:
-                response = SolveResponse.from_json(
+                response = solve_response_from_json(
                     outline=outline,
                     response_json=res.json_data(),
                 )
@@ -386,7 +388,7 @@ class Client:
         errors = outline_data.get("errors")
         if errors:
             raise Exception(f"Invalid sources: {json.dumps(errors)}")
-        return Outline.from_json(outline_data["outline"])
+        return outline_from_json(outline_data["outline"])
 
     async def _fetch_formulation_outline(
         self, specification: FormulationSpecification
@@ -405,7 +407,7 @@ class Client:
         if not tag:
             raise Exception("No matching specification found")
         spec = tag["specification"]
-        outline = Outline.from_json(spec["outline"])
+        outline = outline_from_json(spec["outline"])
         return (outline, tag["name"])
 
     async def prepare_attempt_request(
@@ -500,7 +502,7 @@ class Client:
             return None
         return attempt_from_graphql(
             data=attempt,
-            outline=Outline.from_json(attempt["outline"]),
+            outline=outline_from_json(attempt["outline"]),
             url=self._attempt_url(uuid),
         )
 
@@ -670,7 +672,7 @@ class _SolveInputsBuilder:
             raise Exception(f"Duplicate parameter: {label}")
         try:
             tensor = Tensor.from_argument(
-                arg, len(outline.bindings), outline.is_indicator()
+                arg, len(outline.bindings), outline.is_indicator
             )
         except Exception as exc:
             raise ValueError(f"Invalid  parameter: {label}") from exc

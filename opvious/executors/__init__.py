@@ -25,6 +25,7 @@ __all__ = [
 def aiohttp_executor(
     root_url: str, authorization: Optional[str] = None
 ) -> Executor:
+    """Returns an `aiohttp`-powered executor"""
     from .aiohttp import AiohttpExecutor
 
     return AiohttpExecutor(root_url, authorization)
@@ -33,6 +34,7 @@ def aiohttp_executor(
 def pyodide_executor(
     root_url: str, authorization: Optional[str] = None
 ) -> Executor:
+    """Returns a Pyodide-compatible executor"""
     from .pyodide import PyodideExecutor
 
     return PyodideExecutor(root_url=root_url, authorization=authorization)
@@ -41,6 +43,7 @@ def pyodide_executor(
 def urllib_executor(
     root_url: str, authorization: Optional[str] = None
 ) -> Executor:
+    """Returns a native `urllib` executor"""
     from .urllib import UrllibExecutor
 
     return UrllibExecutor(root_url=root_url, authorization=authorization)

@@ -21,28 +21,35 @@ class SolveSummary:
     """Solve summary statistics"""
 
     column_count: int
-    row_count: int
-    weight_count: int
+    """Total number of variable columns in the reified problem"""
 
+    row_count: int
+    """Total number of constraint rows in the reified problem"""
+
+    weight_count: int
+    """Total number of non-zero weights in the reified problem"""
+
+    @property
     def density(self) -> float:
+        """Fraction of non-zero weights in the constraint matrix"""
         denom = self.column_count * self.row_count
         return self.weight_count / denom if denom > 0 else 1
 
-    @classmethod
-    def from_json(cls, data) -> "SolveSummary":
-        column_count = 0
-        for item in data["variables"]:
-            column_count += item["columnCount"]
-        row_count = 0
-        weight_count = 0
-        for item in data["constraints"]:
-            row_count += item["rowCount"]
-            weight_count += item["weightProfile"]["count"]
-        return SolveSummary(
-            column_count=column_count,
-            row_count=row_count,
-            weight_count=weight_count,
-        )
+
+def solve_summary_from_json(data) -> SolveSummary:
+    column_count = 0
+    for item in data["variables"]:
+        column_count += item["columnCount"]
+    row_count = 0
+    weight_count = 0
+    for item in data["constraints"]:
+        row_count += item["rowCount"]
+        weight_count += item["weightProfile"]["count"]
+    return SolveSummary(
+        column_count=column_count,
+        row_count=row_count,
+        weight_count=weight_count,
+    )
 
 
 def _entry_index(entries, bindings):
@@ -65,10 +72,16 @@ class SolveInputs:
     """Solve input data"""
 
     outline: Outline
+    """Target model metadata"""
+
     raw_parameters: list[Any]
+    """All parameters in raw format"""
+
     raw_dimensions: Optional[list[Any]]
+    """All dimensions in raw format"""
 
     def parameter(self, label: Label) -> pd.Series:
+        """Returns the parameter for a given label as a pandas Series"""
         for param in self.raw_parameters:
             if param["label"] == label:
                 entries = param["entries"]
@@ -80,6 +93,7 @@ class SolveInputs:
         raise Exception(f"Unknown parameter: {label}")
 
     def dimension(self, label: Label) -> pd.Index:
+        """Returns the dimension for a given label as a pandas Index"""
         for dim in self.raw_dimensions or []:
             if dim["label"] == label:
                 return pd.Index(dim["items"])
@@ -91,16 +105,13 @@ class SolveOutputs:
     """Successful solve output data"""
 
     outline: Outline
-    raw_variables: list[Any]
-    raw_constraints: list[Any]
+    """Solved model metadata"""
 
-    @classmethod
-    def from_json(cls, data, outline):
-        return SolveOutputs(
-            outline=outline,
-            raw_variables=data["variables"],
-            raw_constraints=data["constraints"],
-        )
+    raw_variables: list[Any]
+    """All variables in raw format"""
+
+    raw_constraints: list[Any]
+    """All constraints in raw format"""
 
     def _variable_bindings(self, label: Label) -> list[SourceBinding]:
         prefix = label.split("_", 1)[0]
@@ -109,6 +120,10 @@ class SolveOutputs:
         return self.outline.constraints[prefix].bindings
 
     def variable(self, label: Label) -> pd.DataFrame:
+        """Returns variable results for a given label
+
+        The returned dataframe has two columns: `value` and `dual_value`.
+        """
         for res in self.raw_variables:
             if res["label"] == label:
                 entries = res["entries"]
@@ -127,6 +142,10 @@ class SolveOutputs:
         raise Exception(f"Unknown variable {label}")
 
     def constraint(self, label: Label) -> pd.DataFrame:
+        """Returns constraint results for a given label.
+
+        The returned dataframe has two columsn: `slack` and `dual_value`.
+        """
         for res in self.raw_constraints:
             if res["label"] == label:
                 entries = res["entries"]
@@ -145,49 +164,62 @@ class SolveOutputs:
         raise Exception(f"Unknown constraint {label}")
 
 
+def _outputs_from_json(data, outline) -> SolveOutputs:
+    return SolveOutputs(
+        outline=outline,
+        raw_variables=data["variables"],
+        raw_constraints=data["constraints"],
+    )
+
+
 @dataclasses.dataclass(frozen=True)
 class SolveResponse:
     """Solver response"""
 
     status: SolveStatus
-    outcome: Outcome
+    """Status string"""
+
     summary: SolveSummary
+    """Solve summary statistics"""
+
+    outcome: Outcome
+    """Solution metadata"""
+
     outputs: Optional[SolveOutputs] = dataclasses.field(
         default=None, repr=False
     )
+    """Solution data, present iff a solution was found"""
 
-    @classmethod
-    def from_json(
-        cls,
-        outline: Outline,
-        response_json: Any,
-        summary: Optional[SolveSummary] = None,
-    ) -> "SolveResponse":
-        outcome_json = response_json["outcome"]
-        status = outcome_json["status"]
-        if status == "INFEASIBLE":
-            outcome = cast(Outcome, InfeasibleOutcome())
-        elif status == "UNBOUNDED":
-            outcome = UnboundedOutcome()
-        else:
-            outcome = FeasibleOutcome(
-                is_optimal=status == "OPTIMAL",
-                objective_value=outcome_json.get("objectiveValue"),
-                relative_gap=outcome_json.get("relativeGap"),
-            )
-        outputs = None
-        if isinstance(outcome, FeasibleOutcome):
-            outputs = SolveOutputs.from_json(
-                data=response_json["outputs"],
-                outline=outline,
-            )
-        return SolveResponse(
-            status=status,
-            outcome=outcome,
-            summary=summary
-            or SolveSummary.from_json(response_json["summary"]),
-            outputs=outputs,
+
+def solve_response_from_json(
+    outline: Outline,
+    response_json: Any,
+    summary: Optional[SolveSummary] = None,
+) -> SolveResponse:
+    outcome_json = response_json["outcome"]
+    status = outcome_json["status"]
+    if status == "INFEASIBLE":
+        outcome = cast(Outcome, InfeasibleOutcome())
+    elif status == "UNBOUNDED":
+        outcome = UnboundedOutcome()
+    else:
+        outcome = FeasibleOutcome(
+            is_optimal=status == "OPTIMAL",
+            objective_value=outcome_json.get("objectiveValue"),
+            relative_gap=outcome_json.get("relativeGap"),
         )
+    outputs = None
+    if isinstance(outcome, FeasibleOutcome):
+        outputs = _outputs_from_json(
+            data=response_json["outputs"],
+            outline=outline,
+        )
+    return SolveResponse(
+        status=status,
+        outcome=outcome,
+        summary=summary or solve_summary_from_json(response_json["summary"]),
+        outputs=outputs,
+    )
 
 
 RelaxationPenalty = str
@@ -218,16 +250,17 @@ class Relaxation:
             constraints=[ConstraintRelaxation(label=n) for n in labels],
         )
 
-    def to_json(self):
-        return strip_nones(
-            {
-                "penalty": self.penalty,
-                "objectiveWeight": self.objective_weight,
-                "constraints": None
-                if self.constraints is None
-                else [c.to_json() for c in self.constraints],
-            }
-        )
+
+def _relaxation_to_json(r: Relaxation) -> Any:
+    return strip_nones(
+        {
+            "penalty": r.penalty,
+            "objectiveWeight": r.objective_weight,
+            "constraints": None
+            if r.constraints is None
+            else [_constraint_relaxation_to_json(c) for c in r.constraints],
+        }
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -239,17 +272,18 @@ class ConstraintRelaxation:
     cost: Optional[float] = None
     bound: Optional[float] = None
 
-    def to_json(self):
-        return strip_nones(
-            {
-                "label": self.label,
-                "penalty": self.penalty,
-                "deficitCost": self.cost,
-                "surplusCost": self.cost,
-                "deficitBound": None if self.bound is None else -self.bound,
-                "surplusBound": self.bound,
-            }
-        )
+
+def _constraint_relaxation_to_json(c):
+    return strip_nones(
+        {
+            "label": c.label,
+            "penalty": c.penalty,
+            "deficitCost": c.cost,
+            "surplusCost": c.cost,
+            "deficitBound": None if c.bound is None else -c.bound,
+            "surplusBound": c.bound,
+        }
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -313,6 +347,8 @@ def solve_options_to_json(
             "zeroValueThreshold": options.zero_value_threshold,
             "infinityValueThreshold": options.infinity_value_threshold,
             "freeBoundThreshold": options.free_bound_threshold,
-            "relaxation": relaxation.to_json() if relaxation else None,
+            "relaxation": _relaxation_to_json(relaxation)
+            if relaxation
+            else None,
         }
     )

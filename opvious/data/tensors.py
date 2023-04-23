@@ -57,13 +57,19 @@ def decode_extended_float(val: ExtendedFloat):
 
 @dataclasses.dataclass
 class Tensor:
+    """An n-dimensional matrix"""
+
     entries: list[Any]
+    """Raw list of matrix entries"""
+
     default_value: ExtendedFloat = 0
+    """Value to use for missing key"""
 
     @classmethod
     def from_argument(
         cls, arg: TensorArgument, rank: int, is_indicator: bool = False
     ):
+        """Creates a tensor from its possible argument values"""
         if isinstance(arg, tuple):
             data, default_value = arg
         elif rank > 0 and is_value(arg) and not is_indicator:
