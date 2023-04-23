@@ -33,21 +33,24 @@ class InlineSpecification(AnonymousSpecification):
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecification(AnonymousSpecification):
-    """
-    A model specification from local files. See also `InlineSpecification` for
-    creating specifications directly from strings.
+    """A model specification from local files
+
+    See also `InlineSpecification` for creating specifications directly from
+    strings.
     """
 
     paths: list[str]
+    """The list of of paths which define the specification"""
 
     @classmethod
     def globs(
         cls, *likes: str, root: Optional[str] = None
     ) -> LocalSpecification:
-        """
-        Creates a local specification from file globs. As a convenience the
-        root can be a file's name, in which case it will be interpreted as its
-        parent directory (this is typically handy when used with `__file__`).
+        """Creates a local specification from file globs
+
+        As a convenience the root can be a file's name, in which case it will
+        be interpreted as its parent directory (this is typically handy when
+        used with `__file__`).
         """
         if root:
             root = os.path.realpath(root)
@@ -79,9 +82,15 @@ class RemoteSpecification(AnonymousSpecification):
     """A model specification from a remote URL"""
 
     url: str
+    """The specification's http(s) URL"""
 
     @classmethod
     def example(cls, name: str):
+        """Returns a standard example's specification
+
+        Standard examples are available here:
+        https://github.com/opvious/examples/tree/main/sources
+        """
         return RemoteSpecification(url=f"{_EXAMPLE_URL_PREFIX}/{name}.md")
 
     async def fetch_sources(self, executor: Executor) -> list[str]:
@@ -95,14 +104,21 @@ class RemoteSpecification(AnonymousSpecification):
 
 @dataclasses.dataclass(frozen=True)
 class FormulationSpecification:
-    """
-    A specification from a stored formulation. This type of specification
-    allows starting attempts and is recommended for production use as it
-    provides history and reproducibility when combined with tag names.
+    """A specification from a stored formulation
+
+    This type of specification allows starting attempts and is recommended for
+    production use as it provides history and reproducibility when combined
+    with tag names.
     """
 
     formulation_name: str
+    """The corresponding formulation's name"""
+
     tag_name: Optional[str] = None
+    """The matching tag's name
+
+    If absent, the formulation's default will be used.
+    """
 
 
 Specification = Union[
