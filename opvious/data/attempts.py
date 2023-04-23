@@ -50,7 +50,7 @@ def attempt_from_graphql(data: Any, outline: Outline, url: str) -> Attempt:
 
 
 @dataclasses.dataclass(frozen=True)
-class Notification:
+class AttemptNotification:
     """Attempt progress update notification"""
 
     dequeued: bool
@@ -68,8 +68,8 @@ class Notification:
 
 def notification_from_graphql(
     dequeued: bool, data: Any = None
-) -> Notification:
-    return Notification(
+) -> AttemptNotification:
+    return AttemptNotification(
         dequeued=dequeued,
         relative_gap=data["relativeGap"] if data else None,
         lp_iteration_count=data["lpIterationCount"] if data else None,

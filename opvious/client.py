@@ -22,8 +22,8 @@ from .common import format_percent, is_url, strip_nones
 from .data.attempts import (
     Attempt,
     attempt_from_graphql,
+    AttemptNotification,
     AttemptRequest,
-    Notification,
     notification_from_graphql,
 )
 from .data.outcomes import (
@@ -524,7 +524,7 @@ class Client:
 
     async def poll_attempt(
         self, attempt: Attempt
-    ) -> Union[Notification, Outcome]:
+    ) -> Union[AttemptNotification, Outcome]:
         """Polls an attempt for its outcome or latest progress notification
 
         Args:
@@ -563,7 +563,7 @@ class Client:
     )
     async def _track_attempt(self, attempt: Attempt) -> Optional[Outcome]:
         ret = await self.poll_attempt(attempt)
-        if isinstance(ret, Notification):
+        if isinstance(ret, AttemptNotification):
             delta = datetime.now(timezone.utc) - attempt.started_at
             elapsed = humanize.naturaldelta(delta, minimum_unit="milliseconds")
             if ret.dequeued:
