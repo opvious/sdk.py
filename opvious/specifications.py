@@ -88,7 +88,8 @@ class RemoteSpecification(AnonymousSpecification):
     def example(cls, name: str):
         """Returns a standard example's specification
 
-        Standard examples are available here: https://github.com/opvious/examples/tree/main/sources
+        Standard examples are available here:
+        https://github.com/opvious/examples/tree/main/sources
         """
         return RemoteSpecification(url=f"{_EXAMPLE_URL_PREFIX}/{name}.md")
 

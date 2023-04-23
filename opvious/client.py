@@ -47,7 +47,6 @@ from .data.solves import (
     solve_options_to_json,
     solve_response_from_json,
     solve_summary_from_json,
-    SolveSummary,
 )
 from .data.tensors import DimensionArgument, Tensor, TensorArgument
 from .executors import (
