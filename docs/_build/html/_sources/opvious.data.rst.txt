@@ -1,0 +1,53 @@
+opvious.data package
+====================
+
+Submodules
+----------
+
+opvious.data.attempts module
+----------------------------
+
+.. automodule:: opvious.data.attempts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+opvious.data.outcomes module
+----------------------------
+
+.. automodule:: opvious.data.outcomes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+opvious.data.outlines module
+----------------------------
+
+.. automodule:: opvious.data.outlines
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+opvious.data.solves module
+--------------------------
+
+.. automodule:: opvious.data.solves
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+opvious.data.tensors module
+---------------------------
+
+.. automodule:: opvious.data.tensors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: opvious.data
+   :members:
+   :undoc-members:
+   :show-inheritance:

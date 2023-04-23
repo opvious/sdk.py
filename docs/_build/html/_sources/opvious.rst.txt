@@ -1,0 +1,7 @@
+opvious package
+===============
+
+.. automodule:: opvious
+   :members:
+   :undoc-members:
+   :show-inheritance:

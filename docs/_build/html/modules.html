@@ -1,0 +1,364 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>opvious &#8212; Opvious  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="opvious">
+<h1>opvious<a class="headerlink" href="#opvious" title="Permalink to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="opvious.html">opvious package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="opvious.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="opvious.data.html">opvious.data package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.data.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.data.html#module-opvious.data.attempts">opvious.data.attempts module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.data.html#module-opvious.data.outcomes">opvious.data.outcomes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.data.html#module-opvious.data.outlines">opvious.data.outlines module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.data.html#module-opvious.data.solves">opvious.data.solves module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.data.html#module-opvious.data.tensors">opvious.data.tensors module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.data.html#module-opvious.data">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.executors.html">opvious.executors package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.executors.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.executors.html#module-opvious.executors.aiohttp">opvious.executors.aiohttp module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.executors.html#module-opvious.executors.common">opvious.executors.common module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.executors.html#opvious-executors-pyodide-module">opvious.executors.pyodide module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.executors.html#module-opvious.executors.urllib">opvious.executors.urllib module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.executors.html#module-opvious.executors">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="opvious.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="opvious.html#module-opvious.client">opvious.client module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.client.Client"><code class="docutils literal notranslate"><span class="pre">Client</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.authenticated"><code class="docutils literal notranslate"><span class="pre">Client.authenticated</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.cancel_attempt"><code class="docutils literal notranslate"><span class="pre">Client.cancel_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.fetch_attempt_inputs"><code class="docutils literal notranslate"><span class="pre">Client.fetch_attempt_inputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.fetch_attempt_outputs"><code class="docutils literal notranslate"><span class="pre">Client.fetch_attempt_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.from_environment"><code class="docutils literal notranslate"><span class="pre">Client.from_environment()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.from_token"><code class="docutils literal notranslate"><span class="pre">Client.from_token()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.inspect_solve_instructions"><code class="docutils literal notranslate"><span class="pre">Client.inspect_solve_instructions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.load_attempt"><code class="docutils literal notranslate"><span class="pre">Client.load_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.poll_attempt"><code class="docutils literal notranslate"><span class="pre">Client.poll_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.prepare_attempt_request"><code class="docutils literal notranslate"><span class="pre">Client.prepare_attempt_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.run_solve"><code class="docutils literal notranslate"><span class="pre">Client.run_solve()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.start_attempt"><code class="docutils literal notranslate"><span class="pre">Client.start_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.Client.wait_for_outcome"><code class="docutils literal notranslate"><span class="pre">Client.wait_for_outcome()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.client.ClientSettings"><code class="docutils literal notranslate"><span class="pre">ClientSettings</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.ClientSettings.DOMAIN"><code class="docutils literal notranslate"><span class="pre">ClientSettings.DOMAIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.client.ClientSettings.TOKEN"><code class="docutils literal notranslate"><span class="pre">ClientSettings.TOKEN</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="opvious.html#module-opvious.common">opvious.common module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.common.format_percent"><code class="docutils literal notranslate"><span class="pre">format_percent()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.common.is_url"><code class="docutils literal notranslate"><span class="pre">is_url()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.common.strip_nones"><code class="docutils literal notranslate"><span class="pre">strip_nones()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="opvious.html#module-opvious.specifications">opvious.specifications module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.specifications.AnonymousSpecification"><code class="docutils literal notranslate"><span class="pre">AnonymousSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.AnonymousSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">AnonymousSpecification.fetch_sources()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.specifications.FormulationSpecification"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.FormulationSpecification.formulation_name"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification.formulation_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.FormulationSpecification.tag_name"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification.tag_name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.specifications.InlineSpecification"><code class="docutils literal notranslate"><span class="pre">InlineSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.InlineSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">InlineSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.InlineSpecification.sources"><code class="docutils literal notranslate"><span class="pre">InlineSpecification.sources</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.specifications.LocalSpecification"><code class="docutils literal notranslate"><span class="pre">LocalSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.LocalSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.LocalSpecification.globs"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.globs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.LocalSpecification.paths"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.paths</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.specifications.RemoteSpecification"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.RemoteSpecification.example"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.example()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.RemoteSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.specifications.RemoteSpecification.url"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.url</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="opvious.html#module-opvious">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Attempt"><code class="docutils literal notranslate"><span class="pre">Attempt</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Attempt.from_graphql"><code class="docutils literal notranslate"><span class="pre">Attempt.from_graphql()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Attempt.outline"><code class="docutils literal notranslate"><span class="pre">Attempt.outline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Attempt.started_at"><code class="docutils literal notranslate"><span class="pre">Attempt.started_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Attempt.url"><code class="docutils literal notranslate"><span class="pre">Attempt.url</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Attempt.uuid"><code class="docutils literal notranslate"><span class="pre">Attempt.uuid</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.AttemptRequest"><code class="docutils literal notranslate"><span class="pre">AttemptRequest</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.AttemptRequest.formulation_name"><code class="docutils literal notranslate"><span class="pre">AttemptRequest.formulation_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.AttemptRequest.inputs"><code class="docutils literal notranslate"><span class="pre">AttemptRequest.inputs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.AttemptRequest.specification_tag_name"><code class="docutils literal notranslate"><span class="pre">AttemptRequest.specification_tag_name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.CancelledOutcome"><code class="docutils literal notranslate"><span class="pre">CancelledOutcome</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Client"><code class="docutils literal notranslate"><span class="pre">Client</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.authenticated"><code class="docutils literal notranslate"><span class="pre">Client.authenticated</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.cancel_attempt"><code class="docutils literal notranslate"><span class="pre">Client.cancel_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.fetch_attempt_inputs"><code class="docutils literal notranslate"><span class="pre">Client.fetch_attempt_inputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.fetch_attempt_outputs"><code class="docutils literal notranslate"><span class="pre">Client.fetch_attempt_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.from_environment"><code class="docutils literal notranslate"><span class="pre">Client.from_environment()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.from_token"><code class="docutils literal notranslate"><span class="pre">Client.from_token()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.inspect_solve_instructions"><code class="docutils literal notranslate"><span class="pre">Client.inspect_solve_instructions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.load_attempt"><code class="docutils literal notranslate"><span class="pre">Client.load_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.poll_attempt"><code class="docutils literal notranslate"><span class="pre">Client.poll_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.prepare_attempt_request"><code class="docutils literal notranslate"><span class="pre">Client.prepare_attempt_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.run_solve"><code class="docutils literal notranslate"><span class="pre">Client.run_solve()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.start_attempt"><code class="docutils literal notranslate"><span class="pre">Client.start_attempt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Client.wait_for_outcome"><code class="docutils literal notranslate"><span class="pre">Client.wait_for_outcome()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.ClientSettings"><code class="docutils literal notranslate"><span class="pre">ClientSettings</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.ClientSettings.DOMAIN"><code class="docutils literal notranslate"><span class="pre">ClientSettings.DOMAIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.ClientSettings.TOKEN"><code class="docutils literal notranslate"><span class="pre">ClientSettings.TOKEN</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.ConstraintRelaxation"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.ConstraintRelaxation.bound"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.bound</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.ConstraintRelaxation.cost"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.cost</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.ConstraintRelaxation.label"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.label</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.ConstraintRelaxation.penalty"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.penalty</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.ConstraintRelaxation.to_json"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.to_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Executor"><code class="docutils literal notranslate"><span class="pre">Executor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Executor.authenticated"><code class="docutils literal notranslate"><span class="pre">Executor.authenticated</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Executor.execute"><code class="docutils literal notranslate"><span class="pre">Executor.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Executor.execute_graphql_query"><code class="docutils literal notranslate"><span class="pre">Executor.execute_graphql_query()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.ExecutorError"><code class="docutils literal notranslate"><span class="pre">ExecutorError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.FailedOutcome"><code class="docutils literal notranslate"><span class="pre">FailedOutcome</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FailedOutcome.code"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.code</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FailedOutcome.from_graphql"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.from_graphql()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FailedOutcome.message"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.message</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FailedOutcome.status"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.status</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FailedOutcome.tags"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.tags</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.FeasibleOutcome"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FeasibleOutcome.from_graphql"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.from_graphql()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FeasibleOutcome.is_optimal"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.is_optimal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FeasibleOutcome.objective_value"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.objective_value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FeasibleOutcome.relative_gap"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.relative_gap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.FormulationSpecification"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FormulationSpecification.formulation_name"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification.formulation_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.FormulationSpecification.tag_name"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification.tag_name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.InfeasibleOutcome"><code class="docutils literal notranslate"><span class="pre">InfeasibleOutcome</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.InlineSpecification"><code class="docutils literal notranslate"><span class="pre">InlineSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.InlineSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">InlineSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.InlineSpecification.sources"><code class="docutils literal notranslate"><span class="pre">InlineSpecification.sources</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Label"><code class="docutils literal notranslate"><span class="pre">Label</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.LocalSpecification"><code class="docutils literal notranslate"><span class="pre">LocalSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.LocalSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.LocalSpecification.globs"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.globs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.LocalSpecification.paths"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.paths</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Notification"><code class="docutils literal notranslate"><span class="pre">Notification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Notification.cut_count"><code class="docutils literal notranslate"><span class="pre">Notification.cut_count</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Notification.dequeued"><code class="docutils literal notranslate"><span class="pre">Notification.dequeued</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Notification.from_graphql"><code class="docutils literal notranslate"><span class="pre">Notification.from_graphql()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Notification.lp_iteration_count"><code class="docutils literal notranslate"><span class="pre">Notification.lp_iteration_count</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Notification.relative_gap"><code class="docutils literal notranslate"><span class="pre">Notification.relative_gap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Outline"><code class="docutils literal notranslate"><span class="pre">Outline</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Outline.constraints"><code class="docutils literal notranslate"><span class="pre">Outline.constraints</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Outline.dimensions"><code class="docutils literal notranslate"><span class="pre">Outline.dimensions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Outline.from_json"><code class="docutils literal notranslate"><span class="pre">Outline.from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Outline.objective"><code class="docutils literal notranslate"><span class="pre">Outline.objective</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Outline.parameters"><code class="docutils literal notranslate"><span class="pre">Outline.parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Outline.variables"><code class="docutils literal notranslate"><span class="pre">Outline.variables</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Relaxation"><code class="docutils literal notranslate"><span class="pre">Relaxation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Relaxation.constraints"><code class="docutils literal notranslate"><span class="pre">Relaxation.constraints</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Relaxation.from_constraint_labels"><code class="docutils literal notranslate"><span class="pre">Relaxation.from_constraint_labels()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Relaxation.objective_weight"><code class="docutils literal notranslate"><span class="pre">Relaxation.objective_weight</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Relaxation.penalty"><code class="docutils literal notranslate"><span class="pre">Relaxation.penalty</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Relaxation.to_json"><code class="docutils literal notranslate"><span class="pre">Relaxation.to_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.RelaxationPenalty"><code class="docutils literal notranslate"><span class="pre">RelaxationPenalty</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.RemoteSpecification"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.RemoteSpecification.example"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.example()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.RemoteSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.RemoteSpecification.url"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.url</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.SolveInputs"><code class="docutils literal notranslate"><span class="pre">SolveInputs</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveInputs.dimension"><code class="docutils literal notranslate"><span class="pre">SolveInputs.dimension()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveInputs.outline"><code class="docutils literal notranslate"><span class="pre">SolveInputs.outline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveInputs.parameter"><code class="docutils literal notranslate"><span class="pre">SolveInputs.parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveInputs.raw_dimensions"><code class="docutils literal notranslate"><span class="pre">SolveInputs.raw_dimensions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveInputs.raw_parameters"><code class="docutils literal notranslate"><span class="pre">SolveInputs.raw_parameters</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.SolveOptions"><code class="docutils literal notranslate"><span class="pre">SolveOptions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOptions.absolute_gap_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.absolute_gap_threshold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOptions.free_bound_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.free_bound_threshold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOptions.infinity_value_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.infinity_value_threshold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOptions.relative_gap_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.relative_gap_threshold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOptions.timeout_millis"><code class="docutils literal notranslate"><span class="pre">SolveOptions.timeout_millis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOptions.zero_value_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.zero_value_threshold</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.SolveOutputs"><code class="docutils literal notranslate"><span class="pre">SolveOutputs</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOutputs.constraint"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.constraint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOutputs.from_json"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOutputs.outline"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.outline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOutputs.raw_constraints"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.raw_constraints</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOutputs.raw_variables"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.raw_variables</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveOutputs.variable"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.variable()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.SolveResponse"><code class="docutils literal notranslate"><span class="pre">SolveResponse</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveResponse.from_json"><code class="docutils literal notranslate"><span class="pre">SolveResponse.from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveResponse.outcome"><code class="docutils literal notranslate"><span class="pre">SolveResponse.outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveResponse.outputs"><code class="docutils literal notranslate"><span class="pre">SolveResponse.outputs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveResponse.status"><code class="docutils literal notranslate"><span class="pre">SolveResponse.status</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveResponse.summary"><code class="docutils literal notranslate"><span class="pre">SolveResponse.summary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.SolveStatus"><code class="docutils literal notranslate"><span class="pre">SolveStatus</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.SolveSummary"><code class="docutils literal notranslate"><span class="pre">SolveSummary</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveSummary.column_count"><code class="docutils literal notranslate"><span class="pre">SolveSummary.column_count</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveSummary.density"><code class="docutils literal notranslate"><span class="pre">SolveSummary.density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveSummary.from_json"><code class="docutils literal notranslate"><span class="pre">SolveSummary.from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveSummary.row_count"><code class="docutils literal notranslate"><span class="pre">SolveSummary.row_count</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.SolveSummary.weight_count"><code class="docutils literal notranslate"><span class="pre">SolveSummary.weight_count</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Tensor.default_value"><code class="docutils literal notranslate"><span class="pre">Tensor.default_value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Tensor.entries"><code class="docutils literal notranslate"><span class="pre">Tensor.entries</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="opvious.html#opvious.Tensor.from_argument"><code class="docutils literal notranslate"><span class="pre">Tensor.from_argument()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.UnboundedOutcome"><code class="docutils literal notranslate"><span class="pre">UnboundedOutcome</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.UnexpectedOutcomeError"><code class="docutils literal notranslate"><span class="pre">UnexpectedOutcomeError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.aiohttp_executor"><code class="docutils literal notranslate"><span class="pre">aiohttp_executor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.default_executor"><code class="docutils literal notranslate"><span class="pre">default_executor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.outcome_status"><code class="docutils literal notranslate"><span class="pre">outcome_status()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.pyodide_executor"><code class="docutils literal notranslate"><span class="pre">pyodide_executor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="opvious.html#opvious.urllib_executor"><code class="docutils literal notranslate"><span class="pre">urllib_executor()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Opvious</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Opvious Engineering.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/modules.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

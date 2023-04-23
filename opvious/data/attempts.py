@@ -1,22 +1,3 @@
-"""
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on an
-  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, either express or implied.  See the License for the
-  specific language governing permissions and limitations
-  under the License.
-"""
-
 from __future__ import annotations
 
 import dataclasses
@@ -30,42 +11,67 @@ from .tensors import Value
 
 @dataclasses.dataclass(frozen=True)
 class AttemptRequest:
-    """Attempt inputs"""
+    """Attempt creation request"""
 
     formulation_name: str
+    """The underlying formulation's name"""
+
     specification_tag_name: str
+    """The target specification tag"""
+
     inputs: SolveInputs = dataclasses.field(repr=False)
+    """Input data"""
 
 
 @dataclasses.dataclass(frozen=True)
 class Attempt:
-    uuid: str
-    started_at: datetime
-    url: str = dataclasses.field(repr=False)
-    outline: Outline = dataclasses.field(repr=False)
+    """Queueable optimization attempt"""
 
-    @classmethod
-    def from_graphql(cls, data: Any, outline: Outline, url: str):
-        return Attempt(
-            uuid=data["uuid"],
-            started_at=datetime.fromisoformat(data["startedAt"]),
-            outline=outline,
-            url=url,
-        )
+    uuid: str
+    """The attempt's unique identifier"""
+
+    started_at: datetime
+    """The time the attempt was created"""
+
+    outline: Outline = dataclasses.field(repr=False)
+    """The specification outline corresponding to this attempt"""
+
+    url: str = dataclasses.field(repr=False)
+    """The optimimization hub URL for this attempt"""
+
+
+def attempt_from_graphql(data: Any, outline: Outline, url: str) -> Attempt:
+    return Attempt(
+        uuid=data["uuid"],
+        started_at=datetime.fromisoformat(data["startedAt"]),
+        outline=outline,
+        url=url,
+    )
 
 
 @dataclasses.dataclass(frozen=True)
 class Notification:
-    dequeued: bool
-    relative_gap: Optional[Value]
-    lp_iteration_count: Optional[int]
-    cut_count: Optional[int]
+    """Attempt progress update notification"""
 
-    @classmethod
-    def from_graphql(cls, dequeued: bool, data: Any = None):
-        return Notification(
-            dequeued=dequeued,
-            relative_gap=data["relativeGap"] if data else None,
-            lp_iteration_count=data["lpIterationCount"] if data else None,
-            cut_count=data["cutCount"] if data else None,
-        )
+    dequeued: bool
+    """Whether the attempt has already been dequeued"""
+
+    relative_gap: Optional[Value]
+    """The latest relative gap"""
+
+    lp_iteration_count: Optional[int]
+    """The latest LP iteration count"""
+
+    cut_count: Optional[int]
+    """The latest cut count"""
+
+
+def notification_from_graphql(
+    dequeued: bool, data: Any = None
+) -> Notification:
+    return Notification(
+        dequeued=dequeued,
+        relative_gap=data["relativeGap"] if data else None,
+        lp_iteration_count=data["lpIterationCount"] if data else None,
+        cut_count=data["cutCount"] if data else None,
+    )

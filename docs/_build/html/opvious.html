@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>opvious package &mdash; Opvious  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to Opvious’ documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Opvious
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">opvious package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Attempt"><code class="docutils literal notranslate"><span class="pre">Attempt</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Attempt.outline"><code class="docutils literal notranslate"><span class="pre">Attempt.outline</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Attempt.started_at"><code class="docutils literal notranslate"><span class="pre">Attempt.started_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Attempt.url"><code class="docutils literal notranslate"><span class="pre">Attempt.url</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Attempt.uuid"><code class="docutils literal notranslate"><span class="pre">Attempt.uuid</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.AttemptRequest"><code class="docutils literal notranslate"><span class="pre">AttemptRequest</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.AttemptRequest.formulation_name"><code class="docutils literal notranslate"><span class="pre">AttemptRequest.formulation_name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.AttemptRequest.inputs"><code class="docutils literal notranslate"><span class="pre">AttemptRequest.inputs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.AttemptRequest.specification_tag_name"><code class="docutils literal notranslate"><span class="pre">AttemptRequest.specification_tag_name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.CancelledOutcome"><code class="docutils literal notranslate"><span class="pre">CancelledOutcome</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Client"><code class="docutils literal notranslate"><span class="pre">Client</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.authenticated"><code class="docutils literal notranslate"><span class="pre">Client.authenticated</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.cancel_attempt"><code class="docutils literal notranslate"><span class="pre">Client.cancel_attempt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.fetch_attempt_inputs"><code class="docutils literal notranslate"><span class="pre">Client.fetch_attempt_inputs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.fetch_attempt_outputs"><code class="docutils literal notranslate"><span class="pre">Client.fetch_attempt_outputs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.from_environment"><code class="docutils literal notranslate"><span class="pre">Client.from_environment()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.from_token"><code class="docutils literal notranslate"><span class="pre">Client.from_token()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.inspect_solve_instructions"><code class="docutils literal notranslate"><span class="pre">Client.inspect_solve_instructions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.load_attempt"><code class="docutils literal notranslate"><span class="pre">Client.load_attempt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.poll_attempt"><code class="docutils literal notranslate"><span class="pre">Client.poll_attempt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.prepare_attempt_request"><code class="docutils literal notranslate"><span class="pre">Client.prepare_attempt_request()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.run_solve"><code class="docutils literal notranslate"><span class="pre">Client.run_solve()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.start_attempt"><code class="docutils literal notranslate"><span class="pre">Client.start_attempt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Client.wait_for_outcome"><code class="docutils literal notranslate"><span class="pre">Client.wait_for_outcome()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.ClientSettings"><code class="docutils literal notranslate"><span class="pre">ClientSettings</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.ClientSettings.DOMAIN"><code class="docutils literal notranslate"><span class="pre">ClientSettings.DOMAIN</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.ClientSettings.TOKEN"><code class="docutils literal notranslate"><span class="pre">ClientSettings.TOKEN</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.ConstraintRelaxation"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.ConstraintRelaxation.bound"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.bound</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.ConstraintRelaxation.cost"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.cost</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.ConstraintRelaxation.label"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.label</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.ConstraintRelaxation.penalty"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.penalty</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.ConstraintRelaxation.to_json"><code class="docutils literal notranslate"><span class="pre">ConstraintRelaxation.to_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Executor"><code class="docutils literal notranslate"><span class="pre">Executor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Executor.authenticated"><code class="docutils literal notranslate"><span class="pre">Executor.authenticated</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Executor.execute"><code class="docutils literal notranslate"><span class="pre">Executor.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Executor.execute_graphql_query"><code class="docutils literal notranslate"><span class="pre">Executor.execute_graphql_query()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.ExecutorError"><code class="docutils literal notranslate"><span class="pre">ExecutorError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.FailedOutcome"><code class="docutils literal notranslate"><span class="pre">FailedOutcome</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FailedOutcome.code"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.code</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FailedOutcome.from_graphql"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.from_graphql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FailedOutcome.message"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.message</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FailedOutcome.status"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.status</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FailedOutcome.tags"><code class="docutils literal notranslate"><span class="pre">FailedOutcome.tags</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.FeasibleOutcome"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FeasibleOutcome.from_graphql"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.from_graphql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FeasibleOutcome.is_optimal"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.is_optimal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FeasibleOutcome.objective_value"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.objective_value</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FeasibleOutcome.relative_gap"><code class="docutils literal notranslate"><span class="pre">FeasibleOutcome.relative_gap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.FormulationSpecification"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FormulationSpecification.formulation_name"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification.formulation_name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.FormulationSpecification.tag_name"><code class="docutils literal notranslate"><span class="pre">FormulationSpecification.tag_name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.InfeasibleOutcome"><code class="docutils literal notranslate"><span class="pre">InfeasibleOutcome</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.InlineSpecification"><code class="docutils literal notranslate"><span class="pre">InlineSpecification</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.InlineSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">InlineSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.InlineSpecification.sources"><code class="docutils literal notranslate"><span class="pre">InlineSpecification.sources</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Label"><code class="docutils literal notranslate"><span class="pre">Label</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.LocalSpecification"><code class="docutils literal notranslate"><span class="pre">LocalSpecification</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.LocalSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.LocalSpecification.globs"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.globs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.LocalSpecification.paths"><code class="docutils literal notranslate"><span class="pre">LocalSpecification.paths</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Notification"><code class="docutils literal notranslate"><span class="pre">Notification</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Notification.cut_count"><code class="docutils literal notranslate"><span class="pre">Notification.cut_count</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Notification.dequeued"><code class="docutils literal notranslate"><span class="pre">Notification.dequeued</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Notification.lp_iteration_count"><code class="docutils literal notranslate"><span class="pre">Notification.lp_iteration_count</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Notification.relative_gap"><code class="docutils literal notranslate"><span class="pre">Notification.relative_gap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Outline"><code class="docutils literal notranslate"><span class="pre">Outline</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Outline.constraints"><code class="docutils literal notranslate"><span class="pre">Outline.constraints</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Outline.dimensions"><code class="docutils literal notranslate"><span class="pre">Outline.dimensions</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Outline.from_json"><code class="docutils literal notranslate"><span class="pre">Outline.from_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Outline.objective"><code class="docutils literal notranslate"><span class="pre">Outline.objective</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Outline.parameters"><code class="docutils literal notranslate"><span class="pre">Outline.parameters</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Outline.variables"><code class="docutils literal notranslate"><span class="pre">Outline.variables</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Relaxation"><code class="docutils literal notranslate"><span class="pre">Relaxation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Relaxation.constraints"><code class="docutils literal notranslate"><span class="pre">Relaxation.constraints</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Relaxation.from_constraint_labels"><code class="docutils literal notranslate"><span class="pre">Relaxation.from_constraint_labels()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Relaxation.objective_weight"><code class="docutils literal notranslate"><span class="pre">Relaxation.objective_weight</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Relaxation.penalty"><code class="docutils literal notranslate"><span class="pre">Relaxation.penalty</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Relaxation.to_json"><code class="docutils literal notranslate"><span class="pre">Relaxation.to_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.RelaxationPenalty"><code class="docutils literal notranslate"><span class="pre">RelaxationPenalty</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.RemoteSpecification"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.RemoteSpecification.example"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.example()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.RemoteSpecification.fetch_sources"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.fetch_sources()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.RemoteSpecification.url"><code class="docutils literal notranslate"><span class="pre">RemoteSpecification.url</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.SolveInputs"><code class="docutils literal notranslate"><span class="pre">SolveInputs</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveInputs.dimension"><code class="docutils literal notranslate"><span class="pre">SolveInputs.dimension()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveInputs.outline"><code class="docutils literal notranslate"><span class="pre">SolveInputs.outline</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveInputs.parameter"><code class="docutils literal notranslate"><span class="pre">SolveInputs.parameter()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveInputs.raw_dimensions"><code class="docutils literal notranslate"><span class="pre">SolveInputs.raw_dimensions</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveInputs.raw_parameters"><code class="docutils literal notranslate"><span class="pre">SolveInputs.raw_parameters</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.SolveOptions"><code class="docutils literal notranslate"><span class="pre">SolveOptions</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOptions.absolute_gap_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.absolute_gap_threshold</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOptions.free_bound_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.free_bound_threshold</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOptions.infinity_value_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.infinity_value_threshold</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOptions.relative_gap_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.relative_gap_threshold</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOptions.timeout_millis"><code class="docutils literal notranslate"><span class="pre">SolveOptions.timeout_millis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOptions.zero_value_threshold"><code class="docutils literal notranslate"><span class="pre">SolveOptions.zero_value_threshold</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.SolveOutputs"><code class="docutils literal notranslate"><span class="pre">SolveOutputs</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOutputs.constraint"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.constraint()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOutputs.from_json"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.from_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOutputs.outline"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.outline</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOutputs.raw_constraints"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.raw_constraints</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOutputs.raw_variables"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.raw_variables</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveOutputs.variable"><code class="docutils literal notranslate"><span class="pre">SolveOutputs.variable()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.SolveResponse"><code class="docutils literal notranslate"><span class="pre">SolveResponse</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveResponse.from_json"><code class="docutils literal notranslate"><span class="pre">SolveResponse.from_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveResponse.outcome"><code class="docutils literal notranslate"><span class="pre">SolveResponse.outcome</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveResponse.outputs"><code class="docutils literal notranslate"><span class="pre">SolveResponse.outputs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveResponse.status"><code class="docutils literal notranslate"><span class="pre">SolveResponse.status</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveResponse.summary"><code class="docutils literal notranslate"><span class="pre">SolveResponse.summary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.SolveStatus"><code class="docutils literal notranslate"><span class="pre">SolveStatus</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.SolveSummary"><code class="docutils literal notranslate"><span class="pre">SolveSummary</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveSummary.column_count"><code class="docutils literal notranslate"><span class="pre">SolveSummary.column_count</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveSummary.density"><code class="docutils literal notranslate"><span class="pre">SolveSummary.density()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveSummary.from_json"><code class="docutils literal notranslate"><span class="pre">SolveSummary.from_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveSummary.row_count"><code class="docutils literal notranslate"><span class="pre">SolveSummary.row_count</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.SolveSummary.weight_count"><code class="docutils literal notranslate"><span class="pre">SolveSummary.weight_count</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Tensor.default_value"><code class="docutils literal notranslate"><span class="pre">Tensor.default_value</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Tensor.entries"><code class="docutils literal notranslate"><span class="pre">Tensor.entries</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opvious.Tensor.from_argument"><code class="docutils literal notranslate"><span class="pre">Tensor.from_argument()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.UnboundedOutcome"><code class="docutils literal notranslate"><span class="pre">UnboundedOutcome</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.UnexpectedOutcomeError"><code class="docutils literal notranslate"><span class="pre">UnexpectedOutcomeError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.aiohttp_executor"><code class="docutils literal notranslate"><span class="pre">aiohttp_executor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.default_executor"><code class="docutils literal notranslate"><span class="pre">default_executor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.outcome_status"><code class="docutils literal notranslate"><span class="pre">outcome_status()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.pyodide_executor"><code class="docutils literal notranslate"><span class="pre">pyodide_executor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opvious.urllib_executor"><code class="docutils literal notranslate"><span class="pre">urllib_executor()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Opvious</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">opvious package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/opvious.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-opvious">
+<span id="opvious-package"></span><h1>opvious package<a class="headerlink" href="#module-opvious" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.Attempt">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Attempt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">started_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Outline" title="opvious.data.outlines.Outline"><span class="pre">Outline</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Attempt" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Queueable optimization attempt</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Attempt.outline">
+<span class="sig-name descname"><span class="pre">outline</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#opvious.Outline" title="opvious.data.outlines.Outline"><span class="pre">Outline</span></a></em><a class="headerlink" href="#opvious.Attempt.outline" title="Permalink to this definition"></a></dt>
+<dd><p>The specification’s outline corresponding to this attempt</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Attempt.started_at">
+<span class="sig-name descname"><span class="pre">started_at</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></em><a class="headerlink" href="#opvious.Attempt.started_at" title="Permalink to this definition"></a></dt>
+<dd><p>The time the attempt was created</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Attempt.url">
+<span class="sig-name descname"><span class="pre">url</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.Attempt.url" title="Permalink to this definition"></a></dt>
+<dd><p>The optimimization hub URL for this attempt</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Attempt.uuid">
+<span class="sig-name descname"><span class="pre">uuid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.Attempt.uuid" title="Permalink to this definition"></a></dt>
+<dd><p>The attempt’s unique identifier</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.AttemptRequest">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">AttemptRequest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">formulation_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specification_tag_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.SolveInputs" title="opvious.data.solves.SolveInputs"><span class="pre">SolveInputs</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.AttemptRequest" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Attempt creation request</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.AttemptRequest.formulation_name">
+<span class="sig-name descname"><span class="pre">formulation_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.AttemptRequest.formulation_name" title="Permalink to this definition"></a></dt>
+<dd><p>The underlying formulation’s name</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.AttemptRequest.inputs">
+<span class="sig-name descname"><span class="pre">inputs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#opvious.SolveInputs" title="opvious.data.solves.SolveInputs"><span class="pre">SolveInputs</span></a></em><a class="headerlink" href="#opvious.AttemptRequest.inputs" title="Permalink to this definition"></a></dt>
+<dd><p>Input data</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.AttemptRequest.specification_tag_name">
+<span class="sig-name descname"><span class="pre">specification_tag_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.AttemptRequest.specification_tag_name" title="Permalink to this definition"></a></dt>
+<dd><p>The target specification tag</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.CancelledOutcome">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">CancelledOutcome</span></span><a class="headerlink" href="#opvious.CancelledOutcome" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The solve was cancelled before a solution was found</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.Client">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hub_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Client" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Opvious API client</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="opvious.Client.authenticated">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">authenticated</span></span><a class="headerlink" href="#opvious.Client.authenticated" title="Permalink to this definition"></a></dt>
+<dd><p>Returns true if the client was created with a non-empty API token.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.cancel_attempt">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cancel_attempt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#opvious.Client.cancel_attempt" title="Permalink to this definition"></a></dt>
+<dd><p>Cancels a running attempt.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.fetch_attempt_inputs">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fetch_attempt_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attempt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Attempt" title="opvious.data.attempts.Attempt"><span class="pre">Attempt</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.SolveInputs" title="opvious.data.solves.SolveInputs"><span class="pre">SolveInputs</span></a></span></span><a class="headerlink" href="#opvious.Client.fetch_attempt_inputs" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieves an attempt’s inputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.fetch_attempt_outputs">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fetch_attempt_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attempt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Attempt" title="opvious.data.attempts.Attempt"><span class="pre">Attempt</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.SolveOutputs" title="opvious.data.solves.SolveOutputs"><span class="pre">SolveOutputs</span></a></span></span><a class="headerlink" href="#opvious.Client.fetch_attempt_outputs" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieves a successful attempt’s outputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.from_environment">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_environment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_authenticated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Client" title="opvious.client.Client"><span class="pre">Client</span></a></span></span><a class="headerlink" href="#opvious.Client.from_environment" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a client from environment variables</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> – Environment, defaults to <cite>os.environ</cite>.</p></li>
+<li><p><strong>require_authenticated</strong> – Throw if the environment does not include a
+valid API token.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.from_token">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Client" title="opvious.client.Client"><span class="pre">Client</span></a></span></span><a class="headerlink" href="#opvious.Client.from_token" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a client from an API token. You can use an empty token to
+create an unauthenticated client with limited functionality.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.inspect_solve_instructions">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">inspect_solve_instructions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Specification</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">TensorArgument</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DimensionArgument</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Relaxation" title="opvious.data.solves.Relaxation"><span class="pre">Relaxation</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.SolveOptions" title="opvious.data.solves.SolveOptions"><span class="pre">SolveOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#opvious.Client.inspect_solve_instructions" title="Permalink to this definition"></a></dt>
+<dd><p>Inspects an optimization problem’s instructions, returning its
+LP formatted representation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.load_attempt">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_attempt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uuid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Attempt" title="opvious.data.attempts.Attempt"><span class="pre">Attempt</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#opvious.Client.load_attempt" title="Permalink to this definition"></a></dt>
+<dd><p>Loads an existing attempt from its UUID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.poll_attempt">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">poll_attempt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attempt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Attempt" title="opvious.data.attempts.Attempt"><span class="pre">Attempt</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Notification" title="opvious.data.attempts.Notification"><span class="pre">Notification</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FailedOutcome" title="opvious.data.outcomes.FailedOutcome"><span class="pre">FailedOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FeasibleOutcome" title="opvious.data.outcomes.FeasibleOutcome"><span class="pre">FeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.InfeasibleOutcome" title="opvious.data.outcomes.InfeasibleOutcome"><span class="pre">InfeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.UnboundedOutcome" title="opvious.data.outcomes.UnboundedOutcome"><span class="pre">UnboundedOutcome</span></a></span></span><a class="headerlink" href="#opvious.Client.poll_attempt" title="Permalink to this definition"></a></dt>
+<dd><p>Polls an attempt for its outcome or latest progress notification.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.prepare_attempt_request">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">prepare_attempt_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FormulationSpecification" title="opvious.specifications.FormulationSpecification"><span class="pre">FormulationSpecification</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">TensorArgument</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DimensionArgument</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.AttemptRequest" title="opvious.data.attempts.AttemptRequest"><span class="pre">AttemptRequest</span></a></span></span><a class="headerlink" href="#opvious.Client.prepare_attempt_request" title="Permalink to this definition"></a></dt>
+<dd><p>Assembles and validates inputs for a given formulation. The returned
+object can be used to start an asynchronous solve via <cite>start_attempt</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.run_solve">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Specification</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">TensorArgument</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DimensionArgument</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Relaxation" title="opvious.data.solves.Relaxation"><span class="pre">Relaxation</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.SolveOptions" title="opvious.data.solves.SolveOptions"><span class="pre">SolveOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_feasible</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefer_streaming</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.SolveResponse" title="opvious.data.solves.SolveResponse"><span class="pre">SolveResponse</span></a></span></span><a class="headerlink" href="#opvious.Client.run_solve" title="Permalink to this definition"></a></dt>
+<dd><p>Solves an optimization problem. See also <cite>start_attempt</cite> for an
+alternative for long-running solves.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.start_attempt">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_attempt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.AttemptRequest" title="opvious.data.attempts.AttemptRequest"><span class="pre">AttemptRequest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.SolveOptions" title="opvious.data.solves.SolveOptions"><span class="pre">SolveOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.Relaxation" title="opvious.data.solves.Relaxation"><span class="pre">Relaxation</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pinned_variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">TensorArgument</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Attempt" title="opvious.data.attempts.Attempt"><span class="pre">Attempt</span></a></span></span><a class="headerlink" href="#opvious.Client.start_attempt" title="Permalink to this definition"></a></dt>
+<dd><p>Starts a new asynchronous solve attempt.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Client.wait_for_outcome">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wait_for_outcome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attempt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Attempt" title="opvious.data.attempts.Attempt"><span class="pre">Attempt</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_feasible</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.FailedOutcome" title="opvious.data.outcomes.FailedOutcome"><span class="pre">FailedOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FeasibleOutcome" title="opvious.data.outcomes.FeasibleOutcome"><span class="pre">FeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.InfeasibleOutcome" title="opvious.data.outcomes.InfeasibleOutcome"><span class="pre">InfeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.UnboundedOutcome" title="opvious.data.outcomes.UnboundedOutcome"><span class="pre">UnboundedOutcome</span></a></span></span><a class="headerlink" href="#opvious.Client.wait_for_outcome" title="Permalink to this definition"></a></dt>
+<dd><p>Waits for the attempt to complete and returns its outcome. Enable INFO
+logging to view progress messages.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.ClientSettings">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">ClientSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.ClientSettings" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Client configuration environment variables</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.ClientSettings.DOMAIN">
+<span class="sig-name descname"><span class="pre">DOMAIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'OPVIOUS_DOMAIN'</span></em><a class="headerlink" href="#opvious.ClientSettings.DOMAIN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.ClientSettings.TOKEN">
+<span class="sig-name descname"><span class="pre">TOKEN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'OPVIOUS_TOKEN'</span></em><a class="headerlink" href="#opvious.ClientSettings.TOKEN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.ConstraintRelaxation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">ConstraintRelaxation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Label'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[str]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bound</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.ConstraintRelaxation" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.ConstraintRelaxation.bound">
+<span class="sig-name descname"><span class="pre">bound</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.ConstraintRelaxation.bound" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.ConstraintRelaxation.cost">
+<span class="sig-name descname"><span class="pre">cost</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.ConstraintRelaxation.cost" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.ConstraintRelaxation.label">
+<span class="sig-name descname"><span class="pre">label</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.ConstraintRelaxation.label" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.ConstraintRelaxation.penalty">
+<span class="sig-name descname"><span class="pre">penalty</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.ConstraintRelaxation.penalty" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.ConstraintRelaxation.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#opvious.ConstraintRelaxation.to_json" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.Executor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variant</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">authorization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supports_streaming</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Executor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py property">
+<dt class="sig sig-object py" id="opvious.Executor.authenticated">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">authenticated</span></span><a class="headerlink" href="#opvious.Executor.authenticated" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Executor.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">ExpectedExecutorResult</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'GET'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">AsyncIterator</span><span class="p"><span class="pre">[</span></span><span class="pre">ExpectedExecutorResult</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#opvious.Executor.execute" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Executor.execute_graphql_query">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute_graphql_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#opvious.Executor.execute_graphql_query" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="opvious.ExecutorError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">ExecutorError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.ExecutorError" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Local representation of an error during an executor’s request</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.FailedOutcome">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">FailedOutcome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.FailedOutcome" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The solve failed</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FailedOutcome.code">
+<span class="sig-name descname"><span class="pre">code</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.FailedOutcome.code" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.FailedOutcome.from_graphql">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_graphql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.FailedOutcome" title="opvious.data.outcomes.FailedOutcome"><span class="pre">FailedOutcome</span></a></span></span><a class="headerlink" href="#opvious.FailedOutcome.from_graphql" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FailedOutcome.message">
+<span class="sig-name descname"><span class="pre">message</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.FailedOutcome.message" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FailedOutcome.status">
+<span class="sig-name descname"><span class="pre">status</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.FailedOutcome.status" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FailedOutcome.tags">
+<span class="sig-name descname"><span class="pre">tags</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Any</span></em><a class="headerlink" href="#opvious.FailedOutcome.tags" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.FeasibleOutcome">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">FeasibleOutcome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_optimal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_gap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.FeasibleOutcome" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A solution was found</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.FeasibleOutcome.from_graphql">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_graphql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.FeasibleOutcome" title="opvious.data.outcomes.FeasibleOutcome"><span class="pre">FeasibleOutcome</span></a></span></span><a class="headerlink" href="#opvious.FeasibleOutcome.from_graphql" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FeasibleOutcome.is_optimal">
+<span class="sig-name descname"><span class="pre">is_optimal</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#opvious.FeasibleOutcome.is_optimal" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FeasibleOutcome.objective_value">
+<span class="sig-name descname"><span class="pre">objective_value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.FeasibleOutcome.objective_value" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FeasibleOutcome.relative_gap">
+<span class="sig-name descname"><span class="pre">relative_gap</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.FeasibleOutcome.relative_gap" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.FormulationSpecification">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">FormulationSpecification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">formulation_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.FormulationSpecification" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A specification from a stored formulation. This type of specification
+allows starting attempts and is recommended for production use as it
+provides history and reproducibility when combined with tag names.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FormulationSpecification.formulation_name">
+<span class="sig-name descname"><span class="pre">formulation_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.FormulationSpecification.formulation_name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.FormulationSpecification.tag_name">
+<span class="sig-name descname"><span class="pre">tag_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.FormulationSpecification.tag_name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.InfeasibleOutcome">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">InfeasibleOutcome</span></span><a class="headerlink" href="#opvious.InfeasibleOutcome" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>No feasible solution exists</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.InlineSpecification">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">InlineSpecification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.InlineSpecification" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnonymousSpecification</span></code></p>
+<p>A model specification from inline sources. See also <cite>LocalSpecification</cite>
+for reading specifications from locally stored files.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.InlineSpecification.fetch_sources">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fetch_sources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#opvious.InlineSpecification.fetch_sources" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.InlineSpecification.sources">
+<span class="sig-name descname"><span class="pre">sources</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.InlineSpecification.sources" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Label">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Label</span></span><a class="headerlink" href="#opvious.Label" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.LocalSpecification">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">LocalSpecification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.LocalSpecification" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnonymousSpecification</span></code></p>
+<p>A model specification from local files. See also <cite>InlineSpecification</cite> for
+creating specifications directly from strings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.LocalSpecification.fetch_sources">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fetch_sources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#opvious.LocalSpecification.fetch_sources" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.LocalSpecification.globs">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">globs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">likes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.LocalSpecification" title="opvious.specifications.LocalSpecification"><span class="pre">LocalSpecification</span></a></span></span><a class="headerlink" href="#opvious.LocalSpecification.globs" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a local specification from file globs. As a convenience the
+root can be a file’s name, in which case it will be interpreted as its
+parent directory (this is typically handy when used with <cite>__file__</cite>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.LocalSpecification.paths">
+<span class="sig-name descname"><span class="pre">paths</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.LocalSpecification.paths" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.Notification">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Notification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dequeued</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_gap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lp_iteration_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Notification" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Attempt progress update notification</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Notification.cut_count">
+<span class="sig-name descname"><span class="pre">cut_count</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.Notification.cut_count" title="Permalink to this definition"></a></dt>
+<dd><p>The latest cut count</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Notification.dequeued">
+<span class="sig-name descname"><span class="pre">dequeued</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#opvious.Notification.dequeued" title="Permalink to this definition"></a></dt>
+<dd><p>Whether the attempt has already been dequeued</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Notification.lp_iteration_count">
+<span class="sig-name descname"><span class="pre">lp_iteration_count</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.Notification.lp_iteration_count" title="Permalink to this definition"></a></dt>
+<dd><p>The latest LP iteration count</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Notification.relative_gap">
+<span class="sig-name descname"><span class="pre">relative_gap</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.Notification.relative_gap" title="Permalink to this definition"></a></dt>
+<dd><p>The latest relative gap</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.Outline">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Outline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[ObjectiveOutline]'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Mapping[Label,</span> <span class="pre">DimensionOutline]'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Mapping[Label,</span> <span class="pre">TensorOutline]'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Mapping[Label,</span> <span class="pre">TensorOutline]'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Mapping[Label,</span> <span class="pre">ConstraintOutline]'</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Outline" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Outline.constraints">
+<span class="sig-name descname"><span class="pre">constraints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ConstraintOutline</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.Outline.constraints" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Outline.dimensions">
+<span class="sig-name descname"><span class="pre">dimensions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DimensionOutline</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.Outline.dimensions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Outline.from_json">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Outline" title="opvious.data.outlines.Outline"><span class="pre">Outline</span></a></span></span><a class="headerlink" href="#opvious.Outline.from_json" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Outline.objective">
+<span class="sig-name descname"><span class="pre">objective</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ObjectiveOutline</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.Outline.objective" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Outline.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">TensorOutline</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.Outline.parameters" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Outline.variables">
+<span class="sig-name descname"><span class="pre">variables</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">TensorOutline</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.Outline.variables" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.Relaxation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Relaxation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'RelaxationPenalty'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'TOTAL_DEVIATION'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[list[ConstraintRelaxation]]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Relaxation" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Relaxation.constraints">
+<span class="sig-name descname"><span class="pre">constraints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#opvious.ConstraintRelaxation" title="opvious.data.solves.ConstraintRelaxation"><span class="pre">opvious.data.solves.ConstraintRelaxation</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.Relaxation.constraints" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Relaxation.from_constraint_labels">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_constraint_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'TOTAL_DEVIATION'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Relaxation" title="opvious.data.solves.Relaxation"><span class="pre">Relaxation</span></a></span></span><a class="headerlink" href="#opvious.Relaxation.from_constraint_labels" title="Permalink to this definition"></a></dt>
+<dd><p>Relaxes all input constraints using a common penalty.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Relaxation.objective_weight">
+<span class="sig-name descname"><span class="pre">objective_weight</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.Relaxation.objective_weight" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Relaxation.penalty">
+<span class="sig-name descname"><span class="pre">penalty</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TOTAL_DEVIATION'</span></em><a class="headerlink" href="#opvious.Relaxation.penalty" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Relaxation.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Relaxation.to_json" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.RelaxationPenalty">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">RelaxationPenalty</span></span><a class="headerlink" href="#opvious.RelaxationPenalty" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.RemoteSpecification">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">RemoteSpecification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.RemoteSpecification" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AnonymousSpecification</span></code></p>
+<p>A model specification from a remote URL</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.RemoteSpecification.example">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">example</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.RemoteSpecification.example" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.RemoteSpecification.fetch_sources">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fetch_sources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#opvious.RemoteSpecification.fetch_sources" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.RemoteSpecification.url">
+<span class="sig-name descname"><span class="pre">url</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.RemoteSpecification.url" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.SolveInputs">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">SolveInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Outline'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'list[Any]'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[list[Any]]'</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.SolveInputs" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveInputs.dimension">
+<span class="sig-name descname"><span class="pre">dimension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Index</span></span></span><a class="headerlink" href="#opvious.SolveInputs.dimension" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveInputs.outline">
+<span class="sig-name descname"><span class="pre">outline</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#opvious.Outline" title="opvious.data.outlines.Outline"><span class="pre">Outline</span></a></em><a class="headerlink" href="#opvious.SolveInputs.outline" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveInputs.parameter">
+<span class="sig-name descname"><span class="pre">parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Series</span></span></span><a class="headerlink" href="#opvious.SolveInputs.parameter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveInputs.raw_dimensions">
+<span class="sig-name descname"><span class="pre">raw_dimensions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveInputs.raw_dimensions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveInputs.raw_parameters">
+<span class="sig-name descname"><span class="pre">raw_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.SolveInputs.raw_parameters" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.SolveOptions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">SolveOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relative_gap_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">absolute_gap_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_value_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infinity_value_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_bound_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout_millis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[float]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.SolveOptions" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOptions.absolute_gap_threshold">
+<span class="sig-name descname"><span class="pre">absolute_gap_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveOptions.absolute_gap_threshold" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOptions.free_bound_threshold">
+<span class="sig-name descname"><span class="pre">free_bound_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveOptions.free_bound_threshold" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOptions.infinity_value_threshold">
+<span class="sig-name descname"><span class="pre">infinity_value_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveOptions.infinity_value_threshold" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOptions.relative_gap_threshold">
+<span class="sig-name descname"><span class="pre">relative_gap_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveOptions.relative_gap_threshold" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOptions.timeout_millis">
+<span class="sig-name descname"><span class="pre">timeout_millis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveOptions.timeout_millis" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOptions.zero_value_threshold">
+<span class="sig-name descname"><span class="pre">zero_value_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveOptions.zero_value_threshold" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.SolveOutputs">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">SolveOutputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Outline'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'list[Any]'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_constraints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'list[Any]'</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.SolveOutputs" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveOutputs.constraint">
+<span class="sig-name descname"><span class="pre">constraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#opvious.SolveOutputs.constraint" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveOutputs.from_json">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outline</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.SolveOutputs.from_json" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOutputs.outline">
+<span class="sig-name descname"><span class="pre">outline</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#opvious.Outline" title="opvious.data.outlines.Outline"><span class="pre">Outline</span></a></em><a class="headerlink" href="#opvious.SolveOutputs.outline" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOutputs.raw_constraints">
+<span class="sig-name descname"><span class="pre">raw_constraints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.SolveOutputs.raw_constraints" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveOutputs.raw_variables">
+<span class="sig-name descname"><span class="pre">raw_variables</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.SolveOutputs.raw_variables" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveOutputs.variable">
+<span class="sig-name descname"><span class="pre">variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#opvious.SolveOutputs.variable" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.SolveResponse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">SolveResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'SolveStatus'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outcome</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Outcome'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'SolveSummary'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'Optional[SolveOutputs]'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.SolveResponse" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveResponse.from_json">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.Outline" title="opvious.data.outlines.Outline"><span class="pre">Outline</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_json</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.SolveSummary" title="opvious.data.solves.SolveSummary"><span class="pre">SolveSummary</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.SolveResponse" title="opvious.data.solves.SolveResponse"><span class="pre">SolveResponse</span></a></span></span><a class="headerlink" href="#opvious.SolveResponse.from_json" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveResponse.outcome">
+<span class="sig-name descname"><span class="pre">outcome</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FailedOutcome" title="opvious.data.outcomes.FailedOutcome"><span class="pre">FailedOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FeasibleOutcome" title="opvious.data.outcomes.FeasibleOutcome"><span class="pre">FeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.InfeasibleOutcome" title="opvious.data.outcomes.InfeasibleOutcome"><span class="pre">InfeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.UnboundedOutcome" title="opvious.data.outcomes.UnboundedOutcome"><span class="pre">UnboundedOutcome</span></a></em><a class="headerlink" href="#opvious.SolveResponse.outcome" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveResponse.outputs">
+<span class="sig-name descname"><span class="pre">outputs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#opvious.SolveOutputs" title="opvious.data.solves.SolveOutputs"><span class="pre">SolveOutputs</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#opvious.SolveResponse.outputs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveResponse.status">
+<span class="sig-name descname"><span class="pre">status</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#opvious.SolveResponse.status" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveResponse.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#opvious.SolveSummary" title="opvious.data.solves.SolveSummary"><span class="pre">SolveSummary</span></a></em><a class="headerlink" href="#opvious.SolveResponse.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveStatus">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">SolveStatus</span></span><a class="headerlink" href="#opvious.SolveStatus" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.SolveSummary">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">SolveSummary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'int'</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.SolveSummary" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveSummary.column_count">
+<span class="sig-name descname"><span class="pre">column_count</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#opvious.SolveSummary.column_count" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveSummary.density">
+<span class="sig-name descname"><span class="pre">density</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#opvious.SolveSummary.density" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.SolveSummary.from_json">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.SolveSummary" title="opvious.data.solves.SolveSummary"><span class="pre">SolveSummary</span></a></span></span><a class="headerlink" href="#opvious.SolveSummary.from_json" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveSummary.row_count">
+<span class="sig-name descname"><span class="pre">row_count</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#opvious.SolveSummary.row_count" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.SolveSummary.weight_count">
+<span class="sig-name descname"><span class="pre">weight_count</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#opvious.SolveSummary.weight_count" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.Tensor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">Tensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'list[Any]'</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="s"><span class="pre">'ExtendedFloat'</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Tensor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Tensor.default_value">
+<span class="sig-name descname"><span class="pre">default_value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#opvious.Tensor.default_value" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="opvious.Tensor.entries">
+<span class="sig-name descname"><span class="pre">entries</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#opvious.Tensor.entries" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="opvious.Tensor.from_argument">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TensorArgument</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_indicator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.Tensor.from_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="opvious.UnboundedOutcome">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">UnboundedOutcome</span></span><a class="headerlink" href="#opvious.UnboundedOutcome" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>No bounded optimal solution exists</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="opvious.UnexpectedOutcomeError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">UnexpectedOutcomeError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.FailedOutcome" title="opvious.data.outcomes.FailedOutcome"><span class="pre">FailedOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FeasibleOutcome" title="opvious.data.outcomes.FeasibleOutcome"><span class="pre">FeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.InfeasibleOutcome" title="opvious.data.outcomes.InfeasibleOutcome"><span class="pre">InfeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.UnboundedOutcome" title="opvious.data.outcomes.UnboundedOutcome"><span class="pre">UnboundedOutcome</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#opvious.UnexpectedOutcomeError" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>The solve ended with an unexpected outcome</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="opvious.aiohttp_executor">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">aiohttp_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">authorization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></span><a class="headerlink" href="#opvious.aiohttp_executor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="opvious.default_executor">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">default_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">authorization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></span><a class="headerlink" href="#opvious.default_executor" title="Permalink to this definition"></a></dt>
+<dd><p>Infers the best executor for the current environment</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="opvious.outcome_status">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">outcome_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#opvious.FailedOutcome" title="opvious.data.outcomes.FailedOutcome"><span class="pre">FailedOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.FeasibleOutcome" title="opvious.data.outcomes.FeasibleOutcome"><span class="pre">FeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.InfeasibleOutcome" title="opvious.data.outcomes.InfeasibleOutcome"><span class="pre">InfeasibleOutcome</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#opvious.UnboundedOutcome" title="opvious.data.outcomes.UnboundedOutcome"><span class="pre">UnboundedOutcome</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#opvious.outcome_status" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the status corresponding to a given outcome</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="opvious.pyodide_executor">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">pyodide_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">authorization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></span><a class="headerlink" href="#opvious.pyodide_executor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="opvious.urllib_executor">
+<span class="sig-prename descclassname"><span class="pre">opvious.</span></span><span class="sig-name descname"><span class="pre">urllib_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">authorization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#opvious.Executor" title="opvious.executors.common.Executor"><span class="pre">Executor</span></a></span></span><a class="headerlink" href="#opvious.urllib_executor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Opvious’ documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Opvious Engineering.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

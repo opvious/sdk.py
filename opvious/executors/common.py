@@ -1,22 +1,3 @@
-"""
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on an
-  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, either express or implied.  See the License for the
-  specific language governing permissions and limitations
-  under the License.
-"""
-
 import contextlib
 import dataclasses
 import json
@@ -91,8 +72,13 @@ def unsupported_content_type_error(
 
 @dataclasses.dataclass
 class ExecutorResult:
+    """Request execution result"""
+
     status: int
+    """Response HTTP status code"""
+
     trace: Optional[str]
+    """Request trace ID"""
 
     def __post_init__(self):
         _logger.debug(
@@ -226,6 +212,8 @@ ExpectedExecutorResult = TypeVar(
 
 
 class Executor:
+    """Generic HTTP request executor"""
+
     def __init__(
         self,
         variant: str,
@@ -243,6 +231,7 @@ class Executor:
 
     @property
     def authenticated(self):
+        """Whether requests use an API authorization header"""
         return AUTHORIZATION_HEADER in self._root_headers
 
     def _send(
@@ -259,6 +248,7 @@ class Executor:
         headers: Optional[Headers] = None,
         json_data: Optional[Any] = None,
     ) -> AsyncIterator[ExpectedExecutorResult]:
+        """Send a request"""
         full_url = urllib.parse.urljoin(self._root_url, url)
         if full_url.startswith(self._root_url):
             all_headers = self._root_headers.copy()
@@ -310,6 +300,7 @@ class Executor:
         query: str,
         variables: Optional[Mapping[str, Any]] = None,
     ) -> Any:
+        """Send a GraphQL API request"""
         async with self.execute(
             result_type=JsonExecutorResult,
             url="/graphql",
