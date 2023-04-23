@@ -1,5 +1,4 @@
 import opvious
-import os
 import pytest
 
 
@@ -7,17 +6,15 @@ from opvious.executors.aiohttp import AiohttpExecutor
 from opvious.executors.urllib import UrllibExecutor
 
 
-AUTHORIZATION = os.environ.get("OPVIOUS_AUTHORIZATION", "")
+TOKEN = opvious.ClientSettings.TOKEN.read()
 
 
-DOMAIN = os.environ.get("OPVIOUS_DOMAIN", "beta.opvious.io")
+DOMAIN = opvious.ClientSettings.DOMAIN.read()
 
 
-@pytest.mark.skipif(not AUTHORIZATION, reason="No access token detected")
+@pytest.mark.skipif(not TOKEN, reason="No access token detected")
 class TestExecutors:
-    _authorization = (
-        AUTHORIZATION if " " in AUTHORIZATION else f"Bearer {AUTHORIZATION}"
-    )
+    _authorization = TOKEN if " " in TOKEN else f"Bearer {TOKEN}"
     _executors = [
         AiohttpExecutor(
             root_url=f"https://api.{DOMAIN}", authorization=_authorization
