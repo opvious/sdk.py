@@ -67,8 +67,19 @@ _DEFAULT_DOMAIN = "beta.opvious.io"
 class ClientSettings(enum.Enum):
     """Client configuration environment variables"""
 
-    TOKEN = "OPVIOUS_TOKEN"
-    DOMAIN = "OPVIOUS_DOMAIN"
+    TOKEN = ("OPVIOUS_TOKEN", "")
+    DOMAIN = ("OPVIOUS_DOMAIN", _DEFAULT_DOMAIN)
+
+    def read(self, env: Optional[dict[str, str]] = None) -> str:
+        """Read the setting's current value or default if missing
+
+        Args:
+            env: Environment, defaults to `os.environ`.
+        """
+        if env is None:
+            env = cast(Any, os.environ)
+        name, default_value = self.value
+        return env.get(name) or default_value
 
 
 class Client:
@@ -123,16 +134,15 @@ class Client:
             require_authenticated: Throw if the environment does not include a
                 valid API token.
         """
-        if env is None:
-            env = cast(Any, os.environ)
-        token = env.get(ClientSettings.TOKEN.value, "")
+        token = ClientSettings.TOKEN.read(env)
         if not token and require_authenticated:
             raise Exception(
                 f"Missing or empty {ClientSettings.TOKEN.value} environment "
                 + "variable"
             )
         return Client.from_token(
-            token=token, domain=env.get(ClientSettings.DOMAIN.value)
+            token=token,
+            domain=ClientSettings.DOMAIN.read(env)
         )
 
     @property
