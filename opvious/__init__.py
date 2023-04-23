@@ -4,7 +4,7 @@ import logging
 
 from .client import Client, ClientSetting
 from .common import __version__
-from .data.attempts import Attempt, AttemptRequest, Notification
+from .data.attempts import Attempt, AttemptNotification, AttemptRequest
 from .data.outcomes import (
     CancelledOutcome,
     FailedOutcome,
@@ -55,6 +55,7 @@ from .specifications import (
 
 __all__ = [
     "Attempt",
+    "AttemptNotification",
     "AttemptRequest",
     "CancelledOutcome",
     "Client",
@@ -72,7 +73,6 @@ __all__ = [
     "KeyItem",
     "Label",
     "LocalSpecification",
-    "Notification",
     "Outcome",
     "Outline",
     "Relaxation",

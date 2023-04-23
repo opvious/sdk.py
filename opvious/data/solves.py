@@ -18,6 +18,8 @@ from .tensors import decode_extended_float
 
 @dataclasses.dataclass(frozen=True)
 class SolveSummary:
+    """Solve summary statistics"""
+
     column_count: int
     row_count: int
     weight_count: int
@@ -60,6 +62,8 @@ def _entry_index(entries, bindings):
 
 @dataclasses.dataclass(frozen=True)
 class SolveInputs:
+    """Solve input data"""
+
     outline: Outline
     raw_parameters: list[Any]
     raw_dimensions: Optional[list[Any]]
@@ -84,6 +88,8 @@ class SolveInputs:
 
 @dataclasses.dataclass(frozen=True)
 class SolveOutputs:
+    """Successful solve output data"""
+
     outline: Outline
     raw_variables: list[Any]
     raw_constraints: list[Any]
@@ -141,6 +147,8 @@ class SolveOutputs:
 
 @dataclasses.dataclass(frozen=True)
 class SolveResponse:
+    """Solver response"""
+
     status: SolveStatus
     outcome: Outcome
     summary: SolveSummary
@@ -190,6 +198,8 @@ _DEFAULT_PENALTY = "TOTAL_DEVIATION"
 
 @dataclasses.dataclass(frozen=True)
 class Relaxation:
+    """Problem relaxation configuration"""
+
     penalty: RelaxationPenalty = _DEFAULT_PENALTY
     objective_weight: Optional[float] = None
     constraints: Optional[list[ConstraintRelaxation]] = None
@@ -201,7 +211,7 @@ class Relaxation:
         penalty: RelaxationPenalty = _DEFAULT_PENALTY,
         objective_weight: Optional[float] = None,
     ) -> Relaxation:
-        """Relaxes all input constraints using a common penalty."""
+        """Relaxes all input constraints using a common penalty"""
         return Relaxation(
             penalty=penalty,
             objective_weight=objective_weight,
@@ -222,6 +232,8 @@ class Relaxation:
 
 @dataclasses.dataclass(frozen=True)
 class ConstraintRelaxation:
+    """Constraint relaxation configuration"""
+
     label: Label
     penalty: Optional[str] = None
     cost: Optional[float] = None
@@ -242,12 +254,49 @@ class ConstraintRelaxation:
 
 @dataclasses.dataclass(frozen=True)
 class SolveOptions:
+    """Solving options"""
+
     relative_gap_threshold: Optional[float] = None
+    """Relative gap threshold below which a solution is considered optimal
+
+    For example a value of 0.1 will cause a solution to be optimal when the
+    optimality gap is at most 10%. See also `absolute_gap_threshold` for a
+    non-relative variant.
+    """
+
     absolute_gap_threshold: Optional[float] = None
+    """Absolute gap threshold below which a solution is considered optimal
+
+    See also `relative_gap_threshold` for a relative variant.
+    """
+
     zero_value_threshold: Optional[float] = None
+    """Positive magnitude below which tensor values are assumed equal to zero
+
+    This option is also used on solution results, causing values to be omitted
+    from the solution if their dual value is also absent. It is finally used as
+    threshold for rounding integral variables to the nearest integer. The
+    default is 1e-6.
+    """
+
     infinity_value_threshold: Optional[float] = None
+    """Positive magnitude used to cap all input values
+
+    It is illegal for the reified problem to include coefficients higher or
+    equal to this value so the input needs to be such that they are masked out
+    during reification. The default is 1e13.
+    """
+
     free_bound_threshold: Optional[float] = None
+    """Positive magnitude used to decide whether a bound is free
+
+    This value should typically be slightly smaller to the infinity value
+    threshold to allow for small offsets to infinite values. The default is
+    1e12.
+    """
+
     timeout_millis: Optional[float] = None
+    """Upper bound on solving time"""
 
 
 def solve_options_to_json(
