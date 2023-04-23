@@ -141,8 +141,7 @@ class Client:
                 + "variable"
             )
         return Client.from_token(
-            token=token,
-            domain=ClientSettings.DOMAIN.read(env)
+            token=token, domain=ClientSettings.DOMAIN.read(env)
         )
 
     @property
