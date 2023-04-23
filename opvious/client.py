@@ -463,7 +463,6 @@ class Client:
                     {
                         "dimensions": request.inputs.raw_dimensions,
                         "parameters": request.inputs.raw_parameters,
-                        "pinnedVariables": pins,
                     }
                 ),
                 "options": solve_options_to_json(options, relaxation),
