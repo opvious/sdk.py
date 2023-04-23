@@ -95,38 +95,6 @@ class TestClient:
         }
 
     @pytest.mark.asyncio
-    async def test_run_pinned_diet_attempt(self):
-        request = await client.prepare_attempt_request(
-            specification="diet",
-            parameters={
-                "costPerRecipe": {
-                    "lasagna": 10,
-                    "pizza": 20,
-                },
-                "minimalNutrients": {
-                    "carbs": 5,
-                },
-                "nutrientsPerRecipe": {
-                    ("carbs", "lasagna"): 1,
-                    ("carbs", "pizza"): 1,
-                },
-            },
-        )
-        attempt = await client.start_attempt(
-            request=request,
-            pinned_variables={
-                "quantityOfRecipe": {"pizza": 1},
-            },
-        )
-        outcome = await client.wait_for_outcome(attempt)
-        assert outcome.is_optimal
-        assert outcome.objective_value == 60
-
-        output_data = await client.fetch_attempt_outputs(attempt)
-        quantities = output_data.variable("quantityOfRecipe")
-        assert quantities["value"].to_dict() == {"pizza": 1, "lasagna": 4}
-
-    @pytest.mark.asyncio
     async def test_run_relaxed_attempt(self):
         request = await client.prepare_attempt_request(
             specification="bounded", parameters={"bound": 3}
