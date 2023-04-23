@@ -91,7 +91,7 @@ class TensorOutline:
         )
 
 
-def _tensor_from_json(cls, data: Any) -> TensorOutline:
+def _tensor_from_json(data: Any) -> TensorOutline:
     lb = decode_extended_float(data["lowerBound"])
     ub = decode_extended_float(data["upperBound"])
     return TensorOutline(
