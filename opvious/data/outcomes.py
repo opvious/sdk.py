@@ -1,22 +1,3 @@
-"""
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on an
-  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, either express or implied.  See the License for the
-  specific language governing permissions and limitations
-  under the License.
-"""
-
 from __future__ import annotations
 
 import dataclasses
@@ -38,19 +19,26 @@ class FailedOutcome:
     """The solve failed"""
 
     status: str
-    message: str
-    code: Optional[str]
-    tags: Any
+    """The underlying error's status"""
 
-    @classmethod
-    def from_graphql(cls, data: Any) -> FailedOutcome:
-        failure = data["failure"]
-        return FailedOutcome(
-            status=failure["status"],
-            message=failure["message"],
-            code=failure.get("code"),
-            tags=failure.get("tags"),
-        )
+    message: str
+    """The underlying error's message"""
+
+    code: Optional[str]
+    """The underlying error's error code"""
+
+    tags: Any
+    """Structured data associated with the failure"""
+
+
+def failed_outcome_from_graphql(data: Any) -> FailedOutcome:
+    failure = data["failure"]
+    return FailedOutcome(
+        status=failure["status"],
+        message=failure["message"],
+        code=failure.get("code"),
+        tags=failure.get("tags"),
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -58,16 +46,21 @@ class FeasibleOutcome:
     """A solution was found"""
 
     is_optimal: bool
-    objective_value: Optional[Value]
-    relative_gap: Optional[Value]
+    """Whether this solution was optimal (within gap thresholds)"""
 
-    @classmethod
-    def from_graphql(cls, data: Any) -> FeasibleOutcome:
-        return FeasibleOutcome(
-            is_optimal=data["isOptimal"],
-            objective_value=data.get("objectiveValue"),
-            relative_gap=data.get("relativeGap"),
-        )
+    objective_value: Optional[Value]
+    """The solution's objective value"""
+
+    relative_gap: Optional[Value]
+    """The solution's relative gap (0.1 is 10%)"""
+
+
+def feasible_outcome_from_graphql(data: Any) -> FeasibleOutcome:
+    return FeasibleOutcome(
+        is_optimal=data["isOptimal"],
+        objective_value=data.get("objectiveValue"),
+        relative_gap=data.get("relativeGap"),
+    )
 
 
 @dataclasses.dataclass(frozen=True)

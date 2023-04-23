@@ -1,21 +1,4 @@
-"""
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on an
-  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, either express or implied.  See the License for the
-  specific language governing permissions and limitations
-  under the License.
-"""
+from __future__ import annotations
 
 import asyncio
 import backoff
@@ -36,11 +19,18 @@ from typing import (
 )
 
 from .common import format_percent, is_url, strip_nones
-from .data.attempts import Attempt, AttemptRequest, Notification
+from .data.attempts import (
+    Attempt,
+    attempt_from_graphql,
+    AttemptRequest,
+    Notification,
+    notification_from_graphql,
+)
 from .data.outcomes import (
     CancelledOutcome,
-    FailedOutcome,
+    failed_outcome_from_graphql,
     FeasibleOutcome,
+    feasible_outcome_from_graphql,
     InfeasibleOutcome,
     Outcome,
     outcome_status,
@@ -97,10 +87,16 @@ class Client:
         return f"<opvious.Client {' '.join(fields)}>"
 
     @classmethod
-    def from_token(cls, token: str, domain: Optional[str] = None) -> "Client":
+    def from_token(cls, token: str, domain: Optional[str] = None) -> Client:
         """
-        Creates a client from an API token. You can use an empty token to
-        create an unauthenticated client with limited functionality.
+        Creates a client from an API token
+
+        Args:
+            token: API token. You can use an empty token to create an
+                unauthenticated client with limited functionality.
+            domain: API domain. You should only need to set this if you are
+                using a self-hosted cluster. Defaults to the default production
+                endpoint.
         """
         token = token.strip()
         authorization = None
@@ -118,13 +114,17 @@ class Client:
 
     @classmethod
     def from_environment(
-        cls, env=os.environ, require_authenticated=False
-    ) -> "Client":
+        cls, env: Optional[dict[str, str]] = None, require_authenticated=False
+    ) -> Client:
+        """Creates a client from environment variables
+
+        Args:
+            env: Environment, defaults to `os.environ`.
+            require_authenticated: Throw if the environment does not include a
+                valid API token.
         """
-        Creates a client from environment variables. If present, the token
-        should contain a valid API token. A custom domain can optionally be
-        set.
-        """
+        if env is None:
+            env = cast(Any, os.environ)
         token = env.get(ClientSettings.TOKEN.value, "")
         if not token and require_authenticated:
             raise Exception(
@@ -137,9 +137,7 @@ class Client:
 
     @property
     def authenticated(self):
-        """
-        Returns true if the client was created with a non-empty API token.
-        """
+        """Returns true if the client was created with a non-empty API token"""
         return self._executor.authenticated
 
     async def inspect_solve_instructions(
@@ -150,8 +148,15 @@ class Client:
         relaxation: Optional[Relaxation] = None,
         options: Optional[SolveOptions] = None,
     ) -> str:
-        """Inspects an optimization problem's instructions, returning its
-        LP formatted representation.
+        """Inspects an optimization problem's representation in LP format
+
+        Args:
+            specification: Model sources
+            parameters: Input data
+            dimensions: Input keys. If omitted, these will be automatically
+                inferred from the parameters.
+            relaxation: Model relaxation configuration
+            options: Solve options
         """
         body, _outline = await self._assemble_solve_request(
             specification=specification,
@@ -186,8 +191,20 @@ class Client:
         assert_feasible=False,
         prefer_streaming=True,
     ) -> SolveResponse:
-        """Solves an optimization problem. See also `start_attempt` for an
-        alternative for long-running solves.
+        """Solves an optimization problem
+
+        See also `start_attempt` for an alternative for long-running solves.
+
+        Args:
+            specification: Model sources
+            parameters: Input data
+            dimensions: Input keys. If omitted, these will be automatically
+                inferred from the parameters.
+            relaxation: Model relaxation configuration
+            options: Solve options
+            assert_feasible: Throw if the final outcome was not feasible
+            prefer_streaming: Show real time progress notifications when
+                possible
         """
         body, outline = await self._assemble_solve_request(
             specification=specification,
@@ -388,8 +405,16 @@ class Client:
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
     ) -> AttemptRequest:
-        """Assembles and validates inputs for a given formulation. The returned
-        object can be used to start an asynchronous solve via `start_attempt`.
+        """Assembles and validates inputs for a long-running solve
+
+        The returned request can be used to start a long-running solve via
+        `start_attempt`.
+
+        Args:
+            specification: Model sources
+            parameters: Input data
+            dimensions: Input keys. If omitted, these will be automatically
+                inferred from the parameters.
         """
         if isinstance(specification, str):
             specification = FormulationSpecification(
@@ -416,24 +441,17 @@ class Client:
     async def start_attempt(
         self,
         request: AttemptRequest,
-        options: Optional[SolveOptions] = None,
         relaxation: Union[None, Relaxation] = None,
-        pinned_variables: Optional[Mapping[Label, TensorArgument]] = None,
+        options: Optional[SolveOptions] = None,
     ) -> Attempt:
-        """Starts a new asynchronous solve attempt."""
-        pins = []
-        if pinned_variables:
-            for label, arg in pinned_variables.items():
-                var_outline = request.inputs.outline.variables.get(label)
-                if not var_outline:
-                    raise Exception(f"Unknown variable {label}")
-                tensor = Tensor.from_argument(
-                    arg, len(var_outline.bindings), var_outline.is_indicator()
-                )
-                if tensor.default_value:
-                    raise Exception("Pinned variables may not have defaults")
-                pins.append({"label": label, "entries": tensor.entries})
+        """Starts a new asynchronous solve attempt
 
+        Args:
+            request: Attempt configuration, typically generated via
+                `prepare_attempt_request`
+            relaxation: Model relaxation configuration
+            options: Solve options
+        """
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url="/attempts/start",
@@ -445,7 +463,6 @@ class Client:
                     {
                         "dimensions": request.inputs.raw_dimensions,
                         "parameters": request.inputs.raw_parameters,
-                        "pinnedVariables": pins,
                     }
                 ),
                 "options": solve_options_to_json(options, relaxation),
@@ -460,7 +477,11 @@ class Client:
         )
 
     async def load_attempt(self, uuid: str) -> Optional[Attempt]:
-        """Loads an existing attempt from its UUID."""
+        """Loads an existing attempt
+
+        Args:
+            uuid: The target attempt's ID
+        """
         data = await self._executor.execute_graphql_query(
             query="@FetchAttempt",
             variables={"uuid": uuid},
@@ -468,7 +489,7 @@ class Client:
         attempt = data["attempt"]
         if not attempt:
             return None
-        return Attempt.from_graphql(
+        return attempt_from_graphql(
             data=attempt,
             outline=Outline.from_json(attempt["outline"]),
             url=self._attempt_url(uuid),
@@ -478,7 +499,14 @@ class Client:
         return self._hub_url + "/attempts/" + uuid
 
     async def cancel_attempt(self, uuid: str) -> bool:
-        """Cancels a running attempt."""
+        """Cancels a running attempt
+
+        This method will throw if the attempt does not exist or is not pending
+        anymore.
+
+        Args:
+            uuid: The target attempt's ID
+        """
         data = await self._executor.execute_graphql_query(
             query="@CancelAttempt",
             variables={"uuid": uuid},
@@ -488,7 +516,11 @@ class Client:
     async def poll_attempt(
         self, attempt: Attempt
     ) -> Union[Notification, Outcome]:
-        """Polls an attempt for its outcome or latest progress notification."""
+        """Polls an attempt for its outcome or latest progress notification
+
+        Args:
+            attempt: The target attempt
+        """
         data = await self._executor.execute_graphql_query(
             query="@PollAttempt",
             variables={"uuid": attempt.uuid},
@@ -497,7 +529,7 @@ class Client:
         status = attempt_data["status"]
         if status == "PENDING":
             edges = attempt_data["notifications"]["edges"]
-            return Notification.from_graphql(
+            return notification_from_graphql(
                 dequeued=bool(attempt_data["dequeuedAt"]),
                 data=edges[0]["node"] if edges else None,
             )
@@ -509,9 +541,9 @@ class Client:
             return UnboundedOutcome()
         outcome = attempt_data["outcome"]
         if status == "ERRORED":
-            return FailedOutcome.from_graphql(outcome)
+            return failed_outcome_from_graphql(outcome)
         if status == "FEASIBLE" or status == "OPTIMAL":
-            return FeasibleOutcome.from_graphql(outcome)
+            return feasible_outcome_from_graphql(outcome)
         raise Exception(f"Unexpected status {status}")
 
     @backoff.on_predicate(
@@ -544,9 +576,12 @@ class Client:
         attempt: Attempt,
         assert_feasible=False,
     ) -> Outcome:
-        """
-        Waits for the attempt to complete and returns its outcome. Enable INFO
-        logging to view progress messages.
+        """Waits for the attempt to complete and returns its outcome
+
+        This method emits real-time progress messages as INFO logs.
+
+        Args:
+            attempt: The target attempt
         """
         outcome = await self._track_attempt(attempt)
         if not outcome:
@@ -566,7 +601,11 @@ class Client:
         return outcome
 
     async def fetch_attempt_inputs(self, attempt: Attempt) -> SolveInputs:
-        """Retrieves an attempt's inputs."""
+        """Retrieves an attempt's inputs
+
+        Args:
+            attempt: The target attempt
+        """
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url=f"/attempts/{attempt.uuid}/inputs",
@@ -579,7 +618,13 @@ class Client:
         )
 
     async def fetch_attempt_outputs(self, attempt: Attempt) -> SolveOutputs:
-        """Retrieves a successful attempt's outputs."""
+        """Retrieves a successful attempt's outputs
+
+        This method will throw if the attempt did not have a feasible solution.
+
+        Args:
+            attempt: The target attempt
+        """
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url=f"/attempts/{attempt.uuid}/outputs",
