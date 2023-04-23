@@ -3,7 +3,7 @@
 Opvious Python SDK
 ==================
 
-A lightweight SDK for solving optimization models with the Opvious API
+An SDK for solving optimization problems with the Opvious API
 
 + `Project homepage on GitHub`_
 + `PyPI entry`_
@@ -20,7 +20,7 @@ Using `pip`:
 
 The optional `aio` dependency is recommended for improved performance.
 It may be omitted for compatibility with Pyodide environments, for example in
-[JupyterLite][] kernels:
+`JupyterLite`_ kernels:
 
 .. code-block:: python
 
@@ -28,13 +28,14 @@ It may be omitted for compatibility with Pyodide environments, for example in
   await piplite.install('opvious')
 
 
-Resources
+Contents
 ---------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    reference
 
 .. _Project homepage on GitHub: https://github.com/opvious/sdk.py
 .. _PyPI entry: https://pypi.python.org/pypi/opvious/
+.. _JupyterLite: https://jupyterlite.readthedocs.io
