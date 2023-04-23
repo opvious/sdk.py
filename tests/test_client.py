@@ -3,10 +3,7 @@ import os
 import pytest
 
 
-client = opvious.Client.from_token(
-    token=os.environ.get("OPVIOUS_AUTHORIZATION", ""),
-    domain=os.environ.get(opvious.ClientSettings.DOMAIN.value),
-)
+client = opvious.Client.from_environment()
 
 
 @pytest.mark.skipif(
