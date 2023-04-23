@@ -442,7 +442,7 @@ class Client:
         self,
         request: AttemptRequest,
         relaxation: Union[None, Relaxation] = None,
-        options: Optional[SolveOptions] = None
+        options: Optional[SolveOptions] = None,
     ) -> Attempt:
         """Starts a new asynchronous solve attempt
 
