@@ -2,7 +2,7 @@
 
 import logging
 
-from .client import Client, ClientSettings
+from .client import Client, ClientSetting
 from .common import __version__
 from .data.attempts import Attempt, AttemptRequest, Notification
 from .data.outcomes import (
@@ -58,7 +58,7 @@ __all__ = [
     "AttemptRequest",
     "CancelledOutcome",
     "Client",
-    "ClientSettings",
+    "ClientSetting",
     "ConstraintRelaxation",
     "DimensionArgument",
     "Executor",
