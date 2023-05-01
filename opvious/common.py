@@ -1,4 +1,6 @@
 from importlib import metadata
+import math
+from typing import Any, Union
 import urllib.parse
 
 
@@ -17,10 +19,6 @@ def format_percent(val):
     return f"{int(val * 10_000) / 100}%"
 
 
-def strip_nones(d):
-    return {k: v for k, v in d.items() if v is not None}
-
-
 def is_url(s: str) -> bool:
     """Checks if a string is a URL."""
     try:
@@ -28,3 +26,50 @@ def is_url(s: str) -> bool:
         return bool(res.scheme and res.netloc)
     except ValueError:
         return False
+
+
+def to_camel_case(s: str) -> str:
+    if "_" not in s:
+        return s
+    return "".join(
+        p.capitalize() if i else p for i, p in enumerate(s.split("_"))
+    )
+
+
+# JSON utilities
+
+
+Json = Any
+
+
+ExtendedFloat = Union[float, str]
+
+
+def encode_extended_float(val: ExtendedFloat) -> Json:
+    if val == math.inf:
+        return "Infinity"
+    elif val == -math.inf:
+        return "-Infinity"
+    return val
+
+
+def decode_extended_float(val: ExtendedFloat) -> Json:
+    if val == "Infinity":
+        return math.inf
+    elif val == "-Infinity":
+        return -math.inf
+    return val
+
+
+def json_dict(**kwargs) -> Json:
+    """Strips keys with None values and encodes infinity values"""
+    data = {}
+    for key, val in kwargs.items():
+        if val is None:
+            continue
+        json_key = to_camel_case(key)
+        if isinstance(val, float):
+            data[json_key] = encode_extended_float(val)
+        else:
+            data[json_key] = val
+    return data

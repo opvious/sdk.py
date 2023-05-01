@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from .tensors import Value
 
 
-SolveStatus = str
+SolveStatus = Literal[
+    "CANCELLED",
+    "ERRORED",
+    "FEASIBLE",
+    "INFEASIBLE",
+    "OPTIMAL",
+    "UNBOUNDED",
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -33,11 +40,12 @@ class FailedOutcome:
 
 def failed_outcome_from_graphql(data: Any) -> FailedOutcome:
     failure = data["failure"]
+    error = failure["error"]
     return FailedOutcome(
         status=failure["status"],
-        message=failure["message"],
-        code=failure.get("code"),
-        tags=failure.get("tags"),
+        message=error["message"],
+        code=error.get("code"),
+        tags=error.get("tags"),
     )
 
 
