@@ -49,15 +49,16 @@ from .specifications import (
     RemoteSpecification,
     Specification,
 )
-from .transform import (
-    RelaxationPenalty,
-    Transformation,
+from .transformation import (
     ConstrainObjective,
     DensifyVariables,
     OmitConstraints,
     OmitObjectives,
     PinVariables,
     RelaxConstraints,
+    RelaxationPenalty,
+    Transformation,
+    TransformationContext,
 )
 
 
@@ -107,14 +108,15 @@ __all__ = [
     "UnexpectedOutcomeError",
     "outcome_status",
     # Transformations
-    "RelaxationPenalty",
-    "Transformation",
     "ConstrainObjective",
     "DensifyVariables",
     "OmitConstraints",
     "OmitObjectives",
     "PinVariables",
     "RelaxConstraints",
+    "RelaxationPenalty",
+    "Transformation",
+    "TransformationContext",
     # Miscellaneous
     "__version__",
 ]

@@ -56,7 +56,7 @@ from .executors import (
     PlainTextExecutorResult,
 )
 from .specifications import FormulationSpecification, Specification
-from .transform import Transformation, TransformationContext
+from .transformation import Transformation, TransformationContext
 
 
 _logger = logging.getLogger(__name__)

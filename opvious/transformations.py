@@ -144,7 +144,7 @@ class ConstrainObjective(Transformation):
     max_value: float = math.inf
 
     async def register(self, _context: TransformationContext) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError()  # TODO
 
 
 @dataclasses.dataclass(frozen=True)
@@ -158,4 +158,4 @@ class DensifyVariables(Transformation):
     """
 
     async def register(self, _context: TransformationContext) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError()  # TODO

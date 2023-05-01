@@ -39,10 +39,13 @@ def to_camel_case(s: str) -> str:
 # JSON utilities
 
 
+Json = Any
+
+
 ExtendedFloat = Union[float, str]
 
 
-def encode_extended_float(val: float):
+def encode_extended_float(val: ExtendedFloat) -> Json:
     if val == math.inf:
         return "Infinity"
     elif val == -math.inf:
@@ -50,7 +53,7 @@ def encode_extended_float(val: float):
     return val
 
 
-def decode_extended_float(val: ExtendedFloat):
+def decode_extended_float(val: ExtendedFloat) -> Json:
     if val == "Infinity":
         return math.inf
     elif val == "-Infinity":
@@ -58,11 +61,8 @@ def decode_extended_float(val: ExtendedFloat):
     return val
 
 
-Json = Any
-
-
 def json_dict(**kwargs) -> Json:
-    """Strips keys with None values and infinity values encoded."""
+    """Strips keys with None values and encodes infinity values"""
     data = {}
     for key, val in kwargs.items():
         if val is None:

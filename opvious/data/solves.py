@@ -302,6 +302,7 @@ class EpsilonConstraint:
             and self.relative_tolerance is not None
         ):
             raise Exception("At most one tolerance can be set")
+        raise NotImplementedError()  # TODO
 
 
 @dataclasses.dataclass(frozen=True)
