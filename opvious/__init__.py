@@ -49,7 +49,7 @@ from .specifications import (
     RemoteSpecification,
     Specification,
 )
-from .transformation import (
+from .transformations import (
     ConstrainObjective,
     DensifyVariables,
     OmitConstraints,
