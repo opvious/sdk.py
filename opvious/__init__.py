@@ -4,7 +4,7 @@ import logging
 
 from .client import Client, ClientSetting
 from .common import __version__
-from .data.attempts import Attempt, AttemptNotification, AttemptRequest
+from .data.attempts import Attempt, AttemptNotification
 from .data.outcomes import (
     CancelledOutcome,
     FailedOutcome,
@@ -18,14 +18,12 @@ from .data.outcomes import (
 )
 from .data.outlines import Label, Outline
 from .data.solves import (
-    ConstraintRelaxation,
-    RelaxationPenalty,
-    Relaxation,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
     SolveResponse,
     SolveSummary,
+    SolveStrategy,
 )
 from .data.tensors import (
     DimensionArgument,
@@ -51,52 +49,74 @@ from .specifications import (
     RemoteSpecification,
     Specification,
 )
+from .transform import (
+    RelaxationPenalty,
+    Transformation,
+    ConstrainObjective,
+    DensifyVariables,
+    OmitConstraints,
+    OmitObjectives,
+    PinVariables,
+    RelaxConstraints,
+)
 
 
 __all__ = [
-    "Attempt",
-    "AttemptNotification",
-    "AttemptRequest",
-    "CancelledOutcome",
+    # Client
     "Client",
     "ClientSetting",
-    "ConstraintRelaxation",
-    "DimensionArgument",
+    # Executors
     "Executor",
     "ExecutorError",
-    "FailedOutcome",
-    "FeasibleOutcome",
+    "aiohttp_executor",
+    "default_executor",
+    "pyodide_executor",
+    "urllib_executor",
+    # Specifications
     "FormulationSpecification",
-    "InfeasibleOutcome",
     "InlineSpecification",
+    "LocalSpecification",
+    "RemoteSpecification",
+    "Specification",
+    # Solves and attempts
+    "Attempt",
+    "AttemptNotification",
+    "DimensionArgument",
     "Key",
     "KeyItem",
     "Label",
-    "LocalSpecification",
-    "Outcome",
     "Outline",
-    "Relaxation",
-    "RelaxationPenalty",
-    "RemoteSpecification",
     "SolveInputs",
     "SolveOptions",
     "SolveOutputs",
     "SolveResponse",
-    "SolveSummary",
     "SolveStatus",
+    "SolveStrategy",
+    "SolveSummary",
     "SparseTensorArgument",
-    "Specification",
     "Tensor",
     "TensorArgument",
+    "Value",
+    # Outcomes
+    "CancelledOutcome",
+    "FailedOutcome",
+    "FeasibleOutcome",
+    "InfeasibleOutcome",
+    "Outcome",
     "UnboundedOutcome",
     "UnexpectedOutcomeError",
-    "Value",
-    "__version__",
-    "aiohttp_executor",
-    "default_executor",
     "outcome_status",
-    "pyodide_executor",
-    "urllib_executor",
+    # Transformations
+    "RelaxationPenalty",
+    "Transformation",
+    "ConstrainObjective",
+    "DensifyVariables",
+    "OmitConstraints",
+    "OmitObjectives",
+    "PinVariables",
+    "RelaxConstraints",
+    # Miscellaneous
+    "__version__",
 ]
 
 

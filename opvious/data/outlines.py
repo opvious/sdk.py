@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Mapping, Optional
+from typing import Literal, Mapping, Optional
 
-from .tensors import decode_extended_float, is_value, Value
+from ..common import decode_extended_float, Json
+from .tensors import is_value, Value
 
 
 #: Model name
@@ -22,27 +23,38 @@ class SourceBinding:
     """The binding's qualifier, if any"""
 
 
-def _source_binding_from_json(data: Any) -> SourceBinding:
+def _source_binding_from_json(data: Json) -> SourceBinding:
     return SourceBinding(
         dimension_label=data.get("dimensionLabel"),
         qualifier=data.get("qualifier"),
     )
 
 
+ObjectiveSense = Literal[
+    "MAXIMIZE",
+    "MINIMIZE",
+]
+"""Objective direction"""
+
+
 @dataclasses.dataclass(frozen=True)
 class ObjectiveOutline:
     """Objective metadata"""
 
-    is_maximization: bool
+    label: Label
+    """The objective's unique label"""
+
+    sense: ObjectiveSense
     """Whether this is a maximization (or minimization)"""
 
     is_quadratic: bool
     """Whether the objective has any quadratic coefficients"""
 
 
-def _objective_from_json(data: Any) -> ObjectiveOutline:
+def _objective_from_json(data: Json) -> ObjectiveOutline:
     return ObjectiveOutline(
-        is_maximization=data["isMaximization"],
+        label=data["label"],
+        sense="MAXIMIZE" if data["isMaximization"] else "MINIMIZE",
         is_quadratic=data["isQuadratic"],
     )
 
@@ -58,7 +70,7 @@ class DimensionOutline:
     """Whether the dimension contains numeric items"""
 
 
-def _dimension_from_json(data: Any) -> DimensionOutline:
+def _dimension_from_json(data: Json) -> DimensionOutline:
     return DimensionOutline(label=data["label"], is_numeric=data["isNumeric"])
 
 
@@ -91,7 +103,7 @@ class TensorOutline:
         )
 
 
-def _tensor_from_json(data: Any) -> TensorOutline:
+def _tensor_from_json(data: Json) -> TensorOutline:
     lb = decode_extended_float(data["lowerBound"])
     ub = decode_extended_float(data["upperBound"])
     return TensorOutline(
@@ -114,7 +126,7 @@ class ConstraintOutline:
     """Quantifier key bindings"""
 
 
-def _constraint_from_json(data: Any) -> ConstraintOutline:
+def _constraint_from_json(data: Json) -> ConstraintOutline:
     return ConstraintOutline(
         label=data["label"],
         bindings=[_source_binding_from_json(b) for b in data["bindings"]],
@@ -125,7 +137,7 @@ def _constraint_from_json(data: Any) -> ConstraintOutline:
 class Outline:
     """Model metadata"""
 
-    objective: Optional[ObjectiveOutline]
+    objectives: Mapping[Label, ObjectiveOutline]
     """Objective metadata, if applicable"""
 
     dimensions: Mapping[Label, DimensionOutline]
@@ -141,10 +153,9 @@ class Outline:
     """Constraint metadata, keyed by constraint label"""
 
 
-def outline_from_json(data: Any) -> Outline:
-    obj = data.get("objective")
+def outline_from_json(data: Json) -> Outline:
     return Outline(
-        objective=_objective_from_json(obj) if obj else None,
+        objectives=_map_outlines(_objective_from_json, data["objectives"]),
         dimensions=_map_outlines(_dimension_from_json, data["dimensions"]),
         parameters=_map_outlines(_tensor_from_json, data["parameters"]),
         variables=_map_outlines(_tensor_from_json, data["variables"]),

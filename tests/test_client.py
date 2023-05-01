@@ -11,11 +11,10 @@ client = opvious.Client.from_environment()
 class TestClient:
     @pytest.mark.asyncio
     async def test_run_bounded_feasible_attempt(self):
-        request = await client.prepare_attempt_request(
+        attempt = await client.start_attempt(
             specification=opvious.FormulationSpecification("bounded"),
             parameters={"bound": 0.1},
         )
-        attempt = await client.start_attempt(request)
         outcome = await client.wait_for_outcome(attempt, assert_feasible=True)
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.is_optimal
@@ -23,25 +22,21 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_bounded_infeasible_attempt(self):
-        request = await client.prepare_attempt_request(
+        attempt = await client.start_attempt(
             specification="bounded", parameters={"bound": 3}
         )
-        attempt = await client.start_attempt(request)
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_run_simple_unbounded_attempt(self):
-        request = await client.prepare_attempt_request(
-            specification="unbounded"
-        )
-        attempt = await client.start_attempt(request)
+        attempt = await client.start_attempt(specification="unbounded")
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
     async def test_run_diet_attempt(self):
-        request = await client.prepare_attempt_request(
+        attempt = await client.start_attempt(
             specification="diet",
             parameters={
                 "costPerRecipe": {
@@ -66,7 +61,6 @@ class TestClient:
                 },
             },
         )
-        attempt = await client.start_attempt(request)
         outcome = await client.wait_for_outcome(attempt)
         assert outcome.is_optimal
         assert outcome.objective_value == 33
@@ -92,48 +86,46 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_run_relaxed_attempt(self):
-        request = await client.prepare_attempt_request(
-            specification="bounded", parameters={"bound": 3}
-        )
         attempt = await client.start_attempt(
-            request,
-            relaxation=opvious.Relaxation.from_constraint_labels(
-                [
-                    "greaterThanBound",
-                ]
+            specification="bounded",
+            transformations=[
+                opvious.RelaxConstraints(["greaterThanBound"]),
+            ],
+            strategy=opvious.SolveStrategy.optimize(
+                "greaterThanBound_minimizeDeficit"
             ),
+            parameters={"bound": 3},
         )
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
+        assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
     async def test_run_bounded_relaxed_attempt(self):
-        request = await client.prepare_attempt_request(
-            specification="bounded", parameters={"bound": 3}
-        )
         attempt = await client.start_attempt(
-            request,
-            relaxation=opvious.Relaxation(
-                penalty="MAX_DEVIATION",
-                objective_weight=1,
-                constraints=[
-                    opvious.ConstraintRelaxation(
-                        label="greaterThanBound",
-                        bound=1,
-                    ),
-                ],
-            ),
+            specification="bounded",
+            transformations=[
+                opvious.RelaxConstraints(
+                    labels=["greaterThanBound"],
+                    penalty="MAX_DEVIATION",
+                    is_capped=True,
+                ),
+            ],
+            strategy=opvious.SolveStrategy("MAXIMIZE"),
+            parameters={
+                "bound": 3,
+                "greaterThanBound_deficitCap": 1,
+            },
         )
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_run_sudoku(self):
-        request = await client.prepare_attempt_request(
+        attempt = await client.start_attempt(
             specification="sudoku",
             parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
         )
-        attempt = await client.start_attempt(request)
 
         outcome = await client.wait_for_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
@@ -315,11 +307,9 @@ class TestClient:
         response = await client.run_solve(
             specification=opvious.FormulationSpecification("sudoku"),
             parameters={"hints": [(0, 0, 3), (1, 1, 3)]},
-            relaxation=opvious.Relaxation.from_constraint_labels(
-                [
-                    "hintsObserved",
-                ]
-            ),
+            transformations=[
+                opvious.RelaxConstraints(["hintsObserved"]),
+            ],
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
         deficit = response.outputs.variable("hintsObserved_deficit")

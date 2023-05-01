@@ -5,22 +5,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from .outlines import Outline
-from .solves import SolveInputs
 from .tensors import Value
-
-
-@dataclasses.dataclass(frozen=True)
-class AttemptRequest:
-    """Attempt creation request"""
-
-    formulation_name: str
-    """The underlying formulation's name"""
-
-    specification_tag_name: str
-    """The target specification tag"""
-
-    inputs: SolveInputs = dataclasses.field(repr=False)
-    """Input data"""
 
 
 @dataclasses.dataclass(frozen=True)

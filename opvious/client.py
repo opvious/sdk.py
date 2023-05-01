@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import backoff
 from datetime import datetime, timezone
 import enum
@@ -18,12 +17,11 @@ from typing import (
     Union,
 )
 
-from .common import format_percent, is_url, strip_nones
+from .common import format_percent, Json, json_dict
 from .data.attempts import (
     Attempt,
     attempt_from_graphql,
     AttemptNotification,
-    AttemptRequest,
     notification_from_graphql,
 )
 from .data.outcomes import (
@@ -39,13 +37,14 @@ from .data.outcomes import (
 )
 from .data.outlines import Label, Outline, outline_from_json
 from .data.solves import (
-    Relaxation,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
     SolveResponse,
+    SolveStrategy,
     solve_options_to_json,
     solve_response_from_json,
+    solve_strategy_to_json,
     solve_summary_from_json,
 )
 from .data.tensors import DimensionArgument, Tensor, TensorArgument
@@ -57,6 +56,7 @@ from .executors import (
     PlainTextExecutorResult,
 )
 from .specifications import FormulationSpecification, Specification
+from .transform import Transformation, TransformationContext
 
 
 _logger = logging.getLogger(__name__)
@@ -150,12 +150,72 @@ class Client:
         """Returns true if the client was created with a non-empty API token"""
         return self._executor.authenticated
 
+    async def _prepare_solve(
+        self,
+        specification: Specification,
+        parameters: Optional[Mapping[Label, TensorArgument]] = None,
+        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
+        transformations: Optional[list[Transformation]] = None,
+        strategy: Optional[SolveStrategy] = None,
+        options: Optional[SolveOptions] = None,
+    ) -> Tuple[Json, Outline]:
+        """Generates solve candidate and final outline."""
+        # First we fetch the outline to validate/coerce inputs later on
+        if isinstance(specification, FormulationSpecification):
+            outline_generator, tag = await _OutlineGenerator.formulation(
+                executor=self._executor,
+                specification=specification,
+            )
+            formulation = json_dict(
+                name=specification.formulation_name,
+                specification_tag_name=tag,
+            )
+        else:
+            sources = await specification.fetch_sources(self._executor)
+            formulation = json_dict(sources=sources)
+            outline_generator = await _OutlineGenerator.sources(
+                executor=self._executor, sources=sources
+            )
+
+        # Then we apply any transformations and refresh the outline if needed
+        for tf in transformations or []:
+            outline_generator.add_transformation(tf)
+        outline, transformation_data = await outline_generator.generate()
+
+        # Then we assemble the inputs
+        builder = _SolveInputsBuilder(outline=outline)
+        if dimensions:
+            for label, dim in dimensions.items():
+                builder.set_dimension(label, dim)
+        if parameters:
+            for label, param in parameters.items():
+                builder.set_parameter(label, param)
+        inputs = builder.build()
+        _logger.info(
+            "Validated inputs. [parameters=%s]",
+            builder.parameter_entry_count,
+        )
+
+        # Finally we put everything together
+        candidate = json_dict(
+            formulation=formulation,
+            inputs=json_dict(
+                dimensions=inputs.raw_dimensions,
+                parameters=inputs.raw_parameters,
+            ),
+            transformations=transformation_data,
+            strategy=solve_strategy_to_json(strategy, outline),
+            options=solve_options_to_json(options),
+        )
+        return (candidate, outline)
+
     async def inspect_solve_instructions(
         self,
         specification: Specification,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        relaxation: Optional[Relaxation] = None,
+        transformations: Optional[list[Transformation]] = None,
+        # TODO: strategy
         options: Optional[SolveOptions] = None,
     ) -> str:
         """Inspects an optimization problem's representation in LP format
@@ -165,23 +225,20 @@ class Client:
             parameters: Input data
             dimensions: Input keys. If omitted, these will be automatically
                 inferred from the parameters.
-            relaxation: Model relaxation configuration
             options: Solve options
         """
-        body, _outline = await self._assemble_solve_request(
+        candidate, _outline = await self._prepare_solve(
             specification=specification,
             parameters=parameters,
             dimensions=dimensions,
-            relaxation=relaxation,
+            transformations=transformations,
             options=options,
         )
         async with self._executor.execute(
             result_type=PlainTextExecutorResult,
             url="/solves/inspect/instructions",
             method="POST",
-            json_data={
-                "runRequest": body,
-            },
+            json_data=json_dict(candidate=candidate),
         ) as res:
             lines = []
             async for line in res.lines():
@@ -196,7 +253,8 @@ class Client:
         specification: Specification,
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        relaxation: Optional[Relaxation] = None,
+        transformations: Optional[list[Transformation]] = None,
+        strategy: Optional[SolveStrategy] = None,
         options: Optional[SolveOptions] = None,
         assert_feasible=False,
         prefer_streaming=True,
@@ -210,17 +268,18 @@ class Client:
             parameters: Input data
             dimensions: Input keys. If omitted, these will be automatically
                 inferred from the parameters.
-            relaxation: Model relaxation configuration
+            transformations: Model transformations
             options: Solve options
             assert_feasible: Throw if the final outcome was not feasible
             prefer_streaming: Show real time progress notifications when
                 possible
         """
-        body, outline = await self._assemble_solve_request(
+        candidate, outline = await self._prepare_solve(
             specification=specification,
             parameters=parameters,
             dimensions=dimensions,
-            relaxation=relaxation,
+            transformations=transformations,
+            strategy=strategy,
             options=options,
         )
 
@@ -231,7 +290,7 @@ class Client:
                 result_type=JsonSeqExecutorResult,
                 url="/solves/run",
                 method="POST",
-                json_data=body,
+                json_data=json_dict(candidate=candidate),
             ) as res:
                 async for data in res.json_seq_data():
                     kind = data["kind"]
@@ -284,7 +343,7 @@ class Client:
                 result_type=JsonExecutorResult,
                 url="/solves/run",
                 method="POST",
-                json_data=body,
+                json_data=json_dict(candidate=candidate),
             ) as res:
                 response = solve_response_from_json(
                     outline=outline,
@@ -306,183 +365,51 @@ class Client:
 
         return response
 
-    async def _assemble_solve_request(
-        self,
-        specification: Specification,
-        parameters: Optional[Mapping[Label, TensorArgument]] = None,
-        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        options: Optional[SolveOptions] = None,
-        relaxation: Union[None, Relaxation] = None,
-    ) -> Tuple[Any, Outline]:
-        # First we fetch the outline to validate/coerce inputs later on
-        if isinstance(specification, FormulationSpecification):
-            outline, tag_name = await self._fetch_formulation_outline(
-                specification
-            )
-            formulation = strip_nones(
-                {
-                    "name": specification.formulation_name,
-                    "specificationTagName": tag_name,
-                }
-            )
-        else:
-            sources = await specification.fetch_sources(self._executor)
-            outline = await self._fetch_sources_outline(sources)
-            formulation = {"sources": sources}
+    def _attempt_url(self, uuid) -> str:
+        return self._hub_url + "/attempts/" + uuid
 
-        # Then we assemble the inputs
-        builder = _SolveInputsBuilder(outline=outline)
-        if dimensions:
-            for label, dim in dimensions.items():
-                builder.set_dimension(label, dim)
-        if parameters:
-            for label, param in parameters.items():
-                builder.set_parameter(label, param)
-        inputs = builder.build()
-        _logger.info(
-            "Validated inputs. [parameters=%s]",
-            builder.parameter_entry_count,
-        )
-
-        # Finally we put everything together
-        body = {
-            "formulation": formulation,
-            "inputs": strip_nones(
-                {
-                    "dimensions": inputs.raw_dimensions,
-                    "parameters": inputs.raw_parameters,
-                }
-            ),
-            "options": solve_options_to_json(options, relaxation),
-        }
-        return (body, outline)
-
-    async def _resolving_sources(self, sources: list[str]) -> list[str]:
-        async def _resolve(source: str) -> str:
-            if not is_url(source):
-                return source
-            _logger.debug("Resolving source URL... [url=%s]", source)
-            try:
-                async with self._executor.execute(
-                    result_type=PlainTextExecutorResult,
-                    url=source,
-                ) as res:
-                    return await res.text(assert_status=200)
-            except Exception as exc:
-                raise Exception(
-                    f"Unable to read source from {source}"
-                ) from exc
-
-        tasks = [_resolve(source) for source in sources]
-        return await asyncio.gather(*tasks)
-
-    async def _fetch_sources_outline(self, sources: list[str]) -> Outline:
-        async with self._executor.execute(
-            result_type=JsonExecutorResult,
-            url="/sources/parse",
-            method="POST",
-            json_data={"sources": sources, "outline": True},
-        ) as res:
-            outline_data = res.json_data()
-        errors = outline_data.get("errors")
-        if errors:
-            raise Exception(f"Invalid sources: {json.dumps(errors)}")
-        return outline_from_json(outline_data["outline"])
-
-    async def _fetch_formulation_outline(
-        self, specification: FormulationSpecification
-    ) -> Tuple[Outline, str]:
-        data = await self._executor.execute_graphql_query(
-            query="@FetchOutline",
-            variables={
-                "formulationName": specification.formulation_name,
-                "tagName": specification.tag_name,
-            },
-        )
-        formulation = data.get("formulation")
-        if not formulation:
-            raise Exception("No matching formulation found")
-        tag = formulation.get("tag")
-        if not tag:
-            raise Exception("No matching specification found")
-        spec = tag["specification"]
-        outline = outline_from_json(spec["outline"])
-        return (outline, tag["name"])
-
-    async def prepare_attempt_request(
+    async def start_attempt(
         self,
         specification: Union[str, FormulationSpecification],
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-    ) -> AttemptRequest:
-        """Assembles and validates inputs for a long-running solve
-
-        The returned request can be used to start a long-running solve via
-        `start_attempt`.
+        transformations: Optional[list[Transformation]] = None,
+        strategy: Optional[SolveStrategy] = None,
+        options: Optional[SolveOptions] = None,
+    ) -> Attempt:
+        """Starts a new asynchronous solve attempt
 
         Args:
             specification: Model sources
             parameters: Input data
             dimensions: Input keys. If omitted, these will be automatically
                 inferred from the parameters.
+            transformations: Model transformations
+            options: Solve options
         """
         if isinstance(specification, str):
             specification = FormulationSpecification(
                 formulation_name=specification
             )
-        elif not isinstance(specification, FormulationSpecification):
-            raise TypeError(f"Unsupported specification type: {specification}")
-        outline, tag_name = await self._fetch_formulation_outline(
-            specification
+        candidate, outline = await self._prepare_solve(
+            specification=specification,
+            parameters=parameters,
+            dimensions=dimensions,
+            transformations=transformations,
+            strategy=strategy,
+            options=options,
         )
-        builder = _SolveInputsBuilder(outline)
-        if dimensions:
-            for label, dim in dimensions.items():
-                builder.set_dimension(label, dim)
-        if parameters:
-            for label, param in parameters.items():
-                builder.set_parameter(label, param)
-        return AttemptRequest(
-            formulation_name=specification.formulation_name,
-            specification_tag_name=tag_name,
-            inputs=builder.build(),
-        )
-
-    async def start_attempt(
-        self,
-        request: AttemptRequest,
-        relaxation: Union[None, Relaxation] = None,
-        options: Optional[SolveOptions] = None,
-    ) -> Attempt:
-        """Starts a new asynchronous solve attempt
-
-        Args:
-            request: Attempt configuration, typically generated via
-                `prepare_attempt_request`
-            relaxation: Model relaxation configuration
-            options: Solve options
-        """
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url="/attempts/start",
             method="POST",
-            json_data={
-                "formulationName": request.formulation_name,
-                "specificationTagName": request.specification_tag_name,
-                "inputs": strip_nones(
-                    {
-                        "dimensions": request.inputs.raw_dimensions,
-                        "parameters": request.inputs.raw_parameters,
-                    }
-                ),
-                "options": solve_options_to_json(options, relaxation),
-            },
+            json_data=json_dict(candidate=candidate),
         ) as res:
             uuid = res.json_data()["uuid"]
         return Attempt(
             uuid=uuid,
             started_at=datetime.now(timezone.utc),
-            outline=request.inputs.outline,
+            outline=outline,
             url=self._attempt_url(uuid),
         )
 
@@ -494,7 +421,7 @@ class Client:
         """
         data = await self._executor.execute_graphql_query(
             query="@FetchAttempt",
-            variables={"uuid": uuid},
+            variables=json_dict(uuid=uuid),
         )
         attempt = data["attempt"]
         if not attempt:
@@ -504,9 +431,6 @@ class Client:
             outline=outline_from_json(attempt["outline"]),
             url=self._attempt_url(uuid),
         )
-
-    def _attempt_url(self, uuid) -> str:
-        return self._hub_url + "/attempts/" + uuid
 
     async def cancel_attempt(self, uuid: str) -> bool:
         """Cancels a running attempt
@@ -519,7 +443,7 @@ class Client:
         """
         data = await self._executor.execute_graphql_query(
             query="@CancelAttempt",
-            variables={"uuid": uuid},
+            variables=json_dict(uuid=uuid),
         )
         return bool(data["cancelAttempt"])
 
@@ -533,7 +457,7 @@ class Client:
         """
         data = await self._executor.execute_graphql_query(
             query="@PollAttempt",
-            variables={"uuid": attempt.uuid},
+            variables=json_dict(uuid=attempt.uuid),
         )
         attempt_data = data["attempt"]
         status = attempt_data["status"]
@@ -675,11 +599,11 @@ class _SolveInputsBuilder:
             )
         except Exception as exc:
             raise ValueError(f"Invalid  parameter: {label}") from exc
-        self._parameters[label] = {
-            "label": label,
-            "entries": tensor.entries,
-            "defaultValue": tensor.default_value,
-        }
+        self._parameters[label] = json_dict(
+            label=label,
+            entries=tensor.entries,
+            default_value=tensor.default_value,
+        )
         self.parameter_entry_count += len(tensor.entries)
 
     def build(self) -> SolveInputs:
@@ -702,6 +626,79 @@ class _SolveInputsBuilder:
             raw_parameters=list(self._parameters.values()),
             raw_dimensions=list(self._dimensions.values()) or None,
         )
+
+
+class _OutlineGenerator:
+    def __init__(self, executor: Executor, outline_data: Json):
+        self._executor = executor
+        self._pristine_outline_data = outline_data
+        self._transformations = cast(list[Transformation], [])
+
+    @classmethod
+    async def formulation(
+        cls, executor: Executor, specification: FormulationSpecification
+    ) -> Tuple[_OutlineGenerator, str]:
+        data = await executor.execute_graphql_query(
+            query="@FetchOutline",
+            variables={
+                "formulationName": specification.formulation_name,
+                "tagName": specification.tag_name,
+            },
+        )
+        formulation = data.get("formulation")
+        if not formulation:
+            raise Exception("No matching formulation found")
+        tag = formulation.get("tag")
+        if not tag:
+            raise Exception("No matching specification found")
+        spec = tag["specification"]
+        return (_OutlineGenerator(executor, spec["outline"]), tag["name"])
+
+    @classmethod
+    async def sources(
+        cls, executor: Executor, sources: list[str]
+    ) -> _OutlineGenerator:
+        async with executor.execute(
+            result_type=JsonExecutorResult,
+            url="/sources/parse",
+            method="POST",
+            json_data=json_dict(sources=sources, outline=True),
+        ) as res:
+            outline_data = res.json_data()
+        errors = outline_data.get("errors")
+        if errors:
+            raise Exception(f"Invalid sources: {json.dumps(errors)}")
+        return _OutlineGenerator(executor, outline_data["outline"])
+
+    def add_transformation(self, tf: Transformation) -> None:
+        self._transformations.append(tf)
+
+    async def generate(self) -> Tuple[Outline, Json]:
+        if not self._transformations:
+            return outline_from_json(self._pristine_outline_data), []
+
+        executor = self._executor
+        pristine_outline_data = self._pristine_outline_data
+
+        class Context(TransformationContext):
+            async def fetch_outline(self) -> Outline:
+                async with executor.execute(
+                    result_type=JsonExecutorResult,
+                    url="/outlines/transform",
+                    method="POST",
+                    json_data=json_dict(
+                        outline=pristine_outline_data,
+                        transformations=self.get_json(),
+                    ),
+                ) as res:
+                    data = res.json_data()
+                return outline_from_json(data["outline"])
+
+        context = Context()
+        for tf in self._transformations:
+            await tf.register(context)
+        outline = await context.fetch_outline()
+        return outline, context.get_json()
 
 
 def _feasible_outcome_details(outcome: FeasibleOutcome) -> Optional[str]:

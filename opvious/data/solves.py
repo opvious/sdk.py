@@ -4,7 +4,7 @@ import dataclasses
 import pandas as pd
 from typing import Any, cast, Optional
 
-from ..common import strip_nones
+from ..common import decode_extended_float, Json, json_dict
 from .outcomes import (
     FeasibleOutcome,
     InfeasibleOutcome,
@@ -12,8 +12,7 @@ from .outcomes import (
     Outcome,
     SolveStatus,
 )
-from .outlines import Label, Outline, SourceBinding
-from .tensors import decode_extended_float
+from .outlines import Label, ObjectiveSense, Outline
 
 
 @dataclasses.dataclass(frozen=True)
@@ -87,7 +86,7 @@ class SolveInputs:
                 entries = param["entries"]
                 outline = self.outline.parameters[label]
                 return pd.Series(
-                    data=(decode_extended_float(e["value"]) for e in entries),
+                    data=(e["value"] for e in entries),
                     index=_entry_index(entries, outline.bindings),
                 )
         raise Exception(f"Unknown parameter: {label}")
@@ -113,12 +112,6 @@ class SolveOutputs:
     raw_constraints: list[Any]
     """All constraints in raw format"""
 
-    def _variable_bindings(self, label: Label) -> list[SourceBinding]:
-        prefix = label.split("_", 1)[0]
-        if prefix == label:
-            return self.outline.variables[prefix].bindings
-        return self.outline.constraints[prefix].bindings
-
     def variable(self, label: Label) -> pd.DataFrame:
         """Returns variable results for a given label
 
@@ -127,7 +120,7 @@ class SolveOutputs:
         for res in self.raw_variables:
             if res["label"] == label:
                 entries = res["entries"]
-                bindings = self._variable_bindings(label)
+                bindings = self.outline.variables[label].bindings
                 df = pd.DataFrame(
                     data=(
                         {
@@ -222,70 +215,6 @@ def solve_response_from_json(
     )
 
 
-RelaxationPenalty = str
-
-
-_DEFAULT_PENALTY = "TOTAL_DEVIATION"
-
-
-@dataclasses.dataclass(frozen=True)
-class Relaxation:
-    """Problem relaxation configuration"""
-
-    penalty: RelaxationPenalty = _DEFAULT_PENALTY
-    objective_weight: Optional[float] = None
-    constraints: Optional[list[ConstraintRelaxation]] = None
-
-    @classmethod
-    def from_constraint_labels(
-        cls,
-        labels: list[Label],
-        penalty: RelaxationPenalty = _DEFAULT_PENALTY,
-        objective_weight: Optional[float] = None,
-    ) -> Relaxation:
-        """Relaxes all input constraints using a common penalty"""
-        return Relaxation(
-            penalty=penalty,
-            objective_weight=objective_weight,
-            constraints=[ConstraintRelaxation(label=n) for n in labels],
-        )
-
-
-def _relaxation_to_json(r: Relaxation) -> Any:
-    return strip_nones(
-        {
-            "penalty": r.penalty,
-            "objectiveWeight": r.objective_weight,
-            "constraints": None
-            if r.constraints is None
-            else [_constraint_relaxation_to_json(c) for c in r.constraints],
-        }
-    )
-
-
-@dataclasses.dataclass(frozen=True)
-class ConstraintRelaxation:
-    """Constraint relaxation configuration"""
-
-    label: Label
-    penalty: Optional[str] = None
-    cost: Optional[float] = None
-    bound: Optional[float] = None
-
-
-def _constraint_relaxation_to_json(c):
-    return strip_nones(
-        {
-            "label": c.label,
-            "penalty": c.penalty,
-            "deficitCost": c.cost,
-            "surplusCost": c.cost,
-            "deficitBound": None if c.bound is None else -c.bound,
-            "surplusBound": c.bound,
-        }
-    )
-
-
 @dataclasses.dataclass(frozen=True)
 class SolveOptions:
     """Solving options"""
@@ -333,22 +262,85 @@ class SolveOptions:
     """Upper bound on solving time"""
 
 
-def solve_options_to_json(
-    options: Optional[SolveOptions] = None,
-    relaxation: Optional[Relaxation] = None,
-):
+def solve_options_to_json(options: Optional[SolveOptions] = None) -> Json:
     if not options:
-        options = SolveOptions()
-    return strip_nones(
+        return None
+    return json_dict(**dataclasses.asdict(options or SolveOptions()))
+
+
+@dataclasses.dataclass(frozen=True)
+class WeightedSumTarget:
+    weights: dict[Label, float]
+    default_weight: float = 0
+
+
+def _weighted_sum_target_to_json(
+    target: WeightedSumTarget, outline: Outline
+) -> Json:
+    unknown = target.weights.keys() - outline.objectives.keys()
+    if unknown:
+        raise Exception(f"Unknown objective(s): {unknown}")
+    weights = [
         {
-            "absoluteGapThreshold": options.absolute_gap_threshold,
-            "relativeGapThreshold": options.relative_gap_threshold,
-            "timeoutMillis": options.timeout_millis,
-            "zeroValueThreshold": options.zero_value_threshold,
-            "infinityValueThreshold": options.infinity_value_threshold,
-            "freeBoundThreshold": options.free_bound_threshold,
-            "relaxation": _relaxation_to_json(relaxation)
-            if relaxation
-            else None,
+            "label": label,
+            "value": target.weights.get(label, target.default_weight),
         }
+        for label in outline.objectives
+    ]
+    return json_dict(weights=weights)
+
+
+@dataclasses.dataclass(frozen=True)
+class EpsilonConstraint:
+    target: WeightedSumTarget
+    absolute_tolerance: Optional[float] = None
+    relative_tolerance: Optional[float] = None
+
+    def __post_init__(self):
+        if (
+            self.absolute_tolerance is not None
+            and self.relative_tolerance is not None
+        ):
+            raise Exception("At most one tolerance can be set")
+
+
+@dataclasses.dataclass(frozen=True)
+class SolveStrategy:
+    sense: Optional[ObjectiveSense] = None
+
+    target: Optional[WeightedSumTarget] = None
+
+    epsilon_constraints: list[EpsilonConstraint] = dataclasses.field(
+        default_factory=lambda: []
+    )
+
+    @classmethod
+    def optimize(cls, label: Label) -> SolveStrategy:
+        """Optimize a single objective"""
+        target = WeightedSumTarget(weights={label: 1})
+        return SolveStrategy(target=target)
+
+
+def solve_strategy_to_json(
+    strategy: Optional[SolveStrategy], outline: Outline
+) -> Json:
+    if not strategy:
+        return None
+    target = strategy.target
+    if not target:
+        target = WeightedSumTarget(
+            weights={label: 1 for label in outline.objectives},
+        )
+    sense = strategy.sense
+    if not sense:
+        for label, objective in outline.objectives.items():
+            if sense is None:
+                sense = objective.sense
+            elif target.weights.get(label) and sense != objective.sense:
+                raise Exception("Explicit objective sense required")
+        if not sense:
+            raise Exception("Missing objective")
+    return json_dict(
+        is_maximization=sense == "MAXIMIZE",
+        target=_weighted_sum_target_to_json(target, outline),
     )

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
-import math
 import pandas as pd
 from typing import Any, Iterable, Mapping, Tuple, Union
+
+from ..common import ExtendedFloat, encode_extended_float
 
 
 KeyItem = Union[float, int, str]
@@ -34,25 +35,6 @@ SparseTensorArgument = Union[
 TensorArgument = Union[
     Value, SparseTensorArgument, Tuple[SparseTensorArgument, Value]
 ]
-
-
-ExtendedFloat = Union[float, str]
-
-
-def encode_extended_float(val: float):
-    if val == math.inf:
-        return "Infinity"
-    elif val == -math.inf:
-        return "-Infinity"
-    return val
-
-
-def decode_extended_float(val: ExtendedFloat):
-    if val == "Infinity":
-        return math.inf
-    elif val == "-Infinity":
-        return -math.inf
-    return val
 
 
 @dataclasses.dataclass
