@@ -270,11 +270,21 @@ def solve_options_to_json(options: Optional[SolveOptions] = None) -> Json:
 
 @dataclasses.dataclass(frozen=True)
 class WeightedSumTarget:
+    """Weighted sum objective target"""
+
     weights: dict[Label, float]
+    """Weight per objective"""
+
     default_weight: float = 0
+    """Weight used for objectives which don't have an explicit weight set"""
 
 
 Target = Union[Label, WeightedSumTarget]
+"""Target objective
+
+A single label is equivalent to optimizing just the objective with that label
+and ignoring all others.
+"""
 
 
 def _target_to_json(target: Target, outline: Outline) -> Json:
@@ -295,23 +305,36 @@ def _target_to_json(target: Target, outline: Outline) -> Json:
 
 @dataclasses.dataclass(frozen=True)
 class EpsilonConstraint:
+    """Constraint enforcing proximity to a objective's optimal value"""
+
     target: Target
+    """Target objective"""
+
     absolute_tolerance: Optional[float] = None
+    """Cap on the absolute value of the final solution vs optimal"""
+
     relative_tolerance: Optional[float] = None
+    """Cap on the relative value of the final solution vs optimal"""
 
 
 @dataclasses.dataclass(frozen=True)
 class SolveStrategy:
+    """Multi-objective solving strategy"""
+
     target: Target
+    """Target objective"""
 
     sense: Optional[ObjectiveSense] = None
+    """Optimization sense"""
 
     epsilon_constraints: list[EpsilonConstraint] = dataclasses.field(
         default_factory=lambda: []
     )
+    """All epsilon-constraints to apply"""
 
     @classmethod
     def equally_weighted_sum(cls, sense: Optional[ObjectiveSense] = None):
+        """Returns a strategy optimizing the sum of all objectives"""
         target = WeightedSumTarget(weights={}, default_weight=1)
         return SolveStrategy(target=target, sense=sense)
 

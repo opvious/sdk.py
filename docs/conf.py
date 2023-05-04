@@ -32,6 +32,7 @@ autodoc_type_aliases = {
     "KeyItem": "KeyItem",
     "Outcome": "Outcome",
     "Specification": "Specification",
+    "Target": "Target",
     "TensorArgument": "TensorArgument",
 }
 
