@@ -310,6 +310,11 @@ class SolveStrategy:
         default_factory=lambda: []
     )
 
+    @classmethod
+    def equally_weighted_sum(cls, sense: Optional[ObjectiveSense] = None):
+        target = WeightedSumTarget(weights={}, default_weight=1)
+        return SolveStrategy(target=target, sense=sense)
+
 
 def solve_strategy_to_json(
     strategy: Optional[SolveStrategy], outline: Outline

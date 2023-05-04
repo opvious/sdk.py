@@ -313,6 +313,7 @@ class Client:
                         )
                     elif kind == "solving":
                         progress = data["progress"]
+                        # TODO: Handle activity and epsilon constraint.
                         iter_count = progress.get("lpIterationCount")
                         gap = progress.get("relativeGap")
                         if iter_count is not None:

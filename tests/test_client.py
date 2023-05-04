@@ -91,8 +91,8 @@ class TestClient:
             transformations=[
                 opvious.RelaxConstraints(["greaterThanBound"]),
             ],
-            strategy=opvious.SolveStrategy.optimize(
-                "greaterThanBound_minimizeDeficit"
+            strategy=opvious.SolveStrategy(
+                target="greaterThanBound_minimizeDeficit"
             ),
             parameters={"bound": 3},
         )
@@ -111,7 +111,7 @@ class TestClient:
                     is_capped=True,
                 ),
             ],
-            strategy=opvious.SolveStrategy("MAXIMIZE"),
+            strategy=opvious.SolveStrategy.equally_weighted_sum("MINIMIZE"),
             parameters={
                 "bound": 3,
                 "greaterThanBound_deficitCap": 1,
