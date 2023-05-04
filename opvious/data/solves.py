@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import pandas as pd
-from typing import Any, cast, Optional
+from typing import Any, cast, Optional, Union
 
 from ..common import decode_extended_float, Json, json_dict
 from .outcomes import (
@@ -270,13 +270,26 @@ def solve_options_to_json(options: Optional[SolveOptions] = None) -> Json:
 
 @dataclasses.dataclass(frozen=True)
 class WeightedSumTarget:
+    """Weighted sum objective target"""
+
     weights: dict[Label, float]
+    """Weight per objective"""
+
     default_weight: float = 0
+    """Weight used for objectives which don't have an explicit weight set"""
 
 
-def _weighted_sum_target_to_json(
-    target: WeightedSumTarget, outline: Outline
-) -> Json:
+Target = Union[Label, WeightedSumTarget]
+"""Target objective
+
+A single label is equivalent to optimizing just the objective with that label
+and ignoring all others.
+"""
+
+
+def _target_to_json(target: Target, outline: Outline) -> Json:
+    if isinstance(target, str):
+        target = WeightedSumTarget(weights={target: 1})
     unknown = target.weights.keys() - outline.objectives.keys()
     if unknown:
         raise Exception(f"Unknown objective(s): {unknown}")
@@ -292,34 +305,38 @@ def _weighted_sum_target_to_json(
 
 @dataclasses.dataclass(frozen=True)
 class EpsilonConstraint:
-    target: WeightedSumTarget
-    absolute_tolerance: Optional[float] = None
-    relative_tolerance: Optional[float] = None
+    """Constraint enforcing proximity to a objective's optimal value"""
 
-    def __post_init__(self):
-        if (
-            self.absolute_tolerance is not None
-            and self.relative_tolerance is not None
-        ):
-            raise Exception("At most one tolerance can be set")
-        raise NotImplementedError()  # TODO
+    target: Target
+    """Target objective"""
+
+    absolute_tolerance: Optional[float] = None
+    """Cap on the absolute value of the final solution vs optimal"""
+
+    relative_tolerance: Optional[float] = None
+    """Cap on the relative value of the final solution vs optimal"""
 
 
 @dataclasses.dataclass(frozen=True)
 class SolveStrategy:
-    sense: Optional[ObjectiveSense] = None
+    """Multi-objective solving strategy"""
 
-    target: Optional[WeightedSumTarget] = None
+    target: Target
+    """Target objective"""
+
+    sense: Optional[ObjectiveSense] = None
+    """Optimization sense"""
 
     epsilon_constraints: list[EpsilonConstraint] = dataclasses.field(
         default_factory=lambda: []
     )
+    """All epsilon-constraints to apply"""
 
     @classmethod
-    def optimize(cls, label: Label) -> SolveStrategy:
-        """Optimize a single objective"""
-        target = WeightedSumTarget(weights={label: 1})
-        return SolveStrategy(target=target)
+    def equally_weighted_sum(cls, sense: Optional[ObjectiveSense] = None):
+        """Returns a strategy optimizing the sum of all objectives"""
+        target = WeightedSumTarget(weights={}, default_weight=1)
+        return SolveStrategy(target=target, sense=sense)
 
 
 def solve_strategy_to_json(
@@ -328,20 +345,29 @@ def solve_strategy_to_json(
     if not strategy:
         return None
     target = strategy.target
-    if not target:
-        target = WeightedSumTarget(
-            weights={label: 1 for label in outline.objectives},
-        )
+    if isinstance(target, str):
+        target = WeightedSumTarget(weights={target: 1})
     sense = strategy.sense
     if not sense:
         for label, objective in outline.objectives.items():
+            weight = target.weights.get(label, target.default_weight)
+            if not weight:
+                continue
             if sense is None:
                 sense = objective.sense
-            elif target.weights.get(label) and sense != objective.sense:
+            elif sense != objective.sense:
                 raise Exception("Explicit objective sense required")
         if not sense:
             raise Exception("Missing objective")
     return json_dict(
         is_maximization=sense == "MAXIMIZE",
-        target=_weighted_sum_target_to_json(target, outline),
+        target=_target_to_json(target, outline),
+        epsilon_constraints=[
+            json_dict(
+                relative_tolerance=c.relative_tolerance,
+                absolute_tolerance=c.absolute_tolerance,
+                target=_target_to_json(c.target, outline),
+            )
+            for c in strategy.epsilon_constraints
+        ],
     )

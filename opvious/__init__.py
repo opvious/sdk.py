@@ -18,6 +18,7 @@ from .data.outcomes import (
 )
 from .data.outlines import Label, Outline
 from .data.solves import (
+    EpsilonConstraint,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
@@ -83,6 +84,7 @@ __all__ = [
     "Attempt",
     "AttemptNotification",
     "DimensionArgument",
+    "EpsilonConstraint",
     "Key",
     "KeyItem",
     "Label",

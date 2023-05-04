@@ -312,15 +312,7 @@ class Client:
                             summary.row_count,
                         )
                     elif kind == "solving":
-                        progress = data["progress"]
-                        iter_count = progress.get("lpIterationCount")
-                        gap = progress.get("relativeGap")
-                        if iter_count is not None:
-                            _logger.info(
-                                "Solve in progress... [iterations=%s, gap=%s]",
-                                iter_count,
-                                "n/a" if gap is None else format_percent(gap),
-                            )
+                        _log_progress(data["progress"])
                     elif kind == "solved":
                         _logger.debug("Downloaded outputs.")
                         response_json = data
@@ -569,6 +561,26 @@ class Client:
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )
+
+
+def _log_progress(progress: Json) -> None:
+    kind = progress["kind"]
+    if kind == "activity":
+        iter_count = progress.get("lpIterationCount")
+        gap = progress.get("relativeGap")
+        if iter_count is not None:
+            _logger.info(
+                "Solve in progress... [iterations=%s, gap=%s]",
+                iter_count,
+                "n/a" if gap is None else format_percent(gap),
+            )
+    elif kind == "epsilonConstraint":
+        _logger.info(
+            "Added epsilon constraint. [objective_value=%s]",
+            progress["objectiveValue"],
+        )
+    else:
+        raise Exception(f"Unsupported progress kind: {kind}")
 
 
 class _SolveInputsBuilder:

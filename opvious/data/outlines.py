@@ -104,13 +104,14 @@ class TensorOutline:
 
 
 def _tensor_from_json(data: Json) -> TensorOutline:
-    lb = decode_extended_float(data["lowerBound"])
-    ub = decode_extended_float(data["upperBound"])
+    img = data["image"]
+    lb = decode_extended_float(img["lowerBound"])
+    ub = decode_extended_float(img["upperBound"])
     return TensorOutline(
         label=data["label"],
         lower_bound=lb if is_value(lb) else None,
         upper_bound=ub if is_value(ub) else None,
-        is_integral=data["isIntegral"],
+        is_integral=img["isIntegral"],
         bindings=[_source_binding_from_json(b) for b in data["bindings"]],
     )
 
