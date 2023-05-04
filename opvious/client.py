@@ -577,7 +577,7 @@ def _log_progress(progress: Json) -> None:
     elif kind == "epsilonConstraint":
         _logger.info(
             "Added epsilon constraint. [objective_value=%s]",
-            progress["objectiveValue"]
+            progress["objectiveValue"],
         )
     else:
         raise Exception(f"Unsupported progress kind: {kind}")
