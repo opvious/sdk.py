@@ -330,3 +330,32 @@ class TestClient:
             parameters={"input": [(0, 0, 3)]},
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_weighted_sum_objective(self):
+        response = await client.run_solve(
+            specification=opvious.FormulationSpecification("group-expenses"),
+            parameters={
+                "paid": {
+                    ("t1", "ann"): 10,
+                    ("t2", "ann"): 10,
+                    ("t2", "bob"): 10,
+                },
+                "share": {
+                    ("t1", "ann"): 1,
+                    ("t1", "bob"): 1,
+                    ("t2", "bob"): 1,
+                },
+                "floor": 0,
+            },
+            strategy=opvious.SolveStrategy(
+                target="minimizeIndividualTransfers",
+                epsilon_constraints=[
+                    opvious.EpsilonConstraint(
+                        target="minimizeTotalTransferred",
+                        relative_tolerance=0.1,
+                    ),
+                ],
+            ),
+        )
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)

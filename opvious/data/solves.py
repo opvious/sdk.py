@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import pandas as pd
-from typing import Any, cast, Optional
+from typing import Any, cast, Optional, Union
 
 from ..common import decode_extended_float, Json, json_dict
 from .outcomes import (
@@ -274,9 +274,12 @@ class WeightedSumTarget:
     default_weight: float = 0
 
 
-def _weighted_sum_target_to_json(
-    target: WeightedSumTarget, outline: Outline
-) -> Json:
+Target = Union[Label, WeightedSumTarget]
+
+
+def _target_to_json(target: Target, outline: Outline) -> Json:
+    if isinstance(target, str):
+        target = WeightedSumTarget(weights={target: 1})
     unknown = target.weights.keys() - outline.objectives.keys()
     if unknown:
         raise Exception(f"Unknown objective(s): {unknown}")
@@ -292,34 +295,20 @@ def _weighted_sum_target_to_json(
 
 @dataclasses.dataclass(frozen=True)
 class EpsilonConstraint:
-    target: WeightedSumTarget
+    target: Target
     absolute_tolerance: Optional[float] = None
     relative_tolerance: Optional[float] = None
-
-    def __post_init__(self):
-        if (
-            self.absolute_tolerance is not None
-            and self.relative_tolerance is not None
-        ):
-            raise Exception("At most one tolerance can be set")
-        raise NotImplementedError()  # TODO
 
 
 @dataclasses.dataclass(frozen=True)
 class SolveStrategy:
-    sense: Optional[ObjectiveSense] = None
+    target: Target
 
-    target: Optional[WeightedSumTarget] = None
+    sense: Optional[ObjectiveSense] = None
 
     epsilon_constraints: list[EpsilonConstraint] = dataclasses.field(
         default_factory=lambda: []
     )
-
-    @classmethod
-    def optimize(cls, label: Label) -> SolveStrategy:
-        """Optimize a single objective"""
-        target = WeightedSumTarget(weights={label: 1})
-        return SolveStrategy(target=target)
 
 
 def solve_strategy_to_json(
@@ -328,20 +317,29 @@ def solve_strategy_to_json(
     if not strategy:
         return None
     target = strategy.target
-    if not target:
-        target = WeightedSumTarget(
-            weights={label: 1 for label in outline.objectives},
-        )
+    if isinstance(target, str):
+        target = WeightedSumTarget(weights={target: 1})
     sense = strategy.sense
     if not sense:
         for label, objective in outline.objectives.items():
+            weight = target.weights.get(label, target.default_weight)
+            if not weight:
+                continue
             if sense is None:
                 sense = objective.sense
-            elif target.weights.get(label) and sense != objective.sense:
+            elif sense != objective.sense:
                 raise Exception("Explicit objective sense required")
         if not sense:
             raise Exception("Missing objective")
     return json_dict(
         is_maximization=sense == "MAXIMIZE",
-        target=_weighted_sum_target_to_json(target, outline),
+        target=_target_to_json(target, outline),
+        epsilon_constraints=[
+            json_dict(
+                relative_tolerance=c.relative_tolerance,
+                absolute_tolerance=c.absolute_tolerance,
+                target=_target_to_json(c.target, outline),
+            )
+            for c in strategy.epsilon_constraints
+        ],
     )
