@@ -18,8 +18,8 @@ sources, listed below.
    :backlinks: none
 
 
-Available sources
-*****************
+Available types
+***************
 
 .. autoclass:: opvious.FormulationSpecification
    :noindex:
@@ -40,3 +40,6 @@ Available sources
 
 Examples
 ********
+
++ `Example repository <https://github.com/opvious/examples/tree/main/sources>`_
++ `Platform guides <https://docs.opvious.io/guides>`_

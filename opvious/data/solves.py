@@ -280,7 +280,7 @@ associated values.
 
 def _target_to_json(target: Target, outline: Outline) -> Json:
     if isinstance(target, str):
-        target = {target: 1}
+        target = collections.defaultdict(lambda: 0, {target: 1})
     unknown = target.keys() - outline.objectives.keys()
     if unknown:
         raise Exception(f"Unknown objective(s): {unknown}")
@@ -335,7 +335,7 @@ def solve_strategy_to_json(
         return None
     target = strategy.target
     if isinstance(target, str):
-        target = collections.defaultdict(lambda: 0, target=1)
+        target = collections.defaultdict(lambda: 0, {target: 1})
     sense = strategy.sense
     if not sense:
         for label, objective in outline.objectives.items():
