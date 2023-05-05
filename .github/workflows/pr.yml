@@ -27,6 +27,8 @@ jobs:
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: '1.2.2'
+      - name: Check version
+        run: ./scripts/version.sh check
       - name: Install dependencies
         run: poetry install --all-extras
       - name: Lint

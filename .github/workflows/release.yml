@@ -25,6 +25,12 @@ jobs:
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: '1.2.2'
+      - name: Extract version
+        id: extract-version
+        run: |
+          version="$(./scripts/version.sh show -t)"
+          echo "::set-output name=version::$version"
+          poetry version "$version"
       - name: Install dependencies
         run: poetry install --all-extras
       - name: Lint
@@ -41,3 +47,11 @@ jobs:
         run: poetry publish --build
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+      - name: Create tag
+        uses: pkgdeps/git-tag-action@v2
+        with:
+          git_commit_sha: ${{ github.sha }}
+          git_tag_prefix: v
+          github_repo: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ steps.extract-version.outputs.version }}
