@@ -32,7 +32,7 @@ class Transformation:
     """Base transformation class
 
     You should not need to interact with this class directly, instead use one
-    of the available transformation subclasses.
+    of the available :ref:`transformation subclasses <Base transformations>`.
     """
 
     async def register(self, context: TransformationContext) -> None:

@@ -64,11 +64,9 @@ class Tensor:
 
         The accepted arguments depend on the tensor's domain rank (the length
         of its keys) and image (does it hold arbitrary numbers or only 0s/1s).
-
         If the tensor's rank is 0, i.e. is a scalar, the only accepted argument
-        type is a number matching the image.
-
-        Otherwise the following inputs are accepted:
+        type is a number matching the image. Otherwise the following inputs are
+        accepted:
 
         + Mapping (e.g. Python dictionary) with tuple key if rank is greater
           than 1
