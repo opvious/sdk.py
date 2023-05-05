@@ -26,9 +26,9 @@ It's also possible to create a client directly from an API token via
 :meth:`.Client.from_token`.
 
 .. note::
-  By default all clients connect to the managed Opvious API hosted at 
-  `api.beta.opvious.io`. Reach out to us at support@opvious.io if you are 
-  interested in a different hosting solution.
+  By default all clients connect to the Opvious production cloud. Reach out to 
+  us at support@opvious.io if you are interested in a different hosting 
+  solution.
 
 
 Solving optimization models
