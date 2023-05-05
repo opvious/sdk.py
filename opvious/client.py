@@ -215,17 +215,50 @@ class Client:
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         transformations: Optional[list[Transformation]] = None,
-        # TODO: strategy
+        strategy: Optional[SolveStrategy] = None,
         options: Optional[SolveOptions] = None,
     ) -> str:
-        """Inspects an optimization problem's representation in LP format
+        """Returns the model's representation in `LP format`_
+
+        The arguments below are identical to :meth:`.Client.run_solve`, making
+        it easy to swap one call for another when debugging.
 
         Args:
-            specification: Model sources
-            parameters: Input data
-            dimensions: Input keys. If omitted, these will be automatically
-                inferred from the parameters.
+            specification: :ref:`Model specification <Specifications>`
+            parameters: Input data, keyed by parameter label. Values may be any
+                value accepted by :meth:`.Tensor.from_argument` and must match
+                the corresponding parameter's definition.
+            dimensions: Dimension items, keyed by dimension label. If omitted,
+                these will be automatically inferred from the parameters.
+            transformations: :ref:`Model transformations`
+            strategy: :ref:`Multi-objective strategy <Multi-objective
+                strategies>`
             options: Solve options
+
+        The LP formatted output will be fully annotated with matching keys and
+        labels:
+
+        .. code::
+
+            minimize
+              +1 inventory$1 \ [day=0]
+              +1 inventory$2 \ [day=1]
+              +1 inventory$3 \ [day=2]
+              \ ...
+            subject to
+             inventoryPropagation$1: \ [day=1]
+              +1 inventory$1 \ [day=1]
+              -1 inventory$2 \ [day=0]
+              -1 production$1 \ [day=1]
+              = -29
+             inventoryPropagation$2: \ [day=2]
+              -1 inventory$1 \ [day=1]
+              +1 inventory$3 \ [day=2]
+              -1 production$2 \ [day=2]
+              = -36
+             \ ...
+
+        .. _LP format: https://web.mit.edu/lpsolve/doc/CPLEX-format.htm
         """
         candidate, _outline = await self._prepare_solve(
             specification=specification,
@@ -264,14 +297,15 @@ class Client:
         Inputs will be validated before being sent to the API for solving.
 
         Args:
-            specification: Model specification
+            specification: :ref:`Model specification <Specifications>`
             parameters: Input data, keyed by parameter label. Values may be any
                 value accepted by :meth:`.Tensor.from_argument` and must match
                 the corresponding parameter's definition.
             dimensions: Dimension items, keyed by dimension label. If omitted,
                 these will be automatically inferred from the parameters.
-            transformations: Model transformations
-            strategy: Multi-objective strategy
+            transformations: :ref:`Model transformations`
+            strategy: :ref:`Multi-objective strategy <Multi-objective
+                strategies>`
             options: Solve options
             assert_feasible: Throw if the final outcome was not feasible
             prefer_streaming: Show real time progress notifications when
@@ -414,17 +448,16 @@ class Client:
         as enough capacity is available.
 
         Args:
-            specification: Model specification. Only
-                :class:`.FormulationSpecification` are supported. As a
-                convenience, it's also possible to specify a formulation's name
-                directly.
+            specification: Model :class:`.FormulationSpecification` or
+                formulation name
             parameters: Input data, keyed by parameter label. Values may be any
                 value accepted by :meth:`.Tensor.from_argument` and must match
                 the corresponding parameter's definition.
             dimensions: Dimension items, keyed by dimension label. If omitted,
                 these will be automatically inferred from the parameters.
-            transformations: Model transformations
-            strategy: Multi-objective strategy
+            transformations: :ref:`Model transformations`
+            strategy: :ref:`Multi-objective strategy <Multi-objective
+                strategies>`
             options: Solve options
 
         The returned :class:`Attempt` instance can be used to:

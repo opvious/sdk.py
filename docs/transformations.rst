@@ -51,6 +51,9 @@ Densifying variables
 Omitting constraints and objectives
 -----------------------------------
 
+.. warning::
+  Transformations in this subsection are still WIP and will be available soon.
+
 .. autoclass:: opvious.OmitConstraints
    :noindex:
    :members:
@@ -64,6 +67,9 @@ Omitting constraints and objectives
 
 Enforcing a minimum objective level
 -----------------------------------
+
+.. warning::
+  Transformations in this subsection are still WIP and will be available soon.
 
 .. autoclass:: opvious.ConstrainObjective
    :noindex:

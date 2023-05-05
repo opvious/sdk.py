@@ -47,4 +47,7 @@ if response.outputs: # Present if the problem was feasible
   print(response.outputs.variable("allocation"))
 ```
 
-Refer to https://opvious.readthedocs.io for the full documentation.
+Refer to https://opvious.readthedocs.io for the full documentation or take a
+look at [these notebooks][notebooks] to see the SDK in action.
+
+[notebooks]: https://github.com/opvious/examples/tree/main/notebooks
