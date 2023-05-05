@@ -324,8 +324,7 @@ class SolveStrategy:
     def equally_weighted_sum(cls, sense: Optional[ObjectiveSense] = None):
         """Returns a strategy optimizing the sum of all objectives"""
         return SolveStrategy(
-            target=collections.defaultdict(lambda: 1),
-            sense=sense
+            target=collections.defaultdict(lambda: 1), sense=sense
         )
 
 

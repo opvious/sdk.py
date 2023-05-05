@@ -1,9 +1,10 @@
 .. default-role:: code
 
-Opvious Python SDK
-==================
+Opvious SDK
+===========
 
-An optimization SDK for solving linear, mixed-integer, and quadratic models
+A Python SDK for solving linear, mixed-integer, and quadratic optimization 
+models
 
 
 Highlights
@@ -49,6 +50,7 @@ Contents
    :maxdepth: 1
 
    client
+   specifications
    transformations
    strategies
    api-reference

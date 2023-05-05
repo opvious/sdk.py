@@ -37,42 +37,14 @@ below:
 
 Both require an existing model :ref:`specification <Specifications>`.
 
-Specifications
---------------
-
-Opvious enforces a clear separation between a model's specification (variable 
-types, constraint definitions, etc.) and data. Specifications are created 
-directly from their mathematical representation in LaTeX, separately from this 
-SDK.
-
-.. note::
-  Refer to the `platform documentation <https://docs.opvious.io>`_ for 
-  information on how to write a specification.
-
-This SDK instead provides utilities for reading specifications from various 
-sources, listed below.
-
-.. autoclass:: opvious.FormulationSpecification
-   :noindex:
-   :members:
-
-.. autoclass:: opvious.LocalSpecification
-   :noindex:
-   :members:
-
-.. autoclass:: opvious.RemoteSpecification
-   :noindex:
-   :members:
-
-.. autoclass:: opvious.InlineSpecification
-   :noindex:
-   :members:
-
 
 Solves
 ------
 
 Solves are run with the client's :meth:`.Client.run_solve` method.
+
+.. automethod:: opvious.Client.run_solve
+   :noindex:
 
 .. note::
   In most environments, solves will stream progress notifications back to the 
@@ -90,13 +62,14 @@ Solves are run with the client's :meth:`.Client.run_solve` method.
 Attempts
 --------
 
-
 Attempts are started with the client's :meth:`.Client.start_attempt` method.
 
-TODO
+.. automethod:: opvious.Client.start_attempt
+   :noindex:
+
 
 Inspecting models
 *****************
 
-
-TODO
+.. automethod:: opvious.Client.inspect_solve_instructions
+   :noindex:
