@@ -19,28 +19,20 @@ class AnonymousSpecification:
 
 
 @dataclasses.dataclass(frozen=True)
-class InlineSpecification(AnonymousSpecification):
-    """
-    A model specification from inline sources. See also `LocalSpecification`
-    for reading specifications from locally stored files.
-    """
-
-    sources: list[str]
-
-    async def fetch_sources(self, _executor: Executor) -> list[str]:
-        return self.sources
-
-
-@dataclasses.dataclass(frozen=True)
 class LocalSpecification(AnonymousSpecification):
     """A model specification from local files
 
-    See also `InlineSpecification` for creating specifications directly from
-    strings.
+    This is most useful during development, for example when running tests. For
+    production use-cases prefer using a :class:`.FormulationSpecification` as
+    it has built-in version control and supports starting attempts.
     """
 
     paths: list[str]
-    """The list of of paths which define the specification"""
+    """The list of of paths which define the specification
+
+    The specification may be split into multiple files. These may appear here
+    in any order, the definitions will be sorted automatically.
+    """
 
     @classmethod
     def globs(
@@ -72,6 +64,22 @@ class LocalSpecification(AnonymousSpecification):
         return sources
 
 
+@dataclasses.dataclass(frozen=True)
+class InlineSpecification(AnonymousSpecification):
+    """A model specification from inline sources
+
+    This can be useful for writing unit-tests or defining toy models. In
+    general prefer :class:`.LocalSpecification` as it allows validating the
+    specification via the `CLI <https://www.npmjs.com/package/opvious-cli>`_.
+    """
+
+    sources: list[str]
+    """The list of sources"""
+
+    async def fetch_sources(self, _executor: Executor) -> list[str]:
+        return self.sources
+
+
 _EXAMPLE_URL_PREFIX = (
     "https://raw.githubusercontent.com/opvious/examples/main/sources"  # noqa
 )
@@ -79,7 +87,10 @@ _EXAMPLE_URL_PREFIX = (
 
 @dataclasses.dataclass(frozen=True)
 class RemoteSpecification(AnonymousSpecification):
-    """A model specification from a remote URL"""
+    """A model specification from a remote URL
+
+    This is typically useful for examples.
+    """
 
     url: str
     """The specification's http(s) URL"""
@@ -104,11 +115,17 @@ class RemoteSpecification(AnonymousSpecification):
 
 @dataclasses.dataclass(frozen=True)
 class FormulationSpecification:
-    """A specification from a stored formulation
+    """A specification from an `Optimization Hub`_ formulation
 
     This type of specification allows starting attempts and is recommended for
     production use as it provides history and reproducibility when combined
     with tag names.
+
+    `This GitHub action
+    <https://github.com/opvious/register-specification-action>`_ provides a
+    convenient way to automatically create formulations from CI workflows.
+
+    .. _Optimization Hub: https://hub.beta.opvious.io
     """
 
     formulation_name: str
