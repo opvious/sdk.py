@@ -1,31 +1,13 @@
 # Opvious Python SDK  [![CI](https://github.com/opvious/sdk.py/actions/workflows/ci.yml/badge.svg)](https://github.com/opvious/sdk.py/actions/workflows/ci.yml) [![Pypi badge](https://badge.fury.io/py/opvious.svg)](https://pypi.python.org/pypi/opvious/)
 
-This package provides a lightweight SDK for solving optimization models with the
-[Opvious API][api]. Its main features are:
-
-+ Seamless data import/export via native support for [`pandas`][pandas]
-+ Powerful built-in debugging capabilities: automatic infeasibility relaxation,
-  variable pinning, and more
-+ Non-blocking APIs for performant parallel calls
-
-
-## Quickstart
-
-First, install this package and have an API access token handy (these can be
-generated [here][token]).
-
-```sh
-pip install opvious[aio] # aio is recommended for improved performance
-```
-
-With these steps out of the way, you are ready to optimize!
+An optimization SDK for solving linear, mixed-integer, and quadratic models
 
 ```python
 import opvious
 
-client = opvious.Client.from_token(TOKEN)
+client = opvious.Client.from_environment()
 
-# Solve a simple portfolio selection optimization model
+# Solve a portfolio selection optimization model
 response = await client.run_solve(
     specification=opvious.InlineSpecification([
       r"""
@@ -65,18 +47,7 @@ if response.outputs: # Present if the problem was feasible
   print(response.outputs.variable("allocation"))
 ```
 
-The full API reference is available here: https://opvious.readthedocs.io
+Refer to https://opvious.readthedocs.io for the full documentation or take a
+look at [these notebooks][notebooks] to see the SDK in action.
 
-
-## Next steps
-
-This SDK is focused on solving optimization models. For convenient access to the
-rest of Opvious' functionality, consider using the [TypeScript SDK and
-CLI][cli].
-
-
-[api]: https://www.opvious.io
-[cli]: https://www.opvious.io/sdk.ts
-[JupyterLite]: https://jupyterlite.readthedocs.io/
-[token]: https://hub.beta.opvious.io/authorizations
-[pandas]: https://pandas.pydata.org
+[notebooks]: https://github.com/opvious/examples/tree/main/notebooks

@@ -10,7 +10,11 @@ from .tensors import Value
 
 @dataclasses.dataclass(frozen=True)
 class Attempt:
-    """Queueable optimization attempt"""
+    """Queueable optimization attempt
+
+    New attempts are started via :meth:`.Client.start_attempt`, existing
+    attempts can be retrieved from their UUID via :meth:`.Client.load_attempt`.
+    """
 
     uuid: str
     """The attempt's unique identifier"""

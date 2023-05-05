@@ -1,5 +1,3 @@
-"""Opvious Python SDK"""
-
 import logging
 
 from .client import Client, ClientSetting
@@ -25,6 +23,7 @@ from .data.solves import (
     SolveResponse,
     SolveSummary,
     SolveStrategy,
+    Target,
 )
 from .data.tensors import (
     DimensionArgument,
@@ -59,7 +58,6 @@ from .transformations import (
     RelaxConstraints,
     RelaxationPenalty,
     Transformation,
-    TransformationContext,
 )
 
 
@@ -97,6 +95,7 @@ __all__ = [
     "SolveStrategy",
     "SolveSummary",
     "SparseTensorArgument",
+    "Target",
     "Tensor",
     "TensorArgument",
     "Value",
@@ -118,7 +117,6 @@ __all__ = [
     "RelaxConstraints",
     "RelaxationPenalty",
     "Transformation",
-    "TransformationContext",
     # Miscellaneous
     "__version__",
 ]

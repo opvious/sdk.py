@@ -24,8 +24,8 @@ DimensionArgument = Iterable[KeyItem]
 
 
 SparseTensorArgument = Union[
-    pd.Series,
     Mapping[Key, Value],
+    pd.Series,
     pd.DataFrame,  # For indicator parameters
     Iterable[Key],  # For indicator parameters
 ]
@@ -51,7 +51,38 @@ class Tensor:
     def from_argument(
         cls, arg: TensorArgument, rank: int, is_indicator: bool = False
     ):
-        """Creates a tensor from its possible argument values"""
+        """Creates a tensor from a variety of argument values
+
+        In most cases you will not need to call this method directly: it is
+        called automatically during parameter validation.
+
+        Args:
+            arg: Raw argument to be wrapped into a tensor. This argument must
+                match the tensor's shape, see below for details.
+            rank: The expected rank of the tensor
+            is_indicator: Whether the tensor holds indicator values
+
+        The accepted arguments depend on the tensor's domain rank (the length
+        of its keys) and image (does it hold arbitrary numbers or only 0s/1s).
+        If the tensor's rank is 0, i.e. is a scalar, the only accepted argument
+        type is a number matching the image. Otherwise the following inputs are
+        accepted:
+
+        + Mapping (e.g. Python dictionary) with tuple key if rank is greater
+          than 1
+        + `pandas` series with key index
+
+        Additionally, if the tensor holds indicator values, two more
+        conveniences are allowed, each representing the set of keys which have
+        value 1:
+
+        + Iterable of keys
+        + `pandas` dataframe
+
+        Finally, all non-scalar tensor arguments can be wrapped into a tuple
+        `(arg, default)` to provide a `default` value to use when no matching
+        key exists.
+        """
         if isinstance(arg, tuple):
             data, default_value = arg
         elif rank > 0 and is_value(arg) and not is_indicator:

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
 import pandas as pd
-from typing import Any, cast, Optional, Union
+from typing import Any, cast, Mapping, Optional, Union
 
 from ..common import decode_extended_float, Json, json_dict
 from .outcomes import (
@@ -268,36 +269,23 @@ def solve_options_to_json(options: Optional[SolveOptions] = None) -> Json:
     return json_dict(**dataclasses.asdict(options or SolveOptions()))
 
 
-@dataclasses.dataclass(frozen=True)
-class WeightedSumTarget:
-    """Weighted sum objective target"""
-
-    weights: dict[Label, float]
-    """Weight per objective"""
-
-    default_weight: float = 0
-    """Weight used for objectives which don't have an explicit weight set"""
-
-
-Target = Union[Label, WeightedSumTarget]
+Target = Union[Label, Mapping[Label, float]]
 """Target objective
 
 A single label is equivalent to optimizing just the objective with that label
-and ignoring all others.
+and ignoring all others. If using a mapping, all objective keys must have an
+associated values.
 """
 
 
 def _target_to_json(target: Target, outline: Outline) -> Json:
     if isinstance(target, str):
-        target = WeightedSumTarget(weights={target: 1})
-    unknown = target.weights.keys() - outline.objectives.keys()
+        target = collections.defaultdict(lambda: 0, {target: 1})
+    unknown = target.keys() - outline.objectives.keys()
     if unknown:
         raise Exception(f"Unknown objective(s): {unknown}")
     weights = [
-        {
-            "label": label,
-            "value": target.weights.get(label, target.default_weight),
-        }
+        {"label": label, "value": target[label]}
         for label in outline.objectives
     ]
     return json_dict(weights=weights)
@@ -335,8 +323,9 @@ class SolveStrategy:
     @classmethod
     def equally_weighted_sum(cls, sense: Optional[ObjectiveSense] = None):
         """Returns a strategy optimizing the sum of all objectives"""
-        target = WeightedSumTarget(weights={}, default_weight=1)
-        return SolveStrategy(target=target, sense=sense)
+        return SolveStrategy(
+            target=collections.defaultdict(lambda: 1), sense=sense
+        )
 
 
 def solve_strategy_to_json(
@@ -346,11 +335,11 @@ def solve_strategy_to_json(
         return None
     target = strategy.target
     if isinstance(target, str):
-        target = WeightedSumTarget(weights={target: 1})
+        target = collections.defaultdict(lambda: 0, {target: 1})
     sense = strategy.sense
     if not sense:
         for label, objective in outline.objectives.items():
-            weight = target.weights.get(label, target.default_weight)
+            weight = target[label]
             if not weight:
                 continue
             if sense is None:

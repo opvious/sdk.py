@@ -215,17 +215,50 @@ class Client:
         parameters: Optional[Mapping[Label, TensorArgument]] = None,
         dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
         transformations: Optional[list[Transformation]] = None,
-        # TODO: strategy
+        strategy: Optional[SolveStrategy] = None,
         options: Optional[SolveOptions] = None,
     ) -> str:
-        """Inspects an optimization problem's representation in LP format
+        """Returns the model's representation in `LP format`_
+
+        The arguments below are identical to :meth:`.Client.run_solve`, making
+        it easy to swap one call for another when debugging.
 
         Args:
-            specification: Model sources
-            parameters: Input data
-            dimensions: Input keys. If omitted, these will be automatically
-                inferred from the parameters.
+            specification: :ref:`Model specification <Specifications>`
+            parameters: Input data, keyed by parameter label. Values may be any
+                value accepted by :meth:`.Tensor.from_argument` and must match
+                the corresponding parameter's definition.
+            dimensions: Dimension items, keyed by dimension label. If omitted,
+                these will be automatically inferred from the parameters.
+            transformations: :ref:`Model transformations`
+            strategy: :ref:`Multi-objective strategy <Multi-objective
+                strategies>`
             options: Solve options
+
+        The LP formatted output will be fully annotated with matching keys and
+        labels:
+
+        .. code::
+
+            minimize
+              +1 inventory$1 \\ [day=0]
+              +1 inventory$2 \\ [day=1]
+              +1 inventory$3 \\ [day=2]
+              \\ ...
+            subject to
+             inventoryPropagation$1: \\ [day=1]
+              +1 inventory$1 \\ [day=1]
+              -1 inventory$2 \\ [day=0]
+              -1 production$1 \\ [day=1]
+              = -29
+             inventoryPropagation$2: \\ [day=2]
+              -1 inventory$1 \\ [day=1]
+              +1 inventory$3 \\ [day=2]
+              -1 production$2 \\ [day=2]
+              = -36
+             \\ ...
+
+        .. _LP format: https://web.mit.edu/lpsolve/doc/CPLEX-format.htm
         """
         candidate, _outline = await self._prepare_solve(
             specification=specification,
@@ -259,20 +292,59 @@ class Client:
         assert_feasible=False,
         prefer_streaming=True,
     ) -> SolveResponse:
-        """Solves an optimization problem
+        """Solves an optimization problem remotely
 
-        See also `start_attempt` for an alternative for long-running solves.
+        Inputs will be validated before being sent to the API for solving.
 
         Args:
-            specification: Model sources
-            parameters: Input data
-            dimensions: Input keys. If omitted, these will be automatically
-                inferred from the parameters.
-            transformations: Model transformations
+            specification: :ref:`Model specification <Specifications>`
+            parameters: Input data, keyed by parameter label. Values may be any
+                value accepted by :meth:`.Tensor.from_argument` and must match
+                the corresponding parameter's definition.
+            dimensions: Dimension items, keyed by dimension label. If omitted,
+                these will be automatically inferred from the parameters.
+            transformations: :ref:`Model transformations`
+            strategy: :ref:`Multi-objective strategy <Multi-objective
+                strategies>`
             options: Solve options
             assert_feasible: Throw if the final outcome was not feasible
             prefer_streaming: Show real time progress notifications when
                 possible
+
+        The returned response exposes both metadata (status, objective value,
+        etc.) and solution data (if the solve was feasible):
+
+        .. code:: python
+
+            response = await client.run_solve(
+                specification=opvious.RemoteSpecification.example(
+                    "porfolio-selection"
+                ),
+                parameters={
+                    "covariance": {
+                        ("AAPL", "AAPL"): 0.2,
+                        ("AAPL", "MSFT"): 0.1,
+                        ("MSFT", "AAPL"): 0.1,
+                        ("MSFT", "MSFT"): 0.25,
+                    },
+                    "expectedReturn": {
+                        "AAPL": 0.15,
+                        "MSFT": 0.2,
+                    },
+                    "desiredReturn": 0.1,
+                },
+                assert_feasible=True,  # Throw if not feasible
+            )
+
+            # Metadata is available on `outcome`
+            print(f"Objective value: {response.outcome.objective_value}")
+
+            # Solution data is available via `outputs`
+            optimal_allocation = response.outputs.variable("allocation")
+
+
+        See also :meth:`.Client.start_attempt` for an alternative for
+        long-running solves.
         """
         candidate, outline = await self._prepare_solve(
             specification=specification,
@@ -369,15 +441,57 @@ class Client:
         strategy: Optional[SolveStrategy] = None,
         options: Optional[SolveOptions] = None,
     ) -> Attempt:
-        """Starts a new asynchronous solve attempt
+        """Starts a new asynchronous remote solve attempt
+
+        Inputs will be validated locally before the request is sent to the API.
+        From then on, he attempt will be queued and begin solving start as soon
+        as enough capacity is available.
 
         Args:
-            specification: Model sources
-            parameters: Input data
-            dimensions: Input keys. If omitted, these will be automatically
-                inferred from the parameters.
-            transformations: Model transformations
+            specification: Model :class:`.FormulationSpecification` or
+                formulation name
+            parameters: Input data, keyed by parameter label. Values may be any
+                value accepted by :meth:`.Tensor.from_argument` and must match
+                the corresponding parameter's definition.
+            dimensions: Dimension items, keyed by dimension label. If omitted,
+                these will be automatically inferred from the parameters.
+            transformations: :ref:`Model transformations`
+            strategy: :ref:`Multi-objective strategy <Multi-objective
+                strategies>`
             options: Solve options
+
+        The returned :class:`Attempt` instance can be used to:
+
+        + track progress via :meth:`Client.poll_attempt`,
+        + retrieve inputs via :meth:`Client.fetch_attempt_inputs`,
+        + retrieve outputs via :meth:`Client.fetch_attempt_outputs` (after
+          successful completion).
+
+        As a convenience, :meth:`Client.wait_for_outcome` allows polling an
+        attempt until until it completes, backing off exponentially between
+        each poll:
+
+        .. code-block:: python
+
+            # Queue a new Sudoku solve attempt
+            attempt = await client.start_attempt(
+                specification="sudoku",
+                parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
+            )
+
+            # Wait for the attempt to complete
+            await client.wait_for_outcome(
+                attempt,
+                assert_feasible=True  # Throw if not feasible
+            )
+
+            # Fetch the solution's data
+            output_data = await client.fetch_attempt_outputs(attempt)
+
+            # Get a parsed variable as a dataframe
+            decisions = output_data.variable("decisions")
+
+        See also :meth:`.Client.run_solve` for an alternative for short solves.
         """
         if isinstance(specification, str):
             specification = FormulationSpecification(
