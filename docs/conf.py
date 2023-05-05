@@ -12,14 +12,15 @@ sys.path.insert(0, os.path.abspath(".."))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "Opvious Python SDK"
-copyright = "2023, Opvious Engineering"
-author = "Opvious Engineering"
+copyright = "2023, Opvious"
+author = "Opvious"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx_rtd_theme",
 ]
