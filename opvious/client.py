@@ -241,22 +241,22 @@ class Client:
         .. code::
 
             minimize
-              +1 inventory$1 \ [day=0]
-              +1 inventory$2 \ [day=1]
-              +1 inventory$3 \ [day=2]
-              \ ...
+              +1 inventory$1 \\ [day=0]
+              +1 inventory$2 \\ [day=1]
+              +1 inventory$3 \\ [day=2]
+              \\ ...
             subject to
-             inventoryPropagation$1: \ [day=1]
-              +1 inventory$1 \ [day=1]
-              -1 inventory$2 \ [day=0]
-              -1 production$1 \ [day=1]
+             inventoryPropagation$1: \\ [day=1]
+              +1 inventory$1 \\ [day=1]
+              -1 inventory$2 \\ [day=0]
+              -1 production$1 \\ [day=1]
               = -29
-             inventoryPropagation$2: \ [day=2]
-              -1 inventory$1 \ [day=1]
-              +1 inventory$3 \ [day=2]
-              -1 production$2 \ [day=2]
+             inventoryPropagation$2: \\ [day=2]
+              -1 inventory$1 \\ [day=1]
+              +1 inventory$3 \\ [day=2]
+              -1 production$2 \\ [day=2]
               = -36
-             \ ...
+             \\ ...
 
         .. _LP format: https://web.mit.edu/lpsolve/doc/CPLEX-format.htm
         """
