@@ -44,10 +44,6 @@ jobs:
         env:
           OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
           OPVIOUS_DOMAIN: alpha.opvious.io
-      - name: Publish
-        run: poetry publish --build
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.1.0
         id: check-version
@@ -55,6 +51,11 @@ jobs:
           tag: v${{ steps.extract-version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish
+        if: steps.check-version.outputs.exists == 'false'
+        run: poetry publish --build
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
       - name: Create tag
         if: steps.check-version.outputs.exists == 'false'
         uses: pkgdeps/git-tag-action@v2

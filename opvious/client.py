@@ -589,7 +589,7 @@ class Client:
     @backoff.on_predicate(
         backoff.fibo,
         lambda ret: ret is None,
-        max_value=45,
+        max_value=90,
         logger=None,
     )
     async def _track_attempt(self, attempt: Attempt) -> Optional[Outcome]:
@@ -622,6 +622,7 @@ class Client:
 
         Args:
             attempt: The target attempt
+            assert_feasible: Throw if the final outcome was not feasible
         """
         outcome = await self._track_attempt(attempt)
         if not outcome:
