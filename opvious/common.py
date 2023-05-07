@@ -13,6 +13,9 @@ except metadata.PackageNotFoundError:
 del metadata
 
 
+Label = str
+
+
 def format_percent(val):
     if val == "Infinity":
         return "inf"

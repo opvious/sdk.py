@@ -1,20 +1,46 @@
+from .ast import (
+    Expression,
+    Predicate,
+    Space,
+    cross,
+    size,
+    total,
+)
 from .definitions import (
+    ConstraintDefinition,
     Dimension,
+    DimensionDefinition,
     Model,
     Objective,
+    ObjectiveDefinition,
     Parameter,
+    ParameterDefinition,
     Variable,
+    VariableDefinition,
     constrain,
-    extend,
+    define,
     maximize,
     minimize,
 )
-from .scope import cross, project
+from .image import (
+    Image,
+    indicator,
+    integral,
+    natural,
+    non_negative_real,
+    non_positive_real,
+    unit,
+)
 
 __all__ = [
     "Model",
-    "extend",
+    "define",
     # Definitions
+    "ConstraintDefinition",
+    "DimensionDefinition",
+    "ObjectiveDefinition",
+    "ParameterDefinition",
+    "VariableDefinition",
     "Dimension",
     "Objective",
     "Parameter",
@@ -22,6 +48,21 @@ __all__ = [
     "constrain",
     "maximize",
     "minimize",
+    # Expressions and spaces
+    "Expression",
+    "Predicate",
+    "Space",
+    "cross",
+    "size",
+    "total",
+    # Images
+    "Image",
+    "indicator",
+    "integral",
+    "natural",
+    "non_negative_real",
+    "non_positive_real",
+    "unit",
     # Scopes
     "cross",
     "project",
