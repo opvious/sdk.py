@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Iterable, Optional, Tuple, TypeVar, Union
+import itertools
+from typing import Iterable, Optional, Sequence, Tuple, TypeVar, Union
 
-from .identifier import HasIdentifier, Identifier
+from .identifier import (
+    HasIdentifier,
+    Identifier,
+    LocalIdentifier,
+    local_identifiers,
+)
 from .lazy import Lazy, force, declare
 
 
@@ -46,27 +52,27 @@ class Expression:
         return _BinaryExpression("pow", _literal(left), self)
 
     def __lt__(self, other):
-        return _ComparisonPredicate("<", self, other)
+        return _ComparisonPredicate("<", self, _wrap(other))
 
     def __le__(self, other):
-        return _ComparisonPredicate("\\leq", self, other)
+        return _ComparisonPredicate("\\leq", self, _wrap(other))
 
     def __eq__(self, other):
-        return _ComparisonPredicate("=", self, other)
+        return _ComparisonPredicate("=", self, _wrap(other))
 
     def __ne__(self, other):
-        return _ComparisonPredicate("\\neq", self, other)
+        return _ComparisonPredicate("\\neq", self, _wrap(other))
 
     def __gt__(self, other):
-        return _ComparisonPredicate(">", self, other)
+        return _ComparisonPredicate(">", self, _wrap(other))
 
     def __ge__(self, other):
-        return _ComparisonPredicate("\\geq", self, other)
+        return _ComparisonPredicate("\\geq", self, _wrap(other))
 
     def __bool__(self):
         return self != 0
 
-    def render(self, _precedence=0):
+    def render(self, _precedence=0) -> str:
         raise NotImplementedError()
 
 
@@ -74,28 +80,42 @@ class Expression:
 class _LiteralExpression(Expression):
     value: float
 
-    def render(self, _precedence=0):
+    def render(self, _precedence=0) -> str:
         return str(self.value)
 
 
-def _literal(val):
+def _literal(val) -> _LiteralExpression:
     if not isinstance(val, (float, int)):
         raise TypeError("Unexpected left operand")
     return _LiteralExpression(val)
 
 
+def _wrap(val) -> Expression:
+    if isinstance(val, Expression):
+        return val
+    return _literal(val)
+
+
 @dataclasses.dataclass(frozen=True)
 class _ReferenceExpression(Expression):
     identifier: Identifier
-    subscripts: list[Expression] = dataclasses.field(
-        default_factory=lambda: []
+    subscripts: Tuple[Expression] = dataclasses.field(
+        default_factory=lambda: ()
     )
 
-    def render(self, _precedence=0):
-        if not self.subscripts:
-            return self.name
-        subscript = ",".join(s.render() for s in self.subscripts)
-        return f"{self.identifier}_{{{subscript}}}"
+    def render(self, _precedence=0) -> str:
+        rendered = self.identifier.render()
+        if self.subscripts:
+            subscript = ",".join(s.render() for s in self.subscripts)
+            rendered += f"_{{{subscript}}}"
+        return rendered
+
+
+def reference(
+    identifier: Identifier,
+    subscripts: Tuple[Expression]
+) -> Expression:
+    return _ReferenceExpression(identifier, subscripts)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -103,17 +123,17 @@ class _UnaryExpression(Expression):
     operator: str
     expression: Expression
 
-    def render(self, _precedence=0):
+    def render(self, _precedence=0) -> str:
         raise NotImplementedError()  # TODO
 
 
 _binary_operator_precedences = {
-    "mul": (4, 4),
-    "add": (1, 1),
-    "mod": (3, 3),
-    "sub": (2, 2),
-    "div": (0, 5),
-    "pow": (0, 5),
+    "mul": (4, 4, 4),
+    "add": (1, 1, 1),
+    "mod": (3, 3, 3),
+    "sub": (1, 2, 2),
+    "div": (0, 0, 5),
+    "pow": (0, 0, 5),
 }
 
 
@@ -123,11 +143,11 @@ class _BinaryExpression(Expression):
     left_expression: Expression
     right_expression: Expression
 
-    def render(self, precedence=0):
+    def render(self, precedence=0) -> str:
         op = self.operator
-        inner, outer = _binary_operator_precedences[op]
-        left = self.left_expression.render(inner)
-        right = self.right_expression.render(inner)
+        left_inner, right_inner, outer = _binary_operator_precedences[op]
+        left = self.left_expression.render(left_inner)
+        right = self.right_expression.render(right_inner)
         if op == "mul":
             rendered = f"{left} {right}"
         elif op == "add":
@@ -148,14 +168,22 @@ class _BinaryExpression(Expression):
 
 
 @dataclasses.dataclass(frozen=True)
-class LocalIdentifier(Identifier):
-    source: HasIdentifier
-
-
-@dataclasses.dataclass(frozen=True)
 class Domain:
-    declarations: list[LocalIdentifier]
+    declarations: Sequence[LocalIdentifier]
     mask: Optional[Predicate]
+
+    def render(self) -> str:
+        quantifiers = []
+        grouped = itertools.groupby(
+            self.declarations, lambda i: i.source.identifier
+        )
+        for source_identifier, identifiers in grouped:
+            names = ", ".join(i.render() for i in identifiers)
+            quantifiers.append(f"{names} \\in {source_identifier.render()}")
+        rendered = ", ".join(quantifiers)
+        if self.mask is not None:
+            rendered += f"\\mid {self.mask.render()}"
+        return rendered
 
 
 @dataclasses.dataclass(frozen=True)
@@ -163,8 +191,12 @@ class _SummationExpression(Expression):
     summand: Expression
     domain: Domain
 
-    def render(self, _precedence=0):
-        raise NotImplementedError()  # TODO
+    def render(self, precedence=0) -> str:
+        inner = max(2, precedence)
+        with local_identifiers(self.domain.declarations):
+            rendered = f"\\sum_{{{self.domain.render()}}}"
+            rendered += f"{{{self.summand.render(inner)}}}"
+        return rendered
 
 
 Source = Union[HasIdentifier, Tuple["Source", ...]]
@@ -259,7 +291,7 @@ Space = Lazy[Tuple[Expression, ...]]
 
 def cross(*sources) -> Space:
     yield tuple(
-        _ReferenceExpression(LocalIdentifier(s))
+        _ReferenceExpression(declare(LocalIdentifier(s)))
         for s in _flatten_sources(sources)
     )
 

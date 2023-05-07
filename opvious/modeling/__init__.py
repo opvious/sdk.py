@@ -21,6 +21,7 @@ from .definitions import (
     define,
     maximize,
     minimize,
+    render,
 )
 from .image import (
     Image,
@@ -35,6 +36,7 @@ from .image import (
 __all__ = [
     "Model",
     "define",
+    "render",
     # Definitions
     "ConstraintDefinition",
     "DimensionDefinition",

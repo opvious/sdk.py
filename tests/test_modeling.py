@@ -2,23 +2,24 @@ import opvious.modeling as om
 from typing import Optional
 
 
-def set_cover():
-    m = om.Model()
+class TestRender:
+    def test_set_cover(self):
+        m = om.Model()
 
-    m.set = om.Dimension()
-    m.vertex = om.Dimension()
+        m.set = om.Dimension()
+        m.vertex = om.Dimension()
 
-    m.covers = om.Parameter(m.set, m.vertex, image=om.indicator())
-    m.used = om.Variable(m.set, image=om.indicator())
+        m.covers = om.Parameter(m.set, m.vertex, image=om.indicator())
+        m.used = om.Variable(m.set, image=om.indicator())
 
-    @om.constrain(m)
-    def all_covered():
-        for v in m.vertex:
-            yield om.total(m.used(g) * m.covers(g, v) for g in groups) >= 1
+        @om.constrain(m)
+        def all_covered():
+            for v in m.vertex:
+                yield om.total(m.used(g) * m.covers(g, v) for g in m.set) >= 1
 
-    m.minimize_used = om.minimize(om.total(m.used(g) for g in groups))
+        m.minimize_used = om.minimize(om.total(m.used(g) for g in m.set))
 
-    return m
+        print(om.render(m))
 
 
 def lot_sizing():
@@ -63,7 +64,7 @@ def activation_variable(
 
     activation = om.define(
         m,
-        f"{variable.identifier.label}_is_active",
+        f"{variable.label}_is_active",
         om.Variable(*variable.sources, image=om.indicator()),
     )
 
