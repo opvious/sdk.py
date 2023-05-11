@@ -13,18 +13,18 @@ Label = str
 
 
 @dataclasses.dataclass(frozen=True)
-class SourceQuantifier:
-    """Parameter key item quantifier"""
+class SourceBinding:
+    """Parameter key item binding"""
 
     dimension_label: Optional[Label]
     """The label of the dimension if the key item corresponds to one"""
 
     qualifier: Optional[Label]
-    """The quantifier's qualifier, if any"""
+    """The binding's qualifier, if any"""
 
 
-def _source_quantifier_from_json(data: Json) -> SourceQuantifier:
-    return SourceQuantifier(
+def _source_binding_from_json(data: Json) -> SourceBinding:
+    return SourceBinding(
         dimension_label=data.get("dimensionLabel"),
         qualifier=data.get("qualifier"),
     )
@@ -90,8 +90,8 @@ class TensorOutline:
     is_integral: bool
     """Whether the tensor contains only integer values"""
 
-    quantifiers: list[SourceQuantifier]
-    """Key quantifiers"""
+    bindings: list[SourceBinding]
+    """Key bindings"""
 
     @property
     def is_indicator(self) -> bool:
@@ -112,9 +112,7 @@ def _tensor_from_json(data: Json) -> TensorOutline:
         lower_bound=lb if is_value(lb) else None,
         upper_bound=ub if is_value(ub) else None,
         is_integral=img["isIntegral"],
-        quantifiers=[
-            _source_quantifier_from_json(b) for b in data["quantifiers"]
-        ],
+        bindings=[_source_binding_from_json(b) for b in data["bindings"]],
     )
 
 
@@ -125,16 +123,14 @@ class ConstraintOutline:
     label: Label
     """The constraint's unique label"""
 
-    quantifiers: list[SourceQuantifier]
-    """Quantifier key quantifiers"""
+    bindings: list[SourceBinding]
+    """Quantifier key bindings"""
 
 
 def _constraint_from_json(data: Json) -> ConstraintOutline:
     return ConstraintOutline(
         label=data["label"],
-        quantifiers=[
-            _source_quantifier_from_json(b) for b in data["quantifiers"]
-        ],
+        bindings=[_source_binding_from_json(b) for b in data["bindings"]],
     )
 
 

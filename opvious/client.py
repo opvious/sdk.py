@@ -722,7 +722,7 @@ class _SolveInputsBuilder:
             raise Exception(f"Duplicate parameter: {label}")
         try:
             tensor = Tensor.from_argument(
-                arg, len(outline.quantifiers), outline.is_indicator
+                arg, len(outline.bindings), outline.is_indicator
             )
         except Exception as exc:
             raise ValueError(f"Invalid  parameter: {label}") from exc

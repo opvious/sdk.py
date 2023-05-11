@@ -52,18 +52,18 @@ def solve_summary_from_json(data) -> SolveSummary:
     )
 
 
-def _entry_index(entries, quantifiers):
-    if not quantifiers:
+def _entry_index(entries, bindings):
+    if not bindings:
         return None
-    if len(quantifiers) == 1:
-        quantifier = quantifiers[0]
+    if len(bindings) == 1:
+        binding = bindings[0]
         return pd.Index(
             data=[e["key"][0] for e in entries],
-            name=quantifier.qualifier or quantifier.dimension_label,
+            name=binding.qualifier or binding.dimension_label,
         )
     return pd.MultiIndex.from_tuples(
         tuples=[tuple(e["key"]) for e in entries],
-        names=[b.qualifier or b.dimension_label for b in quantifiers],
+        names=[b.qualifier or b.dimension_label for b in bindings],
     )
 
 
@@ -88,7 +88,7 @@ class SolveInputs:
                 outline = self.outline.parameters[label]
                 return pd.Series(
                     data=(e["value"] for e in entries),
-                    index=_entry_index(entries, outline.quantifiers),
+                    index=_entry_index(entries, outline.bindings),
                 )
         raise Exception(f"Unknown parameter: {label}")
 
@@ -121,7 +121,7 @@ class SolveOutputs:
         for res in self.raw_variables:
             if res["label"] == label:
                 entries = res["entries"]
-                quantifiers = self.outline.variables[label].quantifiers
+                bindings = self.outline.variables[label].bindings
                 df = pd.DataFrame(
                     data=(
                         {
@@ -130,7 +130,7 @@ class SolveOutputs:
                         }
                         for e in entries
                     ),
-                    index=_entry_index(entries, quantifiers),
+                    index=_entry_index(entries, bindings),
                 )
                 return df.dropna(axis=1, how="all").fillna(0)
         raise Exception(f"Unknown variable {label}")
@@ -152,7 +152,7 @@ class SolveOutputs:
                         }
                         for e in entries
                     ),
-                    index=_entry_index(entries, outline.quantifiers),
+                    index=_entry_index(entries, outline.bindings),
                 )
                 return df.dropna(axis=1, how="all").fillna(0)
         raise Exception(f"Unknown constraint {label}")
