@@ -7,23 +7,17 @@ from .ast import (
     total,
 )
 from .definitions import (
-    ConstraintDefinition,
+    Constraint,
     Dimension,
-    DimensionDefinition,
-    Model,
+    Interval,
     Objective,
-    ObjectiveDefinition,
     Parameter,
-    ParameterDefinition,
     Variable,
-    VariableDefinition,
-    constrain,
-    define,
-    maximize,
-    minimize,
-    render,
+    alias,
+    constraint,
+    objective,
 )
-from .image import (
+from .images import (
     Image,
     indicator,
     integral,
@@ -32,29 +26,26 @@ from .image import (
     non_positive_real,
     unit,
 )
+from .model import Model
 
 __all__ = [
     "Model",
-    "define",
-    "render",
     # Definitions
-    "ConstraintDefinition",
-    "DimensionDefinition",
-    "ObjectiveDefinition",
-    "ParameterDefinition",
-    "VariableDefinition",
+    "Constraint",
     "Dimension",
     "Objective",
     "Parameter",
     "Variable",
-    "constrain",
-    "maximize",
-    "minimize",
+    "alias",
+    "constraint",
+    "objective",
     # Expressions and spaces
     "Expression",
+    "Interval",
     "Predicate",
     "Space",
     "cross",
+    "project",
     "size",
     "total",
     # Images
@@ -65,7 +56,4 @@ __all__ = [
     "non_negative_real",
     "non_positive_real",
     "unit",
-    # Scopes
-    "cross",
-    "project",
 ]

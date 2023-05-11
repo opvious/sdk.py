@@ -17,7 +17,7 @@ backoff = "^2.2"
 Brotli = {version = "^1.0.9", optional = true}
 humanize = "^4.4.0"
 pandas = "^1.4"
-python = ">=3.8,<3.12"
+python = ">=3.9,<3.12"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.10.0"

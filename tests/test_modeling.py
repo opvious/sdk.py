@@ -21,45 +21,206 @@ class TestRender:
 
         print(om.render(m))
 
+    def test_sudoku(self):
+        m = om.Model()
 
-def lot_sizing():
-    m = om.Model()
+        value = om.interval(1, 9, name="V")
+        row = column = position = om.interval(0, 8, name="P")
 
-    m.horizon = om.Parameter()
-    m.steps = om.Interval(1, horizon)
+        m.input = om.Parameter(row, column, value, image=om.indicator())
+        m.output = om.Variable(row, column, value, image=om.indicator())
 
-    m.holding_cost = om.Parameter(steps)
-    m.setup_cost = om.Parameter(steps)
-    m.demand = om.Parameter(steps, image=om.non_negative())
+        @om.constrain(m)
+        def output_matches_input():
+            for i, j, v in om.cross(row, column, value):
+                if m.input(i, j, v):
+                    yield m.output(i, j, v) >= m.input(i, j, v)
 
-    m.production = om.Variable(steps, image=om.non_negative())
-    m.inventory = om.Variable(steps, image=om.non_negative())
+        @om.constrain(m)
+        def one_output_per_cell():
+            for i, j in om.cross(row, column):
+                yield om.total(m.output(i, j, v) == 1 for v in value)
 
-    is_producing = activation_variable(
-        variable=m.production, upper_bound=om.total(m.demand(t) for t in steps)
+        @om.constrain(m)
+        def one_value_per_column():
+            for j, v in om.cross(column, value):
+                yield om.total(m.output(i, j, v) == 1 for i in row)
+
+        @om.constrain(m)
+        def one_value_per_row():
+            for i, v in om.cross(row, value):
+                yield om.total(m.output(i, j, v) == 1 for j in column)
+
+        @om.constrain(m)
+        def one_value_per_box():
+            for v, b in om.cross(value, position):
+                yield om.total(
+                    m.output(3 * (b // 3) + c // 3, 3 * (b % 3) + c % 3, v)
+                    == 1
+                    for c in position
+                )
+
+        print(om.render(m))
+
+
+class SetCover(om.Model):
+    sets = om.Dimension()
+    vertices = om.Dimension()
+    covers = om.Parameter(sets, vertices, image=om.indicator())
+    used = om.Variable(sets, image=om.indicator())
+
+    @om.constraint
+    def all_covered(self):
+        for v in self.vertices:
+            count = om.total(
+                self.used(s) * self.covers(s, v) for s in self.sets
+            )
+            yield count >= 1
+
+    @om.objective
+    def minimize_sets(self):
+        return om.total(self.used(s) for s in self.sets)
+
+
+class LotSizing(om.Model):
+    horizon = om.Parameter()
+    steps = om.interval(1, horizon)
+
+    holding_cost = om.Parameter(steps)
+    setup_cost = om.Parameter(steps)
+    demand = om.Parameter(steps, image=om.non_negative())
+
+    production = om.Variable(steps, image=om.non_negative())
+    inventory = om.Variable(steps, image=om.non_negative())
+    is_producing, is_producing_activates, _ = om.patterns.activation(
+        variable=production,
+        upper_bound=om.total(demand(t) for t in steps),
+        omit_deactivation=True,
     )
 
-    m.minimize_total_cost = om.minimize(
-        om.total(
-            m.holding_cost(t) * m.inventory(t)
-            + m.setup_cost(t) * is_producing(t)
-            for t in steps
+    @om.objective
+    def minimize_total_cost(self):
+        return om.total(
+            self.holding_cost(t) * self.inventory(t)
+            + self.setup_cost(t) * self.is_producing(t)
+            for t in self.steps
         )
+
+    @om.constraint
+    def inventory_propagates(self):
+        for t in self.steps:
+            prev = om.switch((t > 0, self.inventory(t - 1)), 0)
+            diff = self.production(t) - self.demand(t)
+            yield self.inventory(t) == prev + diff
+
+
+class GroupExpenses(om.Model):
+    friends = om.Dimension()
+    transactions = om.Dimension()
+
+    paid = om.Parameter(transactions, friends)
+    share = om.Parameter(transactions, friends)
+    floor = om.Parameter()
+
+    max_transfer_count = om.Variable(image=om.natural())
+
+    transferred = om.Variable(
+        {"sender": friends, "recipient": friends},
+        image=om.non_negative_real(),
     )
 
-    @om.constrain(m)
-    def inventory_propagates():
-        for t in steps:
-            prev = om.switch((t > 0, inventory(t - 1)), 0)
-            yield m.inventory(t) == prev + m.production(t) - m.demand(t)
+    @om.alias(transactions, name="tc")
+    def transaction_cost(self, t):
+        return om.total(self.paid(t, f) for f in self.friends)
+
+    @property
+    @om.alias(name="tp")
+    def total_paid(self):
+        return om.total(self.transaction_cost(t) for t in self.transactions)
+
+    is_transferring, is_transferring_activation = activation_variable(
+        variable=m.transferred, upper_bound=self.total_paid
+    )
+
+    def relative_share(self, t, f):
+        return self.share(t, f) / om.total(
+            self.share(t, f) for f in self.friends
+        )
+
+    @om.constraint
+    def payments_are_settled(self):
+        for f in self.friends:
+            received = om.total(self.transferred(s, f) for s in self.friends)
+            sent = om.total(self.transferred(f, r) for r in self.friends)
+            owed = om.total(
+                self.paid(t, f)
+                - transaction_cost(t) * self.relative_share(t, f)
+                for t in self.transactions
+            )
+            yield received - sent == owed
+
+    @om.constraint
+    def transfer_count_is_below_max(self):
+        for s in self.friends:
+            transfer_count = om.total(
+                is_transferring(s, r) for r in self.friends
+            )
+            yield transfer_count <= m.max_transfer_count
+
+    @om.objective
+    def minimize_transfer_count(self):
+        return self.max_transfer_count
+
+    @om.objective
+    def minimize_total_transferred(self):
+        return om.total(
+            m.transferred(s, r)
+            for s, r in om.cross(self.friends, self.friends)
+        )
 
 
-def activation_variable(
+class Sudoku(om.Model):
+    values = om.interval(1, 9, name="V")
+    rows = columns = positions = om.interval(0, 8, name="P")
+
+    input = om.Parameter(rows, columns, values, image=om.indicator())
+    output = om.Variable(rows, columns, values, image=om.indicator())
+
+    @om.constraint
+    def output_matches_input(self):
+        for i, j, v in om.cross(self.rows, self.columns, self.values):
+            if self.input(i, j, v):
+                yield self.output(i, j, v) >= self.input(i, j, v)
+
+    @om.constraint
+    def one_output_per_cell(self):
+        for i, j in om.cross(self.rows, self.columns):
+            yield om.total(self.output(i, j, v) == 1 for v in self.values)
+
+    @om.constraint
+    def one_value_per_column(self):
+        for j, v in om.cross(self.columns, self.values):
+            yield om.total(self.output(i, j, v) == 1 for i in self.rows)
+
+    @om.constraint
+    def one_value_per_row(self):
+        for i, v in om.cross(self.rows, self.values):
+            yield om.total(self.output(i, j, v) == 1 for j in self.columns)
+
+    @om.constraint
+    def one_value_per_box(self):
+        for v, b in om.cross(self.values, self.positions):
+            yield om.total(
+                self.output(3 * (b // 3) + c // 3, 3 * (b % 3) + c % 3, v) == 1
+                for c in self.positions
+            )
+
+
+def activation(
     variable: om.VariableDefinition,
-    lower_bound: Optional[float] = None,
-    upper_bound: Optional[float] = None
-    # TODO: Projection
-) -> om.VariableDefinition:
+    upper_bound: Union[float, bool] = None,
+    lower_bound: Union[float, bool] = None,
+) -> Tuple[om.Variable, Optional[om.Constraint], Optional[om.Constraint]]:
     m = variable.model
 
     activation = om.define(
@@ -69,7 +230,7 @@ def activation_variable(
     )
 
     if not upper_bound is False:
-        # TODO: Infer bound when `None`
+        # TODO: Infer bound when `True`
 
         @om.constrain(m, label=f"{variable.label}_activates")
         def activates():
@@ -77,189 +238,11 @@ def activation_variable(
                 yield variable(*t) <= upper_bound * activation(*t)
 
     if not lower_bound is False:
-        # TODO: Infer bound when `None`
+        # TODO: Infer bound when `True`
 
         @om.constrain(m, label=f"{variable.label}_deactivates")
         def deactivates():
             for t in om.cross(*variable.sources):
-                yield variable(*t) >= activation(*t)
+                yield variable(*t) >= lower_bound * activation(*t)
 
-    return activation
-
-
-def product_allocation():
-    m = Model()
-
-    m.product = om.Dimension()
-    m.size = om.Dimension()
-    m.location = om.Dimension()
-    m.demand_tier = om.Dimension(name="T")
-
-    m.supply = (om.Parameter(m.product, m.size),)
-    m.min_allocation = (om.Parameter(m.product, name="a^{min}"),)
-    m.max_total_allocation = (om.Parameter(name="a^{max}"),)
-    m.diversity = om.Parameter(m.product)
-    m.demand = om.Parameter(m.location, m.product, m.size, m.demand_tier)
-    m.demand_value = om.Parameter(m.demand_tier)
-
-    m.allocation = om.Variable(m.location, m.product, m.size, m.demand_tier)
-
-    is_size_allocated = activation_variable(
-        variable=m.allocation,
-        projection=(True, True, True, False),
-        upper_bound=supply,
-    )
-    is_product_allocated = activation_variable(
-        variable=is_size_allocated,
-        projection=(True, True, False),
-        # Upper bound can be omitted since the variable is bounded (by 1)
-    )
-
-    def tier_allocation(l, p, s):
-        return total(m.allocation(l, p, s, t) for t in m.demand_tier)
-
-    @enforce(m)
-    def at_most_demand():
-        for t, p, s, l in cross(m.demand_tier, m.product, m.size, m.location):
-            return m.allocation(l, p, s, t) <= m.demand(l, p, s, t)
-
-    @enforce(m)
-    def at_most_supply():
-        for p, s in cross(m.product, m.size):
-            alloc = total(tier_allocation(l, p, s) for l in m.location)
-            return alloc <= m.supply(p, s)
-
-    @enforce(m)
-    def at_most_max_total_allocation():
-        alloc = total(
-            tier_allocation(l, p, s)
-            for l, p, s in cross(m.location, m.product, m.size)
-        )
-        return alloc <= m.max_total_allocation
-
-    @enforce(m)
-    def at_least_min_allocation():
-        for p, l in cross(m.product, m.location):
-            alloc = total(tier_allocation(l, p, s) for s in m.size)
-            return alloc >= a.min_allocation(p) * is_product_allocated(l, p)
-
-    @enforce(m)
-    def at_least_min_diversity():
-        for p, l in cross(m.product, m.location):
-            avail = total(m.is_size_allocated(l, p, s) for s in m.size)
-            return alloc >= a.diversity(p) * m.is_product_allocated(l, p)
-
-    @maximize(m)
-    def maximize_value():
-        return total(
-            m.demand_value(t) * m.allocation(l, p, s, t)
-            for l, p, s, t in cross(
-                m.location, m.product, m.size, m.demand_tier
-            )
-        )
-
-    return m
-
-
-def sudoku():
-    m = om.Model()
-
-    value = om.interval(1, 9, name="V")
-    row = column = position = om.interval(0, 8, name="P")
-
-    m.input = om.Parameter(row, column, value, image=om.indicator())
-    m.output = om.Variable(row, column, value, image=om.indicator())
-
-    @om.constrain(m)
-    def output_matches_input():
-        for i, j, v in om.cross(row, column, value):
-            if m.input(i, j, v):
-                yield m.output(i, j, v) >= m.input(i, j, v)
-
-    @om.constrain(m)
-    def one_output_per_cell():
-        for i, j in om.cross(row, column):
-            yield om.total(m.output(i, j, v) == 1 for v in value)
-
-    @om.constrain(m)
-    def one_value_per_column():
-        for j, v in om.cross(column, value):
-            yield om.total(m.output(i, j, v) == 1 for i in row)
-
-    @om.constrain(m)
-    def one_value_per_row():
-        for i, v in om.cross(row, value):
-            yield om.total(m.output(i, j, v) == 1 for j in column)
-
-    @om.constrain(m)
-    def one_value_per_box():
-        for v, b in om.cross(value, position):
-            i = 3 * (b // 3) + c // 3
-            j = 3 * (b % 3) + c % 3
-            yield om.total(m.output(i, j, v) == 1 for c in position)
-
-    return m
-
-
-def group_expenses():
-    m = om.Model()
-
-    m.friend = om.Dimension()
-    m.transaction = om.Dimension()
-
-    m.paid = om.Parameter(m.transaction, m.friend)
-    m.share = om.Parameter(m.transaction, m.friend)
-    m.floor = om.Parameter()
-
-    m.transferred = om.Variable(
-        {"sender": m.friend, "recipient": m.friend},
-        image=om.non_negative_real(),
-    )
-
-    @om.alias(m, "tc")
-    def transaction_cost(t) -> om.Expression:
-        return om.total(m.paid(t, f) for f in m.friend)
-
-    @om.alias(m, "tp")
-    def total_paid() -> om.Expression:
-        return om.total(transaction_cost(t) for t in m.transaction)
-
-    is_transferring = activation_variable(
-        variable=m.transferred, upper_bound=total_paid
-    )
-
-    pairs = om.alias(m, "S", om.cross(m.friend, m.friend))
-
-    @om.alias(m, "S")
-    def pairs() -> om.Space:
-        return om.cross(m.friend, m.friend)
-
-    m.max_transfer_count = om.Variable(image=om.natural(om.count(m.friend)))
-
-    def relative_share(t, f):
-        return m.share(t, f) / om.total(m.share(t, f) for f in m.friend)
-
-    @om.constrain(m)
-    def payments_are_settled():
-        for f in friend:
-            received = om.total(m.transferred(s, f) for s in m.friend)
-            sent = om.total(m.transferred(f, r) for r in m.friend)
-            owed = om.total(
-                m.paid(t, f) - transaction_cost(t) * relative_share(t, f)
-                for t in transaction
-            )
-            yield received - sent == owed
-
-    @om.constrain(m)
-    def transfer_count_is_below_max():
-        for s in friend:
-            transfer_count = om.total(is_transferring(s, r) for r in friend)
-            yield transfer_count <= m.max_transfer_count
-
-    m.minimize_transfer_count = m.minimize(m.max_transfer_count)
-
-    m.minimize_total_transferred = m.minimize(
-        om.total(m.transferred(s, r) for s, r in om.cross(m.friend, m.friend))
-    )
-
-    return m
+    return (activation,)

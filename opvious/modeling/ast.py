@@ -1,55 +1,77 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
 import itertools
-from typing import Iterable, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Any, cast, Iterable, Optional, Sequence, TypeVar, Union
 
-from .identifier import (
-    HasIdentifier,
+from ..common import encode_extended_float
+from .identifiers import (
     Identifier,
-    LocalIdentifier,
-    local_identifiers,
+    Name,
+    local_formatting_scope,
+    QuantifierIdentifier,
 )
 from .lazy import Lazy, force, declare
+
+
+@dataclasses.dataclass(eq=False, frozen=True)
+class _Reference:
+    identifier: Identifier
+    subscripts: tuple[Expression, ...] = ()
+
+    def render(self, _precedence=0) -> str:
+        rendered = self.identifier.format()
+        if self.subscripts:
+            subscript = ",".join(s.render() for s in self.subscripts)
+            rendered += f"_{{{subscript}}}"
+        return rendered
 
 
 # https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types
 class Expression:
     def __add__(self, other):
-        return _BinaryExpression("add", self, other)
+        return _BinaryExpression("add", self, _wrap(other))
 
     def __radd__(self, left):
-        return _BinaryExpression("add", _literal(left), self)
+        return _literal(left) + self
 
     def __sub__(self, other):
-        return _BinaryExpression("sub", self, other)
+        return _BinaryExpression("sub", self, _wrap(other))
 
     def __rsub__(self, left):
-        return _BinaryExpression("sub", _literal(left), self)
+        return _literal(left) - self
 
     def __mod__(self, other):
-        return _BinaryExpression("mod", self, other)
+        return _BinaryExpression("mod", self, _wrap(other))
 
     def __rmod__(self, left):
-        return _BinaryExpression("mod", _literal(left), self)
+        return _literal(left) % self
 
     def __mul__(self, other):
-        return _BinaryExpression("mul", self, other)
+        return _BinaryExpression("mul", self, _wrap(other))
 
     def __rmul__(self, left):
-        return _BinaryExpression("mul", _literal(left), self)
+        return _literal(left) * self
 
     def __truediv__(self, other):
-        return _BinaryExpression("div", self, other)
+        return _BinaryExpression("div", self, _wrap(other))
 
     def __rtruediv__(self, left):
-        return _BinaryExpression("div", _literal(left), self)
+        return _literal(left) / self
+
+    def __floordiv__(self, other):
+        inner = _BinaryExpression("div", self, _wrap(other))
+        return _UnaryExpression("floor", inner)
+
+    def __rfloordiv__(self, left):
+        return _literal(left) // self
 
     def __pow__(self, other):
-        return _BinaryExpression("pow", self, other)
+        return _BinaryExpression("pow", self, _wrap(other))
 
     def __rpow__(self, left):
-        return _BinaryExpression("pow", _literal(left), self)
+        return _literal(left) ** self
 
     def __lt__(self, other):
         return _ComparisonPredicate("<", self, _wrap(other))
@@ -70,18 +92,18 @@ class Expression:
         return _ComparisonPredicate("\\geq", self, _wrap(other))
 
     def __bool__(self):
-        return self != 0
+        return bool(self != 0)
 
     def render(self, _precedence=0) -> str:
         raise NotImplementedError()
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(eq=False, frozen=True)
 class _LiteralExpression(Expression):
     value: float
 
     def render(self, _precedence=0) -> str:
-        return str(self.value)
+        return encode_extended_float(self.value)
 
 
 def _literal(val) -> _LiteralExpression:
@@ -96,35 +118,19 @@ def _wrap(val) -> Expression:
     return _literal(val)
 
 
-@dataclasses.dataclass(frozen=True)
-class _ReferenceExpression(Expression):
-    identifier: Identifier
-    subscripts: Tuple[Expression] = dataclasses.field(
-        default_factory=lambda: ()
-    )
-
-    def render(self, _precedence=0) -> str:
-        rendered = self.identifier.render()
-        if self.subscripts:
-            subscript = ",".join(s.render() for s in self.subscripts)
-            rendered += f"_{{{subscript}}}"
-        return rendered
+@dataclasses.dataclass(eq=False, frozen=True)
+class ExpressionReference(Expression, _Reference):
+    pass
 
 
-def reference(
-    identifier: Identifier,
-    subscripts: Tuple[Expression]
-) -> Expression:
-    return _ReferenceExpression(identifier, subscripts)
-
-
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(eq=False, frozen=True)
 class _UnaryExpression(Expression):
     operator: str
     expression: Expression
 
     def render(self, _precedence=0) -> str:
-        raise NotImplementedError()  # TODO
+        op = self.operator
+        return f"\\left\\l{op} {self.expression.render()} \\right\\r{op}"
 
 
 _binary_operator_precedences = {
@@ -137,7 +143,7 @@ _binary_operator_precedences = {
 }
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(eq=False, frozen=True)
 class _BinaryExpression(Expression):
     operator: str
     left_expression: Expression
@@ -163,46 +169,41 @@ class _BinaryExpression(Expression):
         else:
             raise Exception(f"Unexpected operator: {op}")
         if outer < precedence:
-            rendered = f"\\left({rendered}\\right"
+            rendered = f"\\left({rendered}\\right)"
         return rendered
 
 
 @dataclasses.dataclass(frozen=True)
 class Domain:
-    declarations: Sequence[LocalIdentifier]
+    quantifiers: list[QuantifierIdentifier]
     mask: Optional[Predicate]
 
     def render(self) -> str:
-        quantifiers = []
-        grouped = itertools.groupby(
-            self.declarations, lambda i: i.source.identifier
-        )
-        for source_identifier, identifiers in grouped:
-            names = ", ".join(i.render() for i in identifiers)
-            quantifiers.append(f"{names} \\in {source_identifier.render()}")
-        rendered = ", ".join(quantifiers)
+        groups = []
+        grouped = itertools.groupby(self.quantifiers, lambda q: q.quantifiable)
+        for quantifiable, qs in grouped:
+            names = ", ".join(q.format() for q in qs)
+            groups.append(f"{names} \\in {quantifiable.render()}")
+        rendered = ", ".join(groups)
         if self.mask is not None:
-            rendered += f"\\mid {self.mask.render()}"
+            rendered += f" \\mid {self.mask.render()}"
         return rendered
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(eq=False, frozen=True)
 class _SummationExpression(Expression):
     summand: Expression
     domain: Domain
 
     def render(self, precedence=0) -> str:
         inner = max(2, precedence)
-        with local_identifiers(self.domain.declarations):
+        with local_formatting_scope(self.domain.quantifiers):
             rendered = f"\\sum_{{{self.domain.render()}}}"
             rendered += f"{{{self.summand.render(inner)}}}"
         return rendered
 
 
-Source = Union[HasIdentifier, Tuple["Source", ...]]
-
-
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(eq=False, frozen=True)
 class _CardinalityExpression(Expression):
     domain: Domain
 
@@ -228,7 +229,7 @@ class _ComparisonPredicate(Predicate):
     left_expression: Expression
     right_expression: Expression
 
-    def render(self, _precedence=0):
+    def render(self, _precedence=0) -> str:
         left = self.left_expression.render()
         right = self.right_expression.render()
         return f"{left} {self.command} {right}"
@@ -246,7 +247,7 @@ class _BinaryPredicate(Predicate):
     left_predicate: Predicate
     right_predicate: Predicate
 
-    def render(self, precedence=0):
+    def render(self, precedence=0) -> str:
         cond = self.condition
         inner = _binary_operator_precedences[cond]
         left = self.left_predicate.render(inner)
@@ -257,12 +258,39 @@ class _BinaryPredicate(Predicate):
         return rendered
 
 
-_V = TypeVar("_V", bound=Union[Expression, Predicate, None])
+class Quantifiable:
+    def __iter__(self) -> Lazy[Quantifier]:
+        return (t[0] for t in cross(self))
+
+    def render(self) -> str:
+        raise NotImplementedError()
 
 
-def locally(lazy: Lazy[_V]) -> Tuple[_V, Domain]:
+@dataclasses.dataclass(frozen=True)
+class SpaceReference(_Reference):
+    pass
+
+
+@dataclasses.dataclass(frozen=True)
+class Quantifier(Expression):
+    identifier: QuantifierIdentifier
+
+    def render(self, _precedence=0) -> str:
+        return self.identifier.format()
+
+
+Space = Lazy[tuple[Quantifier, ...]]
+
+
+Source = Union[Quantifiable, SpaceReference, Space, tuple["Source", ...]]
+
+
+_V = TypeVar("_V")
+
+
+def within_domain(lazy: Lazy[_V]) -> tuple[_V, Domain]:
     value, declarations = force(lazy)
-    identifiers: list[LocalIdentifier] = []
+    quantifiers: list[QuantifierIdentifier] = []
     mask: Optional[Predicate] = None
     for declaration in declarations:
         if isinstance(declaration, Predicate):
@@ -270,36 +298,58 @@ def locally(lazy: Lazy[_V]) -> Tuple[_V, Domain]:
                 mask = _BinaryPredicate("and", mask, declaration)
             else:
                 mask = declaration
-        elif isinstance(declaration, LocalIdentifier):
-            identifiers.append(declaration)
+        elif isinstance(declaration, QuantifierIdentifier):
+            quantifiers.append(declaration)
         else:
             raise TypeError(f"Unexpected declaration: {declaration}")
-    domain = Domain(declarations, mask)
+    domain = Domain(quantifiers, mask)
     return value, domain
 
 
-def _flatten_sources(source: Source) -> Iterable[HasIdentifier]:
-    if isinstance(source, tuple):
-        for component in source:
-            yield from _flatten_sources(component)
-    else:
-        yield source
+def domain_from_space(space: Space) -> Domain:
+    qs, domain = within_domain(space)
+    idens = [q.identifier for q in qs]
+    if not _isomorphic(idens, domain.quantifiers):
+        raise Exception("Inconsistent quantifiers")
+    return dataclasses.replace(domain, quantifiers=idens)
 
 
-Space = Lazy[Tuple[Expression, ...]]
+def _isomorphic(
+    qs1: Iterable[QuantifierIdentifier], qs2: Iterable[QuantifierIdentifier]
+) -> bool:
+    return collections.Counter(qs1) == collections.Counter(qs2)
 
 
-def cross(*sources) -> Space:
+def cross(*sources: Source, names: Optional[Sequence[Name]] = None) -> Space:
+    """Generates a cross-product space
+
+    Args:
+        sources: One or more sources
+        names: Optional name prefixes
+    """
+    names_by_index = dict(enumerate(names or []))
     yield tuple(
-        _ReferenceExpression(declare(LocalIdentifier(s)))
-        for s in _flatten_sources(sources)
+        Quantifier(declare(q.child(name=names_by_index.get(i))))
+        for i, q in enumerate(_source_quantifiers(sources))
     )
 
 
+def _source_quantifiers(source: Source) -> Iterable[QuantifierIdentifier]:
+    if isinstance(source, tuple):
+        for component in source:
+            yield from _source_quantifiers(component)
+    elif isinstance(source, (Quantifiable, SpaceReference)):
+        yield QuantifierIdentifier.root(source)
+    else:  # Space
+        domain = domain_from_space(cast(Space, source))
+        declare(domain.mask)
+        yield from domain.quantifiers
+
+
 def total(body: Lazy[Expression]) -> Expression:
-    return _SummationExpression(*locally(body))
+    return _SummationExpression(*within_domain(body))
 
 
 def size(space: Space) -> Expression:
-    _, domain = locally(None for _t in space)
+    _, domain = within_domain(None for _t in space)
     return _CardinalityExpression(domain)
