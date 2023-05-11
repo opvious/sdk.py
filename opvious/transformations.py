@@ -49,7 +49,7 @@ class PinVariables(Transformation):
     parameter labeled `production_pin`.
 
     A constraint (labeled `$label_isPinned`) is also automatically added which
-    enforces equality between the variable and any inputs passed in to the
+    enunquantifys equality between the variable and any inputs passed in to the
     parameter. Values for keys which do not have a pin remain free, so it is
     possible to do partial pinning. For example, assuming a monthly variable
     labeled `production`, the following code would only pin production in

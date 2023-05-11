@@ -12,7 +12,7 @@ from .identifiers import (
     local_formatting_scope,
     QuantifierIdentifier,
 )
-from .lazy import Lazy, force, declare
+from .quantified import Quantified, unquantify, declare
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
@@ -20,76 +20,77 @@ class _Reference:
     identifier: Identifier
     subscripts: tuple[Expression, ...] = ()
 
-    def render(self, _precedence=0) -> str:
-        rendered = self.identifier.format()
-        if self.subscripts:
-            subscript = ",".join(s.render() for s in self.subscripts)
-            rendered += f"_{{{subscript}}}"
-        return rendered
+
+def render_identifier(iden: Identifier, *subscripts: Expression) -> str:
+    s = iden.format()
+    if subscripts:
+        sub = ",".join(s.render() for s in subscripts)
+        s += f"_{{{sub}}}"
+    return s
 
 
 # https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types
 class Expression:
     def __add__(self, other):
-        return _BinaryExpression("add", self, _wrap(other))
+        return _BinaryExpression("add", self, to_expression(other))
 
     def __radd__(self, left):
-        return _literal(left) + self
+        return literal(left) + self
 
     def __sub__(self, other):
-        return _BinaryExpression("sub", self, _wrap(other))
+        return _BinaryExpression("sub", self, to_expression(other))
 
     def __rsub__(self, left):
-        return _literal(left) - self
+        return literal(left) - self
 
     def __mod__(self, other):
-        return _BinaryExpression("mod", self, _wrap(other))
+        return _BinaryExpression("mod", self, to_expression(other))
 
     def __rmod__(self, left):
-        return _literal(left) % self
+        return literal(left) % self
 
     def __mul__(self, other):
-        return _BinaryExpression("mul", self, _wrap(other))
+        return _BinaryExpression("mul", self, to_expression(other))
 
     def __rmul__(self, left):
-        return _literal(left) * self
+        return literal(left) * self
 
     def __truediv__(self, other):
-        return _BinaryExpression("div", self, _wrap(other))
+        return _BinaryExpression("div", self, to_expression(other))
 
     def __rtruediv__(self, left):
-        return _literal(left) / self
+        return literal(left) / self
 
     def __floordiv__(self, other):
-        inner = _BinaryExpression("div", self, _wrap(other))
+        inner = _BinaryExpression("div", self, to_expression(other))
         return _UnaryExpression("floor", inner)
 
     def __rfloordiv__(self, left):
-        return _literal(left) // self
+        return literal(left) // self
 
     def __pow__(self, other):
-        return _BinaryExpression("pow", self, _wrap(other))
+        return _BinaryExpression("pow", self, to_expression(other))
 
     def __rpow__(self, left):
-        return _literal(left) ** self
+        return literal(left) ** self
 
     def __lt__(self, other):
-        return _ComparisonPredicate("<", self, _wrap(other))
+        return _ComparisonPredicate("<", self, to_expression(other))
 
     def __le__(self, other):
-        return _ComparisonPredicate("\\leq", self, _wrap(other))
+        return _ComparisonPredicate("\\leq", self, to_expression(other))
 
     def __eq__(self, other):
-        return _ComparisonPredicate("=", self, _wrap(other))
+        return _ComparisonPredicate("=", self, to_expression(other))
 
     def __ne__(self, other):
-        return _ComparisonPredicate("\\neq", self, _wrap(other))
+        return _ComparisonPredicate("\\neq", self, to_expression(other))
 
     def __gt__(self, other):
-        return _ComparisonPredicate(">", self, _wrap(other))
+        return _ComparisonPredicate(">", self, to_expression(other))
 
     def __ge__(self, other):
-        return _ComparisonPredicate("\\geq", self, _wrap(other))
+        return _ComparisonPredicate("\\geq", self, to_expression(other))
 
     def __bool__(self):
         return bool(self != 0)
@@ -98,29 +99,41 @@ class Expression:
         raise NotImplementedError()
 
 
+ExpressionLike = Union[Expression, float, int]
+
+
 @dataclasses.dataclass(eq=False, frozen=True)
 class _LiteralExpression(Expression):
     value: float
 
     def render(self, _precedence=0) -> str:
-        return encode_extended_float(self.value)
+        return str(encode_extended_float(self.value))
 
 
-def _literal(val) -> _LiteralExpression:
+def literal(val: Union[float, int]) -> Expression:
     if not isinstance(val, (float, int)):
-        raise TypeError("Unexpected left operand")
+        raise TypeError("Unexpected literal value")
     return _LiteralExpression(val)
 
 
-def _wrap(val) -> Expression:
+def is_literal(expr: Expression, val: Union[float, int]) -> bool:
+    return isinstance(expr, _LiteralExpression) and expr.value == val
+
+
+def to_expression(val: ExpressionLike) -> Expression:
     if isinstance(val, Expression):
         return val
-    return _literal(val)
+    if isinstance(val, (float, int)):
+        return literal(val)
+    if hasattr(val, "to_expression"):
+        return val.to_expression()
+    raise TypeError(f"Unexpected expression: {val}")
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class ExpressionReference(Expression, _Reference):
-    pass
+    def render(self, _precedence=0) -> str:
+        return render_identifier(self.identifier, *self.subscripts)
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
@@ -176,7 +189,7 @@ class _BinaryExpression(Expression):
 @dataclasses.dataclass(frozen=True)
 class Domain:
     quantifiers: list[QuantifierIdentifier]
-    mask: Optional[Predicate]
+    mask: Optional[Predicate] = None
 
     def render(self) -> str:
         groups = []
@@ -196,16 +209,71 @@ class _SummationExpression(Expression):
     domain: Domain
 
     def render(self, precedence=0) -> str:
-        inner = max(2, precedence)
+        inner = max(3, precedence)
         with local_formatting_scope(self.domain.quantifiers):
             rendered = f"\\sum_{{{self.domain.render()}}}"
-            rendered += f"{{{self.summand.render(inner)}}}"
+            rendered += self.summand.render(inner)
         return rendered
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class _CardinalityExpression(Expression):
     domain: Domain
+
+    def render(self, precedence=0) -> str:
+        raise NotImplementedError()  # TODO
+
+
+@dataclasses.dataclass(frozen=True)
+class _SwitchCase:
+    expression: Expression
+    predicate: Optional[Predicate] = None
+
+
+@dataclasses.dataclass(eq=False, frozen=True)
+class _SwitchExpression(Expression):
+    cases: Sequence[_SwitchCase]
+
+    def render(self, precedence=0) -> str:
+        cs: list[str] = []
+        for c in self.cases:
+            s = c.expression.render()
+            if c.predicate is not None:
+                s += f" \\mid {c.predicate.render()}"
+            cs.append(s)
+        sep = ", \\\\ "
+        return f"\\begin{{cases}} {sep.join(cs)} \\end{{cases}}"
+
+
+class ScalarQuantifiable:
+    def __iter__(self) -> Quantified[Quantifier]:
+        return (t[0] for t in cross(self))
+
+    def render(self) -> str:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass(frozen=True)
+class QuantifiableReference(ScalarQuantifiable, _Reference):
+    def render(self) -> str:
+        return render_identifier(self.identifier, *self.subscripts)
+
+
+@dataclasses.dataclass(frozen=True)
+class Quantifier(Expression):
+    identifier: QuantifierIdentifier
+
+    def render(self, _precedence=0) -> str:
+        return self.identifier.format()
+
+
+Quantification = Quantified[tuple[Quantifier, ...]]
+
+
+def expression_quantifiable(expr: Expression) -> Optional[ScalarQuantifiable]:
+    if isinstance(expr, Quantifier):
+        return expr.identifier.quantifiable
+    return None
 
 
 class Predicate:
@@ -258,38 +326,20 @@ class _BinaryPredicate(Predicate):
         return rendered
 
 
-class Quantifiable:
-    def __iter__(self) -> Lazy[Quantifier]:
-        return (t[0] for t in cross(self))
-
-    def render(self) -> str:
-        raise NotImplementedError()
-
-
-@dataclasses.dataclass(frozen=True)
-class SpaceReference(_Reference):
-    pass
-
-
-@dataclasses.dataclass(frozen=True)
-class Quantifier(Expression):
-    identifier: QuantifierIdentifier
-
-    def render(self, _precedence=0) -> str:
-        return self.identifier.format()
-
-
-Space = Lazy[tuple[Quantifier, ...]]
-
-
-Source = Union[Quantifiable, SpaceReference, Space, tuple["Source", ...]]
+Quantifiable = Union[
+    Quantification,
+    Quantified[Quantifier],
+    ScalarQuantifiable,
+    Domain,
+    tuple["Quantifiable", ...],
+]
 
 
 _V = TypeVar("_V")
 
 
-def within_domain(lazy: Lazy[_V]) -> tuple[_V, Domain]:
-    value, declarations = force(lazy)
+def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
+    value, declarations = unquantify(quantified)
     quantifiers: list[QuantifierIdentifier] = []
     mask: Optional[Predicate] = None
     for declaration in declarations:
@@ -306,11 +356,24 @@ def within_domain(lazy: Lazy[_V]) -> tuple[_V, Domain]:
     return value, domain
 
 
-def domain_from_space(space: Space) -> Domain:
-    qs, domain = within_domain(space)
-    idens = [q.identifier for q in qs]
+def domain_from_quantifiable(
+    quantifiable: Quantifiable, names: Optional[Iterable[Name]] = None
+) -> Domain:
+    return _domain_from_quantified(cross(quantifiable, names=names))
+
+
+def _domain_from_quantified(
+    quantified: Quantified[Union[Quantifier, tuple[Quantifier, ...]]]
+) -> Domain:
+    qs, domain = within_domain(quantified)
+    if isinstance(qs, tuple):
+        idens = [q.identifier for q in qs]
+    else:
+        idens = [qs.identifier]
     if not _isomorphic(idens, domain.quantifiers):
-        raise Exception("Inconsistent quantifiers")
+        raise Exception(
+            f"Inconsistent quantifiers: {idens} != {domain.quantifiers}"
+        )
     return dataclasses.replace(domain, quantifiers=idens)
 
 
@@ -320,36 +383,56 @@ def _isomorphic(
     return collections.Counter(qs1) == collections.Counter(qs2)
 
 
-def cross(*sources: Source, names: Optional[Sequence[Name]] = None) -> Space:
-    """Generates a cross-product space
+def cross(
+    *quantifiables: Quantifiable, names: Optional[Iterable[Name]] = None
+) -> Quantification:
+    """Generates a cross-product quantifiable
 
     Args:
-        sources: One or more sources
+        quantifiables: One or more quantifiables
         names: Optional name prefixes
     """
     names_by_index = dict(enumerate(names or []))
     yield tuple(
         Quantifier(declare(q.child(name=names_by_index.get(i))))
-        for i, q in enumerate(_source_quantifiers(sources))
+        for i, q in enumerate(_quantifiable_quantifiers(quantifiables))
     )
 
 
-def _source_quantifiers(source: Source) -> Iterable[QuantifierIdentifier]:
-    if isinstance(source, tuple):
-        for component in source:
-            yield from _source_quantifiers(component)
-    elif isinstance(source, (Quantifiable, SpaceReference)):
-        yield QuantifierIdentifier.root(source)
-    else:  # Space
-        domain = domain_from_space(cast(Space, source))
-        declare(domain.mask)
+def _quantifiable_quantifiers(
+    quantifiable: Quantifiable,
+) -> Iterable[QuantifierIdentifier]:
+    if isinstance(quantifiable, tuple):
+        for component in quantifiable:
+            yield from _quantifiable_quantifiers(component)
+    elif isinstance(quantifiable, (ScalarQuantifiable, QuantifiableReference)):
+        yield QuantifierIdentifier.root(quantifiable)
+    else:  # Quantification or domain
+        if isinstance(quantifiable, Domain):
+            domain = quantifiable
+        else:
+            domain = _domain_from_quantified(cast(Any, quantifiable))
+        if domain.mask is not None:
+            declare(domain.mask)
         yield from domain.quantifiers
 
 
-def total(body: Lazy[Expression]) -> Expression:
+def total(body: Quantified[Expression]) -> Expression:
     return _SummationExpression(*within_domain(body))
 
 
-def size(space: Space) -> Expression:
-    _, domain = within_domain(None for _t in space)
+def size(quantifiable: Quantifiable) -> Expression:
+    domain = domain_from_quantifiable(quantifiable)
     return _CardinalityExpression(domain)
+
+
+def switch(
+    *cases: Union[tuple[Predicate, ExpressionLike], ExpressionLike]
+) -> Expression:
+    cs: list[_SwitchCase] = []
+    for t in cases:
+        if isinstance(t, tuple):
+            cs.append(_SwitchCase(to_expression(t[1]), t[0]))
+        else:
+            cs.append(_SwitchCase(to_expression(t)))
+    return _SwitchExpression(cs)

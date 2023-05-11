@@ -20,8 +20,8 @@ class Image:
         ub = encode_extended_float(self.upper_bound)
         if self.is_integral:
             if lb == 0 and ub == 1:
-                return "{0, 1}"
-            return f"{{{lb} \\ldots {ub}}}"
+                return "\\{0, 1\\}"
+            return f"\\{{{lb} \\ldots {ub}\\}}"
         return f"[{lb}, {ub}]"
 
 
@@ -29,11 +29,11 @@ def indicator() -> Image:
     return Image(lower_bound=0, upper_bound=1, is_integral=True)
 
 
-def non_negative_real(upper_bound=math.inf) -> Image:
+def non_negative(upper_bound=math.inf) -> Image:
     return Image(lower_bound=0, upper_bound=upper_bound)
 
 
-def non_positive_real(lower_bound=-math.inf) -> Image:
+def non_positive(lower_bound=-math.inf) -> Image:
     return Image(lower_bound=lower_bound, upper_bound=0)
 
 

@@ -9,15 +9,15 @@ from typing import Any, Generator, Tuple, TypeVar
 _V = TypeVar("_V")
 
 
-Lazy = Generator[_V, None, None]
+Quantified = Generator[_V, None, None]
 
 
-def _run_lazy(lazy: Lazy[_V]) -> _V:
-    elems = list(itertools.islice(lazy, 2))
+def _run_quantified(quantified: Quantified[_V]) -> _V:
+    elems = list(itertools.islice(quantified, 2))
     if not elems:
-        raise ValueError("Empty iterator")
+        raise ValueError("Empty quantified")
     if len(elems) > 1:
-        raise ValueError("Iterator contained multiple values")
+        raise ValueError("Quantified contained multiple values")
     return elems[0]
 
 
@@ -26,14 +26,14 @@ class _Scope:
     declarations: list[Any]
 
 
-_active_scope: Any = contextvars.ContextVar("lazy_scope")
+_active_scope: Any = contextvars.ContextVar("quantified_scope")
 
 
-def force(lazy: Lazy[_V]) -> Tuple[_V, list[Any]]:
+def unquantify(quantified: Quantified[_V]) -> Tuple[_V, list[Any]]:
     scope = _Scope([])
     token = _active_scope.set(scope)
     try:
-        value = _run_lazy(lazy)
+        value = _run_quantified(quantified)
     finally:
         _active_scope.reset(token)
     return value, scope.declarations

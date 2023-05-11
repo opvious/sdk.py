@@ -12,6 +12,7 @@ from typing import (
     Literal,
     Mapping,
     Optional,
+    Sequence,
 )
 
 from ..common import Label
@@ -25,21 +26,18 @@ Environment = KeysView[Name]
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class Identifier:
-    name: Optional[Name]
-    """The requested name"""
-
     def format(self) -> Name:
         """Generates the final name"""
         return _active_scope.get().format(self)
 
 
 class GlobalIdentifier(Identifier):
-    pass
+    name: Optional[Name]
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class DimensionIdentifier(GlobalIdentifier):
-    label: Optional[Label]
+    name: Optional[Name]
 
 
 TensorVariant = Literal["variable", "parameter"]
@@ -47,25 +45,22 @@ TensorVariant = Literal["variable", "parameter"]
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class TensorIdentifier(GlobalIdentifier):
+    name: Optional[Name]
     variant: TensorVariant
-    label: Optional[Label]
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class AliasIdentifier(GlobalIdentifier):
-    pass
+    name: Name
 
 
 class QuantifierIdentifier(Identifier):
-    @property
-    def quantifiable(self) -> Any:
-        raise NotImplementedError()
+    name: Optional[Name]
+    quantifiable: Any
 
     @classmethod
-    def root(
-        cls, quantifiable: Any, name: Optional[Name] = None
-    ) -> QuantifierIdentifier:
-        return _RootQuantifierIdentifier(name=name, quantifiable=quantifiable)
+    def root(cls, quantifiable: Any) -> QuantifierIdentifier:
+        return _RootQuantifierIdentifier(quantifiable=quantifiable)
 
     def child(self, name: Optional[Name]) -> QuantifierIdentifier:
         if name is None or name == self.name:
@@ -76,10 +71,12 @@ class QuantifierIdentifier(Identifier):
 @dataclasses.dataclass(eq=False, frozen=True)
 class _RootQuantifierIdentifier(QuantifierIdentifier):
     quantifiable: Any
+    name = None
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class _ChildQuantifierIdentifier(QuantifierIdentifier):
+    name: Name
     parent: QuantifierIdentifier
 
     @property
@@ -88,41 +85,41 @@ class _ChildQuantifierIdentifier(QuantifierIdentifier):
 
 
 class IdentifierFormatter:
-    def __init__(self) -> None:
-        self.__globals: dict[GlobalIdentifier, bool] = {}
+    def __init__(self, labels: Mapping[GlobalIdentifier, Label]) -> None:
+        self._formatted: dict[GlobalIdentifier, bool] = {}
+        self._labels = labels
 
-    def formatted_globals(self) -> Mapping[GlobalIdentifier, bool]:
-        return self.__globals
+    def formatted_globals(self) -> Sequence[GlobalIdentifier]:
+        return list(self._formatted)
 
     def format(self, identifier: Identifier, env: Environment) -> Name:
         if isinstance(identifier, GlobalIdentifier):
-            self.__globals[identifier] = True
-        if isinstance(identifier, DimensionIdentifier):
-            return self._format_dimension(identifier, env)
-        elif isinstance(identifier, TensorIdentifier):
-            return self._format_tensor(identifier, env)
-        elif isinstance(identifier, AliasIdentifier):
-            return self._format_alias(identifier, env)
+            self._formatted[identifier] = True
+            if identifier.name:
+                return identifier.name
+            label = self._labels[identifier]
+            if isinstance(identifier, DimensionIdentifier):
+                return self._format_dimension(label, env)
+            elif isinstance(identifier, TensorIdentifier):
+                if identifier.variant == "parameter":
+                    return self._format_parameter(label, env)
+                else:
+                    return self._format_variable(label, env)
         elif isinstance(identifier, QuantifierIdentifier):
             return self.format_quantifier(identifier, env)
-        else:
-            raise TypeError(f"Unexpected identifier: {identifier}")
+        raise TypeError(f"Unexpected identifier: {identifier}")
 
-    def _format_dimension(
-        self, dim: DimensionIdentifier, env: Environment
-    ) -> Name:
+    def _format_dimension(self, label: Label, env: Environment) -> Name:
         raise NotImplementedError()
 
-    def _format_tensor(
-        self, tensor: TensorIdentifier, env: Environment
-    ) -> Name:
+    def _format_parameter(self, label: Label, env: Environment) -> Name:
         raise NotImplementedError()
 
-    def _format_alias(self, alias: AliasIdentifier, env: Environment) -> Name:
+    def _format_variable(self, label: Label, env: Environment) -> Name:
         raise NotImplementedError()
 
     def format_quantifier(
-        self, quant: QuantifierIdentifier, env: Environment
+        self, identifier: QuantifierIdentifier, env: Environment
     ) -> Name:
         raise NotImplementedError()
 
@@ -206,7 +203,7 @@ def local_formatting_scope(
         raise Exception("Missing active formatter")
     child = scope.child()
     for quantifier in quantifiers:
-        scope.prepare(quantifier)
+        child.prepare(quantifier)
     token = _active_scope.set(child)
     try:
         yield

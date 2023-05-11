@@ -1,32 +1,38 @@
 from .ast import (
     Expression,
+    ExpressionLike,
     Predicate,
-    Space,
+    Quantifiable,
+    Quantification,
+    Quantifier,
     cross,
+    literal,
     size,
+    switch,
     total,
-)
-from .definitions import (
-    Constraint,
-    Dimension,
-    Interval,
-    Objective,
-    Parameter,
-    Variable,
-    alias,
-    constraint,
-    objective,
 )
 from .images import (
     Image,
     indicator,
     integral,
     natural,
-    non_negative_real,
-    non_positive_real,
+    non_negative,
+    non_positive,
     unit,
 )
-from .model import Model
+from .model import (
+    Constraint,
+    Dimension,
+    Model,
+    Objective,
+    Parameter,
+    Variable,
+    alias,
+    constraint,
+    interval,
+    objective,
+)
+from .quantified import Quantified
 
 __all__ = [
     "Model",
@@ -39,21 +45,26 @@ __all__ = [
     "alias",
     "constraint",
     "objective",
-    # Expressions and spaces
+    # Expressions and quantifiables
     "Expression",
-    "Interval",
+    "ExpressionLike",
     "Predicate",
-    "Space",
+    "Quantifiable",
+    "Quantification",
+    "Quantified",
+    "Quantifier",
     "cross",
-    "project",
+    "interval",
+    "literal",
     "size",
+    "switch",
     "total",
     # Images
     "Image",
     "indicator",
     "integral",
     "natural",
-    "non_negative_real",
-    "non_positive_real",
+    "non_negative",
+    "non_positive",
     "unit",
 ]
