@@ -1,6 +1,5 @@
 import opvious.modeling as om
 import opvious.modeling.patterns as omp
-from typing import Optional
 
 
 class TestRender:
