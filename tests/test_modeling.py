@@ -144,12 +144,18 @@ class GroupExpenses(om.Model):
 
 
 class Sudoku(om.Model):
+    _qualifiers = ["row", "column", "value"]
+
     def __init__(self):
         self.input = om.Parameter(
-            (self.positions, self.positions, self.values), image=om.indicator()
+            (self.positions, self.positions, self.values),
+            image=om.indicator(),
+            qualifiers=self._qualifiers,
         )
         self.output = om.Variable(
-            (self.positions, self.positions, self.values), image=om.indicator()
+            (self.positions, self.positions, self.values),
+            image=om.indicator(),
+            qualifiers=self._qualifiers,
         )
 
     @property
@@ -162,28 +168,28 @@ class Sudoku(om.Model):
     def positions(self) -> om.Quantified[om.Quantifier]:
         return om.interval(0, 8)
 
-    @om.constraint()
+    @om.constraint(qualifiers=_qualifiers)
     def output_matches_input(self):
         for i, j, v in om.cross(self.positions, self.positions, self.values):
             if self.input(i, j, v):
                 yield self.output(i, j, v) >= self.input(i, j, v)
 
-    @om.constraint()
+    @om.constraint
     def one_output_per_cell(self):
         for i, j in om.cross(self.positions, self.positions):
             yield om.total(self.output(i, j, v) == 1 for v in self.values)
 
-    @om.constraint()
+    @om.constraint
     def one_value_per_column(self):
         for j, v in om.cross(self.positions, self.values):
             yield om.total(self.output(i, j, v) == 1 for i in self.positions)
 
-    @om.constraint()
+    @om.constraint
     def one_value_per_row(self):
         for i, v in om.cross(self.positions, self.values):
             yield om.total(self.output(i, j, v) == 1 for j in self.positions)
 
-    @om.constraint()
+    @om.constraint
     def one_value_per_box(self):
         for v, b in om.cross(self.values, self.positions):
             yield om.total(

@@ -378,9 +378,12 @@ def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
 
 
 def domain_from_quantifiable(
-    quantifiable: Quantifiable, names: Optional[Iterable[Name]] = None
+    quantifiable: Quantifiable,
+    quantifier_names: Optional[Iterable[Name]] = None,
 ) -> Domain:
-    return _domain_from_quantified(cross(quantifiable, names=names))
+    return _domain_from_quantified(
+        cross(quantifiable, quantifier_names=quantifier_names)
+    )
 
 
 def _domain_from_quantified(
@@ -405,17 +408,18 @@ def _isomorphic(
 
 
 def cross(
-    *quantifiables: Quantifiable, names: Optional[Iterable[Name]] = None
+    *quantifiables: Quantifiable,
+    quantifier_names: Optional[Iterable[Name]] = None,
 ) -> Quantification:
     """Generates the cross-product of multiple quantifiables
 
     Args:
         quantifiables: One or more quantifiables
-        names: Optional names for the generated quantifiers
+        quantifier_names: Optional names for the generated quantifiers
 
     This function is the core building block for quantifying values.
     """
-    names_by_index = dict(enumerate(names or []))
+    names_by_index = dict(enumerate(quantifier_names or []))
     yield tuple(
         Quantifier(declare(q.child(name=names_by_index.get(i))))
         for i, q in enumerate(_quantifiable_quantifiers(quantifiables))

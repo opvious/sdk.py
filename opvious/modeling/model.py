@@ -136,7 +136,7 @@ class Model:
                 if not rs:
                     raise Exception("Missing rendered statement")
                 rendered.append(rs)
-            contents = "".join(f"{s} \\\\\n" for s in rendered if s)
+            contents = "".join(f"  {s} \\\\\n" for s in rendered if s)
         return f"$$\n\\begin{{align}}\n{contents}\\end{{align}}\n$$"
 
     def _repr_latex_(self) -> str:
@@ -203,6 +203,7 @@ class Dimension(_Definition, ScalarQuantifiable):
 
     def __init__(
         self,
+        *,
         label: Optional[Label] = None,
         name: Optional[Name] = None,
         is_numeric: bool = False,
@@ -268,11 +269,13 @@ class _Tensor(_Definition):
         name: Optional[Name] = None,
         label: Optional[Label] = None,
         image: Image = Image(),
+        qualifiers: Optional[Sequence[Label]] = None,
     ):
         self._identifier = TensorIdentifier(name=name, variant=self._variant)
         self._domain = domain_from_quantifiable(quantifiables)
-        self._image = image
         self._label = label
+        self.image = image
+        self.qualifiers = qualifiers
 
     @property
     def identifier(self) -> Optional[GlobalIdentifier]:
@@ -297,8 +300,9 @@ class _Tensor(_Definition):
 
     def render_statement(self, label: Label, _model: Any) -> Optional[str]:
         c = self._variant[0]
-        s = f"\\S^{c}_{{{label}}}&: {self._identifier.format()} \\in "
-        s += self._image.render()
+        s = f"\\S^{c}_{{{_render_label(label, self.qualifiers)}}}&: "
+        s += f"{self._identifier.format()} \\in "
+        s += self.image.render()
         domain = self._domain
         if domain.quantifiers:
             with local_formatting_scope(domain.quantifiers):
@@ -311,6 +315,13 @@ class _Tensor(_Definition):
                     sup = " \\times ".join(formatted)
                 s += f"^{{{sup}}}"
         return s
+
+
+def _render_label(label: Label, qualifiers: Optional[Sequence[Label]]) -> str:
+    s = label
+    if qualifiers:
+        s += f"[{','.join(qualifiers)}]"
+    return s
 
 
 class Parameter(_Tensor):
@@ -360,10 +371,10 @@ class Alias(_Definition):
         self,
         aliasable: Aliasable[Any, Any],
         name: Name,
-        subscript_names: Optional[Iterable[Name]] = None,
+        quantifier_names: Optional[Iterable[Name]] = None,
     ):
         self._identifier = AliasIdentifier(name=name)
-        self._subscript_names = subscript_names
+        self._quantifier_names = quantifier_names
         self._aliasable = aliasable
         self._aliased: Optional[_Aliased] = None
 
@@ -378,7 +389,7 @@ class Alias(_Definition):
             q or _integers for q in self._aliased.quantifiables
         )
         outer_domain = domain_from_quantifiable(
-            quantifiable, names=self._subscript_names
+            quantifiable, quantifier_names=self._quantifier_names
         )
         expressions = [Quantifier(q) for q in outer_domain.quantifiers]
         value = self._aliasable(model, *expressions)
@@ -437,20 +448,20 @@ _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
 
 
 def alias(
-    name: Name, subscript_names: Optional[Iterable[Name]] = None
+    name: Name, quantifier_names: Optional[Iterable[Name]] = None
 ) -> Callable[[_F], _F]:  # TODO: Tighten argument type
     """Decorator creating an alias for the given method
 
     Args:
         name: The generated alias' name
-        subscript_names: Optional names to use for the alias' quantifiers
+        quantifier_names: Optional names to use for the alias' quantifiers
 
 
     The decorated function may be wrapped as a property.
     """
 
     def wrap(fn):
-        return Alias(fn, name=name, subscript_names=subscript_names)
+        return Alias(fn, name=name, quantifier_names=quantifier_names)
 
     return wrap
 
@@ -466,9 +477,15 @@ class Constraint(_Definition):
 
     identifier = None
 
-    def __init__(self, body: ConstraintBody, label: Optional[Label] = None):
+    def __init__(
+        self,
+        body: ConstraintBody,
+        label: Optional[Label] = None,
+        qualifiers: Optional[Sequence[Label]] = None,
+    ):
         self._body = body
         self._label = label
+        self.qualifiers = qualifiers
 
     def __call__(self, *args, **kwargs):
         return self._body(*args, **kwargs)
@@ -478,7 +495,7 @@ class Constraint(_Definition):
         return self._label
 
     def render_statement(self, label: Label, model: Any) -> Optional[str]:
-        s = f"\\S^c_{{{label}}}&: "
+        s = f"\\S^c_{{{_render_label(label, self.qualifiers)}}}&: "
         predicate, domain = within_domain(self._body(model))
         with local_formatting_scope(domain.quantifiers):
             if domain.quantifiers:
@@ -496,12 +513,16 @@ def constraint(body: ConstraintBody) -> Constraint:
 def constraint(
     *,
     label: Optional[Label] = None,
+    qualifiers: Optional[Sequence[Label]] = None,
 ) -> Callable[[ConstraintBody], Constraint]:
     ...
 
 
 def constraint(
-    body: Optional[ConstraintBody] = None, *, label: Optional[Label] = None
+    body: Optional[ConstraintBody] = None,
+    *,
+    label: Optional[Label] = None,
+    qualifiers: Optional[Sequence[Label]] = None,
 ) -> Any:
     """Decorator flagging a model method as a constraint
 
@@ -528,7 +549,7 @@ def constraint(
         return Constraint(body)
 
     def wrap(fn):
-        return Constraint(fn, label=label)
+        return Constraint(fn, label=label, qualifiers=qualifiers)
 
     return wrap
 
