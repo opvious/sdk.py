@@ -26,7 +26,7 @@ class SetCover(om.Model):
     covers = om.Parameter(sets, vertices, image=om.indicator())
     used = om.Variable(sets, image=om.indicator())
 
-    @om.constraint()
+    @om.constraint
     def all_covered(self):
         for v in self.vertices:
             count = om.total(
@@ -34,7 +34,7 @@ class SetCover(om.Model):
             )
             yield count >= 1
 
-    @om.objective()
+    @om.objective
     def minimize_sets(self):
         return om.total(self.used(s) for s in self.sets)
 

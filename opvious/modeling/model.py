@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     TypeVar,
     Union,
+    overload,
 )
 
 from ..common import Label, to_camel_case
@@ -52,7 +53,7 @@ from .images import Image
 from .quantified import Quantified
 
 
-class Definition:
+class _Definition:
     @property
     def label(self) -> Optional[Label]:
         raise NotImplementedError()
@@ -68,11 +69,13 @@ class Definition:
 @dataclasses.dataclass(frozen=True)
 class _Statement:
     label: Label
-    definition: Definition
+    definition: _Definition
     inherited: bool
 
 
 class Model:
+    """Base model class"""
+
     def _gather_statements(self) -> Sequence[_Statement]:
         statements: list[_Statement] = []
 
@@ -80,7 +83,7 @@ class Model:
             for attr, value in dct.items():
                 if isinstance(value, property):
                     value = value.fget
-                if not isinstance(value, Definition):
+                if not isinstance(value, _Definition):
                     continue
                 label = value.label or to_camel_case(attr)
                 statements.append(_Statement(label, value, inherited))
@@ -169,11 +172,39 @@ class _DefaultFormatter(IdentifierFormatter):
         return name
 
 
-class Dimension(Definition, ScalarQuantifiable):
+class Dimension(_Definition, ScalarQuantifiable):
+    """An abstract collection of values
+
+    Args:
+        label: Dimension label override. By default the label is derived from
+            the attribute's name
+        name: The dimension's name. By default the name will be derived from
+            the dimension's label
+        is_numeric: Whether the dimension will only contain integers. This
+            enables arithmetic operations on this dimension's quantifiers
+
+    As a convenience, iterating on a dimension returns a suitable quantifier.
+    This allows creating simple constraints directly:
+
+    .. code-block:: python
+
+        class MyModel(Model):
+            products = Dimension()
+            product_count = Variable(products, image=natural())
+
+            @constraint()
+            def at_least_one_of_each_product(self):
+                for p in self.products:  # <=
+                    yield self.product_count(p) >= 1
+
+    Dimensions must be set as attributes on :class:`Model` instances so that
+    they can be automatically picked up.
+    """
+
     def __init__(
         self,
-        name: Optional[Name] = None,
         label: Optional[Label] = None,
+        name: Optional[Name] = None,
         is_numeric: bool = False,
     ):
         self._identifier = DimensionIdentifier(name=name)
@@ -217,6 +248,12 @@ _integers = _Interval(literal(-math.inf), literal(math.inf))
 def interval(
     lower_bound: ExpressionLike, upper_bound: ExpressionLike
 ) -> Quantified[Quantifier]:
+    """A range of values
+
+    Args:
+        lower_bound: The range's inclusive lower bound
+        upper_bound: The range's inclusive upper bound
+    """
     interval = _Interval(
         lower_bound=to_expression(lower_bound),
         upper_bound=to_expression(upper_bound),
@@ -224,7 +261,7 @@ def interval(
     return iter(interval)
 
 
-class _Tensor(Definition):
+class _Tensor(_Definition):
     def __init__(
         self,
         *quantifiables: Quantifiable,
@@ -277,10 +314,14 @@ class _Tensor(Definition):
 
 
 class Parameter(_Tensor):
+    """An optimization input parameter"""
+
     _variant = "parameter"
 
 
 class Variable(_Tensor):
+    """An optimization output variable"""
+
     _variant = "variable"
 
 
@@ -312,7 +353,7 @@ class _Aliased:
     quantifiables: Sequence[Optional[ScalarQuantifiable]]
 
 
-class Alias(Definition):
+class Alias(_Definition):
     label = None
 
     def __init__(
@@ -398,6 +439,16 @@ _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
 def alias(
     name: Name, subscript_names: Optional[Iterable[Name]] = None
 ) -> Callable[[_F], _F]:  # TODO: Tighten argument type
+    """Decorator creating an alias for the given method
+
+    Args:
+        name: The generated alias' name
+        subscript_names: Optional names to use for the alias' quantifiers
+
+
+    The decorated function may be wrapped as a property.
+    """
+
     def wrap(fn):
         return Alias(fn, name=name, subscript_names=subscript_names)
 
@@ -407,7 +458,12 @@ def alias(
 ConstraintBody = Callable[[_M], Quantified[Predicate]]
 
 
-class Constraint(Definition):
+class Constraint(_Definition):
+    """Optimization constraint
+
+    Constraint should be created via the :func:`.constraint` decorator.
+    """
+
     identifier = None
 
     def __init__(self, body: ConstraintBody, label: Optional[Label] = None):
@@ -431,9 +487,46 @@ class Constraint(Definition):
         return s
 
 
+@overload
+def constraint(body: ConstraintBody) -> Constraint:
+    ...
+
+
+@overload
 def constraint(
+    *,
     label: Optional[Label] = None,
 ) -> Callable[[ConstraintBody], Constraint]:
+    ...
+
+
+def constraint(
+    body: Optional[ConstraintBody] = None, *, label: Optional[Label] = None
+) -> Any:
+    """Decorator flagging a model method as a constraint
+
+    Args:
+        label: Constraint label override. By default the label is derived from
+            the method's name.
+
+    As a convenience, this decorator can be used with and without arguments:
+
+    .. code-block:: python
+
+        class MyModel(Model):
+            # ...
+
+            @constraint
+            def ensure_something(self):
+                # ...
+
+            @constraint(label="ensuresEverything")
+            def ensure_something_else(self):
+                # ...
+    """
+    if body:
+        return Constraint(body)
+
     def wrap(fn):
         return Constraint(fn, label=label)
 
@@ -441,12 +534,18 @@ def constraint(
 
 
 ObjectiveSense = Literal["max", "min"]
+"""Optimization direction"""
 
 
 ObjectiveBody = Callable[[_M], Expression]
 
 
-class Objective(Definition):
+class Objective(_Definition):
+    """Optimization objective
+
+    Objectives should be created via the :func:`.objective` decorator.
+    """
+
     identifier = None
 
     def __init__(
@@ -479,9 +578,49 @@ class Objective(Definition):
         return f"\\S^o_{{{label}}}&: \\{sense} {expression.render()}"
 
 
+@overload
+def objective(body: ObjectiveBody) -> Constraint:
+    ...
+
+
+@overload
 def objective(
-    sense: Optional[ObjectiveSense] = None, label: Optional[Label] = None
-) -> Callable[[ObjectiveBody], Objective]:
+    *, sense: Optional[ObjectiveSense] = None, label: Optional[Label] = None
+) -> Callable[[ObjectiveBody], Constraint]:
+    ...
+
+
+def objective(
+    body: Optional[ObjectiveBody] = None,
+    *,
+    sense: Optional[ObjectiveSense] = None,
+    label: Optional[Label] = None,
+) -> Any:
+    """Decorator flagging a method as an objective
+
+    Args:
+        sense: Optimization direction. This may be omitted if the method name
+            starts with `minimize` or `maximize`, in which case the appropriate
+            sense will be inferred.
+        label: Objective label override. By default the label is derived from
+            the method's name.
+
+    As a convenience, this decorator can be used with and without arguments:
+
+    .. code-block:: python
+
+        class MyModel(Model):
+            # ...
+
+            @objective
+            def minimize_this(self):
+                # ...
+
+            @objective(sense="max")
+            def optimize_that(self):
+                # ...
+    """
+
     def wrap(fn):
         return Objective(fn, sense=sense, label=label)
 

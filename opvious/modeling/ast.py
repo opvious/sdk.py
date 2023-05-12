@@ -31,6 +31,8 @@ def render_identifier(iden: Identifier, *subscripts: Expression) -> str:
 
 # https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types
 class Expression:
+    """Base expression class"""
+
     def __add__(self, other):
         return _BinaryExpression("add", self, to_expression(other))
 
@@ -111,6 +113,14 @@ class _LiteralExpression(Expression):
 
 
 def literal(val: Union[float, int]) -> Expression:
+    """Wraps a literal value into an expression
+
+    Arg:
+        val: float or integer
+
+    In general you will not need to use this method as expression operators
+    automatically call this under the hood.
+    """
     if not isinstance(val, (float, int)):
         raise TypeError("Unexpected literal value")
     return _LiteralExpression(val)
@@ -261,22 +271,33 @@ class QuantifiableReference(ScalarQuantifiable, _Reference):
 
 @dataclasses.dataclass(frozen=True)
 class Quantifier(Expression):
+    """An expression used to index a quantifiable space"""
+
     identifier: QuantifierIdentifier
+    """This index' unique identifier"""
 
     def render(self, _precedence=0) -> str:
         return self.identifier.format()
 
 
 Quantification = Quantified[tuple[Quantifier, ...]]
+"""Generic quantification result"""
 
 
 def expression_quantifiable(expr: Expression) -> Optional[ScalarQuantifiable]:
+    """Returns the underlying scalar quantifiable for an expression if any"""
     if isinstance(expr, Quantifier):
         return expr.identifier.quantifiable
     return None
 
 
 class Predicate:
+    """Base expression predicate class
+
+    Instances of this class are generated automatically by using comparison
+    operators on expressions.
+    """
+
     def __and__(self, other):
         return _BinaryPredicate("\\land", self, other)
 
@@ -386,11 +407,13 @@ def _isomorphic(
 def cross(
     *quantifiables: Quantifiable, names: Optional[Iterable[Name]] = None
 ) -> Quantification:
-    """Generates a cross-product quantifiable
+    """Generates the cross-product of multiple quantifiables
 
     Args:
         quantifiables: One or more quantifiables
-        names: Optional name prefixes
+        names: Optional names for the generated quantifiers
+
+    This function is the core building block for quantifying values.
     """
     names_by_index = dict(enumerate(names or []))
     yield tuple(
@@ -418,10 +441,16 @@ def _quantifiable_quantifiers(
 
 
 def total(body: Quantified[Expression]) -> Expression:
+    """Returns an expression representing the sum of the quantified input
+
+    Args:
+        body: A quantified expression to be summed over
+    """
     return _SummationExpression(*within_domain(body))
 
 
 def size(quantifiable: Quantifiable) -> Expression:
+    """Returns the cardinality of the quantifiable as an expression"""
     domain = domain_from_quantifiable(quantifiable)
     return _CardinalityExpression(domain)
 
@@ -429,6 +458,13 @@ def size(quantifiable: Quantifiable) -> Expression:
 def switch(
     *cases: Union[tuple[Predicate, ExpressionLike], ExpressionLike]
 ) -> Expression:
+    """Returns an expression allowing branching between different values
+
+    Args:
+        cases: Tuples of expressions and optionally, predicate. The expression
+            for the first predicate that matches will be used. A missing
+            predicate always matches.
+    """
     cs: list[_SwitchCase] = []
     for t in cases:
         if isinstance(t, tuple):
