@@ -358,33 +358,36 @@ class Alias(Definition):
                         s += inner_domain.quantifiers[0].quantifiable.render()
         return s
 
+    def __call__(self, model: Any, *expressions: Expression) -> Any:
+        # This is used for property calls
+        if self._aliased is None:
+            value = self._aliasable(model, *expressions)
+            if isinstance(value, Expression):
+                variant: _AliasedVariant = "expression"
+            elif isinstance(value, tuple):
+                variant = "quantification"
+            else:
+                variant = "scalar_quantification"
+            self._aliased = _Aliased(
+                variant,
+                [expression_quantifiable(x) for x in expressions],
+            )
+        if self._aliased.variant == "expression":
+            return ExpressionReference(self._identifier, expressions)
+        else:
+            ref = QuantifiableReference(self._identifier, expressions)
+            if self._aliased.variant == "quantification":
+                return cross(ref)
+            else:
+                return iter(ref)
+
     def __get__(self, model: Any, _objtype=None) -> Callable[..., Any]:
+        # This is needed for non-property calls
         if not isinstance(model, Model):
             raise TypeError(f"Unexpected model: {model}")
 
         def wrapped(*expressions: Expression) -> Any:
-            nonlocal self
-
-            if self._aliased is None:
-                value = self._aliasable(model, *expressions)
-                if isinstance(value, Expression):
-                    variant: _AliasedVariant = "expression"
-                elif isinstance(value, tuple):
-                    variant = "quantification"
-                else:
-                    variant = "scalar_quantification"
-                self._aliased = _Aliased(
-                    variant,
-                    [expression_quantifiable(x) for x in expressions],
-                )
-            if self._aliased.variant == "expression":
-                return ExpressionReference(self._identifier, expressions)
-            else:
-                ref = QuantifiableReference(self._identifier, expressions)
-                if self._aliased.variant == "quantification":
-                    return cross(ref)
-                else:
-                    return iter(ref)
+            return self(model, *expressions)
 
         return wrapped
 
