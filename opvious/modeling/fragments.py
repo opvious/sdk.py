@@ -19,6 +19,8 @@ from .quantified import Quantified
 
 
 class ActivationIndicator(ModelFragment):
+    """Variable activation tracking"""
+
     @property
     def is_active(self) -> Variable:
         raise NotImplementedError()
@@ -64,6 +66,8 @@ class ActivationIndicator(ModelFragment):
 
 
 class MaskedSubset(ModelFragment):
+    """Quantifiable subset"""
+
     def __iter__(self) -> Iterable[Any]:
         raise NotImplementedError()
 

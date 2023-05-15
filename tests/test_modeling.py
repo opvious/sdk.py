@@ -4,19 +4,19 @@ import opvious.modeling as om
 class TestRender:
     def test_set_cover(self):
         m = SetCover()
-        print(m.render_specification_source())
+        print(m.render_specification())
 
     def test_sudoku(self):
         m = Sudoku()
-        print(m.render_specification_source())
+        print(m.render_specification())
 
     def test_lot_sizing(self):
         m = LotSizing()
-        print(m.render_specification_source())
+        print(m.render_specification())
 
     def test_group_expenses(self):
         m = GroupExpenses()
-        print(m.render_specification_source())
+        print(m.render_specification())
 
 
 class SetCover(om.Model):
@@ -128,7 +128,7 @@ class GroupExpenses(om.Model):
             transfer_count = om.total(
                 self.tranferred_indicator(s, r) for r in self.friends
             )
-            yield transfer_count <= self.max_transfer_count
+            yield transfer_count <= self.max_transfer_count()
 
     @om.objective()
     def minimize_transfer_count(self) -> om.Expression:

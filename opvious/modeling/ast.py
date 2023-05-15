@@ -60,68 +60,72 @@ class Expression:
     operators.
     """
 
-    def __add__(self, other):
+    def __add__(self, other: ExpressionLike) -> Expression:
         return _BinaryExpression("add", self, to_expression(other))
 
-    def __radd__(self, left):
-        return literal(left) + self
+    def __radd__(self, left: ExpressionLike) -> Expression:
+        return to_expression(left) + self
 
-    def __sub__(self, other):
+    def __sub__(self, other: ExpressionLike) -> Expression:
         return _BinaryExpression("sub", self, to_expression(other))
 
-    def __rsub__(self, left):
-        return literal(left) - self
+    def __rsub__(self, left: ExpressionLike) -> Expression:
+        return to_expression(left) - self
 
-    def __mod__(self, other):
+    def __mod__(self, other: ExpressionLike) -> Expression:
         return _BinaryExpression("mod", self, to_expression(other))
 
-    def __rmod__(self, left):
-        return literal(left) % self
+    def __rmod__(self, left: ExpressionLike) -> Expression:
+        return to_expression(left) % self
 
-    def __mul__(self, other):
+    def __mul__(self, other: ExpressionLike) -> Expression:
         return _BinaryExpression("mul", self, to_expression(other))
 
-    def __rmul__(self, left):
-        return literal(left) * self
+    def __rmul__(self, left: ExpressionLike) -> Expression:
+        return to_expression(left) * self
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: ExpressionLike) -> Expression:
         return _BinaryExpression("div", self, to_expression(other))
 
-    def __rtruediv__(self, left):
-        return literal(left) / self
+    def __rtruediv__(self, left: ExpressionLike) -> Expression:
+        return to_expression(left) / self
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: ExpressionLike) -> Expression:
         inner = _BinaryExpression("div", self, to_expression(other))
         return _UnaryExpression("floor", inner)
 
-    def __rfloordiv__(self, left):
-        return literal(left) // self
+    def __rfloordiv__(self, left: ExpressionLike) -> Expression:
+        return to_expression(left) // self
 
-    def __pow__(self, other):
+    def __pow__(self, other: ExpressionLike) -> Expression:
         return _BinaryExpression("pow", self, to_expression(other))
 
-    def __rpow__(self, left):
-        return literal(left) ** self
+    def __rpow__(self, left: ExpressionLike) -> Expression:
+        return to_expression(left) ** self
 
-    def __lt__(self, other):
+    def __lt__(self, other: ExpressionLike) -> Predicate:
         return _ComparisonPredicate("<", self, to_expression(other))
 
-    def __le__(self, other):
+    def __le__(self, other: ExpressionLike) -> Predicate:
         return _ComparisonPredicate("\\leq", self, to_expression(other))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> Predicate:  # type: ignore[override]
+        if not isinstance(other, (Expression, float, int)):
+            return NotImplemented
         return _ComparisonPredicate("=", self, to_expression(other))
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> Predicate:  # type: ignore[override]
+        if not isinstance(other, (Expression, float, int)):
+            return NotImplemented
         return _ComparisonPredicate("\\neq", self, to_expression(other))
 
-    def __gt__(self, other):
+    def __gt__(self, other: ExpressionLike) -> Predicate:
         return _ComparisonPredicate(">", self, to_expression(other))
 
-    def __ge__(self, other):
+    def __ge__(self, other: ExpressionLike) -> Predicate:
         return _ComparisonPredicate("\\geq", self, to_expression(other))
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self != 0)
 
     def render(self, _precedence=0) -> str:

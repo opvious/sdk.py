@@ -74,6 +74,7 @@ class _Definition:
 class _Statement:
     label: Label
     definition: _Definition
+    fragment: ModelFragment
 
 
 class ModelFragment:
@@ -113,31 +114,28 @@ class _StatementVisitor:
         while isinstance(frag, _Relabeled):
             labels.update(frag.labels)
             frag = frag.fragment
-        self._visit_dict(frag.__dict__, prefix, labels)
-        for cls in frag.__class__.__mro__:
-            self._visit_dict(cls.__dict__, prefix, labels)
 
-    def _visit_dict(
-        self,
-        dct: Mapping[str, Any],
-        prefix: Sequence[str],
-        labels: Mapping[str, Label],
-    ) -> None:
+        attrs: dict[str, Any] = {}
+        for cls in reversed(frag.__class__.__mro__[1:]):
+            attrs.update(cls.__dict__)
+        attrs.update(frag.__dict__)
+        attrs.update(frag.__class__.__dict__)
+
         path = [*prefix, ""]
-        for attr, value in dct.items():
+        for attr, value in attrs.items():
             path[-1] = attr
             if isinstance(value, property):
                 value = value.fget
-            if isinstance(value, ModelFragment):
-                self._visit_fragment(value, path)
-            elif not isinstance(value, _Definition):
+            if not isinstance(value, _Definition):
+                if isinstance(value, ModelFragment):
+                    self._visit_fragment(value, path)
                 continue
             label = (
                 labels.get(attr)
                 or value.label
                 or to_camel_case("_".join(path))
             )
-            self.statements.append(_Statement(label, value))
+            self.statements.append(_Statement(label, value, frag))
 
 
 class Model(ModelFragment):
@@ -229,7 +227,7 @@ class Model(ModelFragment):
             for s in statements:
                 if not s.label or (allowlist and s.label not in allowlist):
                     continue
-                rs = s.definition.render_statement(s.label, self)
+                rs = s.definition.render_statement(s.label, s.fragment)
                 if not rs:
                     continue
                 rendered.append(rs)
@@ -444,6 +442,21 @@ class Variable(_Tensor):
     _variant = "variable"
 
 
+class _FragmentMethod:
+    def __call__(self, *args, **kwargs) -> Any:
+        raise NotImplementedError()
+
+    def __get__(self, frag: Any, _objtype=None) -> Callable[..., Any]:
+        # This is needed for non-property calls
+        if not isinstance(frag, ModelFragment):
+            raise TypeError(f"Unexpected owner: {frag}")
+
+        def wrapped(*args, **kwargs) -> Any:
+            return self(frag, *args, **kwargs)
+
+        return wrapped
+
+
 _M = TypeVar("_M", bound=Model, contravariant=True)
 
 
@@ -472,7 +485,7 @@ class _Aliased:
     quantifiables: Sequence[Optional[ScalarQuantifiable]]
 
 
-class _Alias(_Definition):
+class _Alias(_Definition, _FragmentMethod):
     label = None
 
     def __init__(
@@ -481,6 +494,7 @@ class _Alias(_Definition):
         name: Name,
         quantifier_names: Optional[Iterable[Name]] = None,
     ):
+        super().__init__()
         self._identifier = AliasIdentifier(name=name)
         self._quantifier_names = quantifier_names
         self._aliasable = aliasable
@@ -519,8 +533,8 @@ class _Alias(_Definition):
         return s
 
     def __call__(self, model: Any, *subscripts: ExpressionLike) -> Any:
-        exprs = tuple(to_expression(s) for s in subscripts)
         # This is used for property calls
+        exprs = tuple(to_expression(s) for s in subscripts)
         if self._aliased is None:
             value = self._aliasable(model, *exprs)
             if isinstance(value, Expression):
@@ -541,16 +555,6 @@ class _Alias(_Definition):
                 return cross(ref)
             else:
                 return iter(ref)
-
-    def __get__(self, model: Any, _objtype=None) -> Callable[..., Any]:
-        # This is needed for non-property calls
-        if not isinstance(model, Model):
-            raise TypeError(f"Unexpected model: {model}")
-
-        def wrapped(*exprs: ExpressionLike) -> Any:
-            return self(model, *exprs)
-
-        return wrapped
 
 
 _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
@@ -596,7 +600,7 @@ def alias(
 ConstraintBody = Callable[[_M], Quantified[Predicate]]
 
 
-class Constraint(_Definition):
+class Constraint(_Definition, _FragmentMethod):
     """Optimization constraint
 
     Constraints are best created directly from :class:`.Model` methods via the
@@ -621,6 +625,7 @@ class Constraint(_Definition):
         label: Optional[Label] = None,
         qualifiers: Optional[Sequence[Label]] = None,
     ):
+        super().__init__()
         self._body = body
         self._label = label
         self.qualifiers = qualifiers
@@ -632,9 +637,9 @@ class Constraint(_Definition):
     def label(self):
         return self._label
 
-    def render_statement(self, label: Label, model: Any) -> Optional[str]:
+    def render_statement(self, label: Label, frag: Any) -> Optional[str]:
         s = f"\\S^c_{{{_render_label(label, self.qualifiers)}}}&: "
-        predicate, domain = within_domain(self._body(model))
+        predicate, domain = within_domain(self._body(frag))
         with local_formatting_scope(domain.quantifiers):
             if domain.quantifiers:
                 s += f"\\forall {domain.render()}, "
@@ -710,7 +715,7 @@ ObjectiveBody = Callable[[_M], Expression]
 """Optimization target expression"""
 
 
-class Objective(_Definition):
+class Objective(_Definition, _FragmentMethod):
     """Optimization objective
 
     Objectives are best created directly from :class:`.Model` methods via the
@@ -736,6 +741,7 @@ class Objective(_Definition):
         sense: ObjectiveSense,
         label: Optional[Label] = None,
     ):
+        super().__init__()
         self._body = body
         self._sense = sense
         self._label = label
@@ -747,7 +753,7 @@ class Objective(_Definition):
     def __call__(self, *args, **kwargs):
         return self._body(*args, **kwargs)
 
-    def render_statement(self, label: Label, model: Any) -> Optional[str]:
+    def render_statement(self, label: Label, frag: Any) -> Optional[str]:
         sense = self._sense
         if sense is None:
             if label.startswith("min"):
@@ -756,7 +762,7 @@ class Objective(_Definition):
                 sense = "max"
             else:
                 raise Exception(f"Missing sense for objective {label}")
-        expression = to_expression(self._body(model))
+        expression = to_expression(self._body(frag))
         return f"\\S^o_{{{label}}}&: \\{sense} {expression.render()}"
 
 
