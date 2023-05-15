@@ -1,5 +1,4 @@
 import opvious.modeling as om
-import opvious.modeling.patterns as omp
 
 
 class TestRender:
@@ -23,8 +22,8 @@ class TestRender:
 class SetCover(om.Model):
     sets = om.Dimension()
     vertices = om.Dimension()
-    covers = om.Parameter(sets, vertices, image=om.indicator())
-    used = om.Variable(sets, image=om.indicator())
+    covers = om.Parameter(sets, vertices, image=om.Image.indicator())
+    used = om.Variable(sets, image=om.Image.indicator())
 
     @om.constraint
     def all_covered(self):
@@ -41,18 +40,20 @@ class SetCover(om.Model):
 
 class LotSizing(om.Model):
     def __init__(self) -> None:
-        self.horizon = om.Parameter(image=om.natural())
+        self.horizon = om.Parameter(image=om.Image.natural())
 
         self.holding_cost = om.Parameter(self.steps, name="c")
         self.setup_cost = om.Parameter(self.steps)
-        self.demand = om.Parameter(self.steps, image=om.non_negative())
+        self.demand = om.Parameter(self.steps, image=om.Image.non_negative())
 
-        self.production = om.Variable(self.steps, image=om.non_negative())
-        self.inventory = om.Variable(self.steps, image=om.non_negative())
-        self.is_producing, self.is_producing_activates, _ = omp.activation(
+        self.production = om.Variable(
+            self.steps, image=om.Image.non_negative()
+        )
+        self.production_indicator = om.ActivationIndicator.fragment(
             variable=self.production,
             upper_bound=om.total(self.demand(t) for t in self.steps),
         )
+        self.inventory = om.Variable(self.steps, image=om.Image.non_negative())
 
     @property
     @om.alias("T")
@@ -63,7 +64,7 @@ class LotSizing(om.Model):
     def minimize_total_cost(self) -> om.Expression:
         return om.total(
             self.holding_cost(t) * self.inventory(t)
-            + self.setup_cost(t) * self.is_producing(t)
+            + self.setup_cost(t) * self.production_indicator(t)
             for t in self.steps
         )
 
@@ -76,7 +77,7 @@ class LotSizing(om.Model):
 
 
 class GroupExpenses(om.Model):
-    def __init__(self):
+    def __init__(self) -> None:
         self.friends = om.Dimension()
         self.transactions = om.Dimension()
 
@@ -84,18 +85,16 @@ class GroupExpenses(om.Model):
         self.share = om.Parameter(self.transactions, self.friends)
         self.floor = om.Parameter()
 
-        self.max_transfer_count = om.Variable(image=om.natural())
+        self.max_transfer_count = om.Variable(image=om.Image.natural())
         self.transferred = om.Variable(
-            (self.friends, self.friends),  # TODO: Qualifiers
-            image=om.non_negative(),
+            (self.friends, self.friends),
+            image=om.Image.non_negative(),
+            qualifiers=["sender", "recipient"],
         )
-
-        (
-            self.is_transferring,
-            self.is_transferring_activates,
-            _,
-        ) = omp.activation(
-            variable=self.transferred, upper_bound=self.overall_cost()
+        self.tranferred_indicator = om.ActivationIndicator.fragment(
+            variable=self.transferred,
+            upper_bound=self.overall_cost(),
+            lower_bound=False,
         )
 
     @om.alias("tc")
@@ -127,13 +126,13 @@ class GroupExpenses(om.Model):
     def transfer_count_is_below_max(self) -> om.Quantified[om.Predicate]:
         for s in self.friends:
             transfer_count = om.total(
-                self.is_transferring(s, r) for r in self.friends
+                self.tranferred_indicator(s, r) for r in self.friends
             )
             yield transfer_count <= self.max_transfer_count
 
     @om.objective()
     def minimize_transfer_count(self) -> om.Expression:
-        return self.max_transfer_count
+        return self.max_transfer_count()
 
     @om.objective()
     def minimize_total_transferred(self) -> om.Expression:
@@ -146,15 +145,15 @@ class GroupExpenses(om.Model):
 class Sudoku(om.Model):
     _qualifiers = ["row", "column", "value"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.input = om.Parameter(
             (self.positions, self.positions, self.values),
-            image=om.indicator(),
+            image=om.Image.indicator(),
             qualifiers=self._qualifiers,
         )
         self.output = om.Variable(
             (self.positions, self.positions, self.values),
-            image=om.indicator(),
+            image=om.Image.indicator(),
             qualifiers=self._qualifiers,
         )
 

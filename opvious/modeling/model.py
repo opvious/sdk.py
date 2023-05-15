@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 import math
 from typing import (
     Any,
@@ -53,6 +54,9 @@ from .images import Image
 from .quantified import Quantified
 
 
+_logger = logging.getLogger(__name__)
+
+
 class _Definition:
     @property
     def label(self) -> Optional[Label]:
@@ -70,38 +74,141 @@ class _Definition:
 class _Statement:
     label: Label
     definition: _Definition
-    inherited: bool
 
 
-class Model:
-    """Base model class"""
+class ModelFragment:
+    pass
 
-    def _gather_statements(self) -> Sequence[_Statement]:
-        statements: list[_Statement] = []
 
-        def visit(dct, inherited):
-            for attr, value in dct.items():
-                if isinstance(value, property):
-                    value = value.fget
-                if not isinstance(value, _Definition):
-                    continue
-                label = value.label or to_camel_case(attr)
-                statements.append(_Statement(label, value, inherited))
+@dataclasses.dataclass(frozen=True)
+class _Relabeled(ModelFragment):
+    fragment: ModelFragment
+    labels: Mapping[str, Label]
 
-        visit(self.__dict__, False)
-        for i, cls in enumerate(self.__class__.__mro__):
-            visit(cls.__dict__, i > 0)
-        return statements
 
-    def render_specification_source(
+def relabel(fragment: ModelFragment, **kwargs: Label) -> ModelFragment:
+    return _Relabeled(fragment, kwargs)
+
+
+class _StatementVisitor:
+    def __init__(self) -> None:
+        self.statements: list[_Statement] = []
+        self._visited: set[int] = set()  # Model IDs
+
+    def visit(self, model: Model, omit_dependencies: bool) -> None:
+        model_id = id(model)
+        if model_id in self._visited:
+            return
+        self._visited.add(model_id)
+
+        self._visit_fragment(model, [])
+        if not omit_dependencies:
+            for dep in model.dependencies:
+                self.visit(dep, False)
+
+    def _visit_fragment(
+        self, frag: ModelFragment, prefix: Sequence[str]
+    ) -> None:
+        labels: dict[str, Label] = {}
+        while isinstance(frag, _Relabeled):
+            labels.update(frag.labels)
+            frag = frag.fragment
+        self._visit_dict(frag.__dict__, prefix, labels)
+        for cls in frag.__class__.__mro__:
+            self._visit_dict(cls.__dict__, prefix, labels)
+
+    def _visit_dict(
         self,
+        dct: Mapping[str, Any],
+        prefix: Sequence[str],
+        labels: Mapping[str, Label],
+    ) -> None:
+        path = [*prefix, ""]
+        for attr, value in dct.items():
+            path[-1] = attr
+            if isinstance(value, property):
+                value = value.fget
+            if isinstance(value, ModelFragment):
+                self._visit_fragment(value, path)
+            elif not isinstance(value, _Definition):
+                continue
+            label = (
+                labels.get(attr)
+                or value.label
+                or to_camel_case("_".join(path))
+            )
+            self.statements.append(_Statement(label, value))
+
+
+class Model(ModelFragment):
+    """An optimization model
+
+    Args:
+        dependencies: Optional list of models upon which this model's
+            definitions depend. Dependencies' definitions will be automatically
+            added when generating this model's specification.
+
+    Toy example for the set cover problem:
+
+    .. code-block:: python
+
+        class SetCover(Model):
+            sets = Dimension()
+            vertices = Dimension()
+            covers = Parameter(sets, vertices, image=indicator())
+            used = Variable(sets, image=indicator())
+
+            @constraint
+            def all_covered(self):
+                for v in self.vertices:
+                    count = total(
+                        self.used(s) * self.covers(s, v)
+                        for s in self.sets
+                    )
+                    yield count >= 1
+
+            @objective
+            def minimize_used(self):
+                return total(self.used(s) for s in self.sets)
+    """
+
+    def __init__(
+        self,
+        dependencies: Optional[Iterable[Model]] = None,
+        label_prefix: Optional[Label] = None,
+    ):
+        self._dependencies = list(dependencies or [])
+        self._label_prefix = label_prefix
+
+    @property
+    def dependencies(self) -> Sequence[Model]:
+        """The model's dependencies"""
+        return self._dependencies
+
+    def render_specification(
+        self,
+        *,
+        labels: Optional[Iterable[Label]] = None,
+        omit_dependencies=True,
         formatter_factory: Optional[
             Callable[[Mapping[GlobalIdentifier, Label]], IdentifierFormatter]
         ] = None,
-        labels: Optional[Iterable[Label]] = None,  # TODO: Implement
-        include_inherited=False,  # TODO: Implement
     ) -> str:
-        statements = self._gather_statements()
+        """Generates the model's specification
+
+        Args:
+            labels: Allowlist of labels to render. If specified, only these
+                definitions and transitively referenced ones will be rendered.
+                By default all definitions are rendered.
+            omit_dependencies: Omit any definitions which belong to this
+                model's dependencies. This is useful to produce a partial
+                specification which can be inspected more easily.
+            formatter_factory: Custom name formatter
+        """
+        visitor = _StatementVisitor()
+        visitor.visit(self, omit_dependencies=omit_dependencies)
+        statements = visitor.statements
+
         allowlist = set(labels or [])
         by_identifier = {
             s.definition.identifier: s
@@ -131,16 +238,20 @@ class Model:
             for iden in formatter.formatted_globals():
                 if iden in idens:
                     continue
-                s = by_identifier[iden]
-                rs = s.definition.render_statement(s.label, self)
+                ds = by_identifier.get(iden)
+                if not ds:
+                    if omit_dependencies:
+                        raise Exception(f"Missing statement: {iden}")
+                    continue
+                rs = ds.definition.render_statement(ds.label, self)
                 if not rs:
-                    raise Exception("Missing rendered statement")
+                    raise Exception(f"Missing rendered statement: {iden}")
                 rendered.append(rs)
             contents = "".join(f"  {s} \\\\\n" for s in rendered if s)
         return f"$$\n\\begin{{align}}\n{contents}\\end{{align}}\n$$"
 
     def _repr_latex_(self) -> str:
-        return self.render_specification_source()
+        return self.render_specification(omit_dependencies=True)
 
 
 class _DefaultFormatter(IdentifierFormatter):
@@ -183,22 +294,20 @@ class Dimension(_Definition, ScalarQuantifiable):
         is_numeric: Whether the dimension will only contain integers. This
             enables arithmetic operations on this dimension's quantifiers
 
-    As a convenience, iterating on a dimension returns a suitable quantifier.
-    This allows creating simple constraints directly:
+    Dimensions are `Quantifiable` and as such can be quantified over using
+    :func:`.cross`. As a convenience, iterating on a dimension also a suitable
+    quantifier. This allows creating simple constraints directly:
 
     .. code-block:: python
 
-        class MyModel(Model):
+        class ProductModel(Model):
             products = Dimension()
-            product_count = Variable(products, image=natural())
+            count = Variable(products)
 
-            @constraint()
-            def at_least_one_of_each_product(self):
-                for p in self.products:  # <=
-                    yield self.product_count(p) >= 1
-
-    Dimensions must be set as attributes on :class:`Model` instances so that
-    they can be automatically picked up.
+            @constraint
+            def at_least_one_of_each(self):
+                for p in self.products:  # Note the iteration here
+                    yield self.count(p) >= 1
     """
 
     def __init__(
@@ -292,11 +401,10 @@ class _Tensor(_Definition):
     def _variant(self) -> TensorVariant:
         raise NotImplementedError()
 
-    def __call__(self, *subscripts: Expression) -> Expression:
-        return ExpressionReference(self._identifier, subscripts)
-
-    def to_expression(self) -> Expression:
-        return self()
+    def __call__(self, *subscripts: ExpressionLike) -> Expression:
+        return ExpressionReference(
+            self._identifier, tuple(to_expression(s) for s in subscripts)
+        )
 
     def render_statement(self, label: Label, _model: Any) -> Optional[str]:
         c = self._variant[0]
@@ -346,8 +454,8 @@ _R = TypeVar(
 )
 
 
-class Aliasable(Protocol[_M, _R]):
-    def __call__(self, model: _M, *expressions: Expression) -> _R:
+class _Aliasable(Protocol[_M, _R]):
+    def __call__(self, model: _M, *exprs: ExpressionLike) -> _R:
         pass
 
 
@@ -364,12 +472,12 @@ class _Aliased:
     quantifiables: Sequence[Optional[ScalarQuantifiable]]
 
 
-class Alias(_Definition):
+class _Alias(_Definition):
     label = None
 
     def __init__(
         self,
-        aliasable: Aliasable[Any, Any],
+        aliasable: _Aliasable[Any, Any],
         name: Name,
         quantifier_names: Optional[Iterable[Name]] = None,
     ):
@@ -410,10 +518,11 @@ class Alias(_Definition):
                         s += inner_domain.quantifiers[0].quantifiable.render()
         return s
 
-    def __call__(self, model: Any, *expressions: Expression) -> Any:
+    def __call__(self, model: Any, *subscripts: ExpressionLike) -> Any:
+        exprs = tuple(to_expression(s) for s in subscripts)
         # This is used for property calls
         if self._aliased is None:
-            value = self._aliasable(model, *expressions)
+            value = self._aliasable(model, *exprs)
             if isinstance(value, Expression):
                 variant: _AliasedVariant = "expression"
             elif isinstance(value, tuple):
@@ -422,12 +531,12 @@ class Alias(_Definition):
                 variant = "scalar_quantification"
             self._aliased = _Aliased(
                 variant,
-                [expression_quantifiable(x) for x in expressions],
+                [expression_quantifiable(x) for x in exprs],
             )
         if self._aliased.variant == "expression":
-            return ExpressionReference(self._identifier, expressions)
+            return ExpressionReference(self._identifier, exprs)
         else:
-            ref = QuantifiableReference(self._identifier, expressions)
+            ref = QuantifiableReference(self._identifier, exprs)
             if self._aliased.variant == "quantification":
                 return cross(ref)
             else:
@@ -438,8 +547,8 @@ class Alias(_Definition):
         if not isinstance(model, Model):
             raise TypeError(f"Unexpected model: {model}")
 
-        def wrapped(*expressions: Expression) -> Any:
-            return self(model, *expressions)
+        def wrapped(*exprs: ExpressionLike) -> Any:
+            return self(model, *exprs)
 
         return wrapped
 
@@ -448,20 +557,38 @@ _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
 
 
 def alias(
-    name: Name, quantifier_names: Optional[Iterable[Name]] = None
+    name: Optional[Name], quantifier_names: Optional[Iterable[Name]] = None
 ) -> Callable[[_F], _F]:  # TODO: Tighten argument type
-    """Decorator creating an alias for the given method
+    """Decorator promoting a :class:`.Model` method to a named alias
 
     Args:
-        name: The generated alias' name
+        name: The alias' name. If `None`, no alias will be added.
         quantifier_names: Optional names to use for the alias' quantifiers
 
+    The method can return a (potentially quantified) expression or a
+    quantification and may accept any number of expression arguments. This is
+    useful to make the generated specification more readable by extracting
+    commonly used sub-expressions or sub-spaces.
 
-    The decorated function may be wrapped as a property.
+    Finally, the decorated function may be wrapped as a property if doesn't
+    have any non-`self` arguments.
+
+    .. code-block:: python
+
+        class ProductModel(Model):
+            products = Dimension()
+            count = Variable(products)
+
+            @property
+            @alias("t")
+            def total_product_count(self):
+                return total(self.count(p) for p in self.products)
     """
 
     def wrap(fn):
-        return Alias(fn, name=name, quantifier_names=quantifier_names)
+        if name is None:
+            return fn
+        return _Alias(fn, name=name, quantifier_names=quantifier_names)
 
     return wrap
 
@@ -472,7 +599,18 @@ ConstraintBody = Callable[[_M], Quantified[Predicate]]
 class Constraint(_Definition):
     """Optimization constraint
 
-    Constraint should be created via the :func:`.constraint` decorator.
+    Constraints are best created directly from :class:`.Model` methods via the
+    :func:`.constraint` decorator.
+
+    .. code-block:: python
+
+        class ProductModel:
+            products = Dimension()
+            count = Variable(products)
+
+            @constraint
+            def at_least_one(self):
+                yield total(self.count(p) for p in self.products) >= 1
     """
 
     identifier = None
@@ -514,6 +652,7 @@ def constraint(
     *,
     label: Optional[Label] = None,
     qualifiers: Optional[Sequence[Label]] = None,
+    disabled=False,
 ) -> Callable[[ConstraintBody], Constraint]:
     ...
 
@@ -523,12 +662,19 @@ def constraint(
     *,
     label: Optional[Label] = None,
     qualifiers: Optional[Sequence[Label]] = None,
+    disabled=False,
 ) -> Any:
-    """Decorator flagging a model method as a constraint
+    """Decorator promoting a :class:`.Model` method to a :class:`.Constraint`
 
     Args:
         label: Constraint label override. By default the label is derived from
             the method's name.
+        qualifiers: Optional list of labels used to qualify the constraint's
+            quantifiers. This is useful to override the name of the colums in
+            solution dataframes.
+
+    The decorated method should accept only a `self` argument and return a
+    quantified :class:`.Predicate`.
 
     As a convenience, this decorator can be used with and without arguments:
 
@@ -549,6 +695,8 @@ def constraint(
         return Constraint(body)
 
     def wrap(fn):
+        if disabled:
+            return fn
         return Constraint(fn, label=label, qualifiers=qualifiers)
 
     return wrap
@@ -559,12 +707,25 @@ ObjectiveSense = Literal["max", "min"]
 
 
 ObjectiveBody = Callable[[_M], Expression]
+"""Optimization target expression"""
 
 
 class Objective(_Definition):
     """Optimization objective
 
-    Objectives should be created via the :func:`.objective` decorator.
+    Objectives are best created directly from :class:`.Model` methods via the
+    :func:`.objective` decorator.
+
+    .. code-block:: python
+
+        class ProductModel:
+            products = Dimension()
+            count = Variable(products)
+
+            @objective
+            def minimize_total_count(self):
+                return total(self.count(p) for p in self.products)
+
     """
 
     identifier = None
@@ -572,7 +733,7 @@ class Objective(_Definition):
     def __init__(
         self,
         body: ObjectiveBody,
-        sense: Optional[ObjectiveSense] = None,
+        sense: ObjectiveSense,
         label: Optional[Label] = None,
     ):
         self._body = body
@@ -616,33 +777,54 @@ def objective(
     *,
     sense: Optional[ObjectiveSense] = None,
     label: Optional[Label] = None,
+    disabled=False,
 ) -> Any:
-    """Decorator flagging a method as an objective
+    """Decorator promoting a method to an :class:`.Objective`
 
     Args:
         sense: Optimization direction. This may be omitted if the method name
-            starts with `minimize` or `maximize`, in which case the appropriate
-            sense will be inferred.
+            starts with `min` or `max`, in which case the appropriate sense
+            will be inferred.
         label: Objective label override. By default the label is derived from
             the method's name.
+
+    The decorated method should accept only a `self` argument and return an
+    :class:`.Expression`, which will become the objective's optimization
+    target.
 
     As a convenience, this decorator can be used with and without arguments:
 
     .. code-block:: python
 
-        class MyModel(Model):
-            # ...
+        class ProductModel(Model):
+            products = Dimension()
+            cost = Parameter(products)
+            count = Variable(products)
 
             @objective
-            def minimize_this(self):
-                # ...
+            def minimize_cost(self):
+                return total(
+                    self.count(p) * self.cost(p)
+                    for p in self.products
+                )
 
             @objective(sense="max")
-            def optimize_that(self):
-                # ...
+            def optimize_count(self):
+                return total(self.count(p) for p in self.products)
     """
 
     def wrap(fn):
-        return Objective(fn, sense=sense, label=label)
+        if disabled:
+            return fn
+        method_sense = sense
+        if method_sense is None:
+            name = fn.__name__
+            if name.startswith("min"):
+                method_sense = "min"
+            elif name.startswith("max"):
+                method_sense = "max"
+            else:
+                raise Exception(f"Missing sense for objective {name}")
+        return Objective(fn, sense=method_sense, label=label)
 
     return wrap

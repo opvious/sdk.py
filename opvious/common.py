@@ -39,6 +39,10 @@ def to_camel_case(s: str) -> str:
     )
 
 
+def untuple(t: tuple[Any, ...]) -> Any:
+    return t[0] if len(t) == 1 else t
+
+
 # JSON utilities
 
 

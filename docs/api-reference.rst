@@ -1,3 +1,5 @@
+.. default-role:: code
+
 API reference
 ===============
 
