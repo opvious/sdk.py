@@ -47,7 +47,7 @@ from .identifiers import (
 )
 from .images import Image
 from .quantified import Quantified
-from .statements import Definition, ModelFragment
+from .statements import Definition, Model, ModelFragment
 
 
 _logger = logging.getLogger(__name__)
@@ -222,7 +222,7 @@ class _FragmentMethod:
 
     def __get__(self, frag: Any, _objtype=None) -> Callable[..., Any]:
         # This is needed for non-property calls
-        if not isinstance(frag, ModelFragment):
+        if not isinstance(frag, (Model, ModelFragment)):
             raise TypeError(f"Unexpected owner: {frag}")
 
         def wrapped(*args, **kwargs) -> Any:
@@ -301,7 +301,10 @@ class _Alias(Definition, _FragmentMethod):
             else:
                 inner_domain = domain_from_quantifiable(value)
                 with local_formatting_scope(inner_domain.quantifiers):
-                    if len(inner_domain.quantifiers) > 1 or inner_domain.mask:
+                    if (
+                        len(inner_domain.quantifiers) > 1
+                        or inner_domain.mask is not None
+                    ):
                         s += f"\\{{ {inner_domain.render()} \\}}"
                     else:
                         s += inner_domain.quantifiers[0].quantifiable.render()

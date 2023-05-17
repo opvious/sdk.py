@@ -44,7 +44,7 @@ class ModelFragment:
 class _Statement:
     label: Label
     definition: Definition
-    fragment: ModelFragment
+    fragment: Optional[ModelFragment]
     model: Model
 
 
@@ -74,26 +74,28 @@ class _ModelVisitor:
             return
         self._visited.add(model_id)
 
-        self._visit_fragment(model, model, [prefix] if prefix else [])
+        self._visit_fragment(model, None, [prefix] if prefix else [])
         for dep in model.dependencies:
             self.visit(dep)
 
     def _visit_fragment(
         self,
-        frag: ModelFragment,
         model: Model,
+        frag: Optional[ModelFragment],
         prefix: Sequence[str],
     ) -> None:
+        obj = frag or model
+
         labels: dict[str, Label] = {}
-        while isinstance(frag, _Relabeled):
-            labels.update(frag.labels)
-            frag = frag.fragment
+        while isinstance(obj, _Relabeled):
+            labels.update(obj.labels)
+            obj = obj.fragment
 
         attrs: dict[str, Any] = {}
-        for cls in reversed(frag.__class__.__mro__[1:]):
+        for cls in reversed(obj.__class__.__mro__[1:]):
             attrs.update(cls.__dict__)
-        attrs.update(frag.__dict__)
-        attrs.update(frag.__class__.__dict__)
+        attrs.update(obj.__dict__)
+        attrs.update(obj.__class__.__dict__)
 
         path = [*prefix, ""]
         for attr, value in attrs.items():
@@ -102,7 +104,7 @@ class _ModelVisitor:
                 value = value.fget
             if not isinstance(value, Definition):
                 if isinstance(value, ModelFragment):
-                    self._visit_fragment(value, model, path)
+                    self._visit_fragment(model, value, path)
                 continue
             label = (
                 labels.get(attr)
@@ -112,7 +114,7 @@ class _ModelVisitor:
             self.statements.append(_Statement(label, value, frag, model))
 
 
-class Model(ModelFragment):
+class Model:
     """An optimization model
 
     Args:
@@ -190,7 +192,9 @@ class Model(ModelFragment):
         with global_formatting_scope(formatter, reserved):
             idens = set()
             for s in statements:
-                rs = s.definition.render_statement(s.label, s.fragment)
+                rs = s.definition.render_statement(
+                    s.label, s.fragment or s.model
+                )
                 if not rs:
                     continue
                 rendered_by_title[s.model.title].append(rs)
