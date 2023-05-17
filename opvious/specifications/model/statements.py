@@ -160,14 +160,17 @@ class Model(ModelFragment):
 
     @property
     def title(self) -> str:
-        return self.__title or f"`{self.__class__.__name__}`"
+        return self.__title or f"<code>{self.__class__.__name__}</code>"
 
     @property
     def dependencies(self) -> Sequence[Model]:
         """The model's dependencies"""
         return self.__dependencies or []
 
-    def compile_specification(self) -> LocalSpecification:
+    async def compile_specification(
+        self,
+        allow_unused=True,
+    ) -> LocalSpecification:
         """Generates the model's specification"""
         visitor = _ModelVisitor()
         visitor.visit(self, prefix=self.__prefix)
@@ -215,7 +218,14 @@ class Model(ModelFragment):
             )
             for title, contents in contents_by_title.items()
         ]
-        return LocalSpecification(sources=sources)
+        spec = LocalSpecification(sources=sources)
+
+        try:
+            codes = ["ERR_UNUSED_DEFINITION"] if allow_unused else []
+            spec = await spec.annotated(ignore_codes=codes)
+        except Exception:
+            _logger.warning("Unable to annotate specification", exc_info=True)
+        return spec
 
 
 class _ModelFormatter(IdentifierFormatter):
