@@ -29,9 +29,15 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 autodoc_type_aliases = {
+    "ConstraintBody": "ConstraintBody",
     "DimensionArgument": "DimensionArgument",
+    "ExpressionLike": "ExpressionLike",
     "KeyItem": "KeyItem",
+    "ObjectiveBody": "ObjectiveBody",
     "Outcome": "Outcome",
+    "Quantifiable": "Quantifiable",
+    "Quantification": "Quantification",
+    "Quantified": "Quantified",
     "Specification": "Specification",
     "Target": "Target",
     "TensorArgument": "TensorArgument",

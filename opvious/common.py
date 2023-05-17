@@ -13,6 +13,9 @@ except metadata.PackageNotFoundError:
 del metadata
 
 
+Label = str
+
+
 def format_percent(val):
     if val == "Infinity":
         return "inf"
@@ -34,6 +37,10 @@ def to_camel_case(s: str) -> str:
     return "".join(
         p.capitalize() if i else p for i, p in enumerate(s.split("_"))
     )
+
+
+def untuple(t: tuple[Any, ...]) -> Any:
+    return t[0] if len(t) == 1 else t
 
 
 # JSON utilities

@@ -31,15 +31,20 @@ CONTENT_TYPE_HEADER = "content-type"
 Headers = dict[str, str]
 
 
+@dataclasses.dataclass(init=False)
 class ExecutorError(Exception):
     """Local representation of an error during an executor's request"""
+
+    status: int
+    trace: Optional[str]
+    data: Optional[Any]
 
     def __init__(
         self,
         status: int,
         trace: Optional[str] = None,
         data: Optional[Any] = None,
-    ):
+    ) -> None:
         message = f"Request failed with status {status}"
         if trace:
             message += f" ({trace})"
