@@ -7,24 +7,16 @@ import json
 import humanize
 import logging
 import os
-from typing import (
-    Any,
-    cast,
-    Dict,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, cast, Mapping, Optional, Union
 
-from .common import format_percent, Json, json_dict
-from .data.attempts import (
+from ..common import format_percent, Json, json_dict
+from ..data.attempts import (
     Attempt,
     attempt_from_graphql,
     AttemptNotification,
     notification_from_graphql,
 )
-from .data.outcomes import (
+from ..data.outcomes import (
     CancelledOutcome,
     failed_outcome_from_graphql,
     FeasibleOutcome,
@@ -35,8 +27,8 @@ from .data.outcomes import (
     UnboundedOutcome,
     UnexpectedOutcomeError,
 )
-from .data.outlines import Label, Outline, outline_from_json
-from .data.solves import (
+from ..data.outlines import Label, Outline, outline_from_json
+from ..data.solves import (
     SolveInputs,
     SolveOptions,
     SolveOutputs,
@@ -47,16 +39,30 @@ from .data.solves import (
     solve_strategy_to_json,
     solve_summary_from_json,
 )
-from .data.tensors import DimensionArgument, Tensor, TensorArgument
-from .executors import (
+from ..data.tensors import DimensionArgument, TensorArgument
+from ..executors import (
     default_executor,
     Executor,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
+    run_sync,
 )
-from .specifications import FormulationSpecification, Specification
-from .transformations import Transformation, TransformationContext
+from ..modeling import ModelValidator
+from ..specifications import (
+    AnonymousSpecification,
+    FormulationSpecification,
+    InlineSpecification,
+    Specification,
+    SpecificationValidationError,
+)
+from ..transformations import Transformation
+from .common import (
+    feasible_outcome_details,
+    log_progress,
+    OutlineGenerator,
+    SolveInputsBuilder,
+)
 
 
 _logger = logging.getLogger(__name__)
@@ -150,6 +156,21 @@ class Client:
         """Returns true if the client was created with a non-empty API token"""
         return self._executor.authenticated
 
+    async def validate_specification(
+        self, specification: AnonymousSpecification
+    ) -> None:
+        """Validates a specification's source
+
+        Args:
+            specification: The specification to validate. The call will raise a
+                :class:`.SpecificationValidationError` if its source is
+                invalid.
+        """
+        await specification.validate(self._executor)
+
+    def model_validator(self) -> ModelValidator:
+        return _ClientModelValidator(self)
+
     async def _prepare_solve(
         self,
         specification: Specification,
@@ -158,11 +179,11 @@ class Client:
         transformations: Optional[list[Transformation]] = None,
         strategy: Optional[SolveStrategy] = None,
         options: Optional[SolveOptions] = None,
-    ) -> Tuple[Json, Outline]:
+    ) -> tuple[Json, Outline]:
         """Generates solve candidate and final outline."""
         # First we fetch the outline to validate/coerce inputs later on
         if isinstance(specification, FormulationSpecification):
-            outline_generator, tag = await _OutlineGenerator.formulation(
+            outline_generator, tag = await OutlineGenerator.formulation(
                 executor=self._executor,
                 specification=specification,
             )
@@ -173,7 +194,7 @@ class Client:
         else:
             sources = await specification.fetch_sources(self._executor)
             formulation = json_dict(sources=sources)
-            outline_generator = await _OutlineGenerator.sources(
+            outline_generator = await OutlineGenerator.sources(
                 executor=self._executor, sources=sources
             )
 
@@ -183,7 +204,7 @@ class Client:
         outline, transformation_data = await outline_generator.generate()
 
         # Then we assemble the inputs
-        builder = _SolveInputsBuilder(outline=outline)
+        builder = SolveInputsBuilder(outline=outline)
         if dimensions:
             for label, dim in dimensions.items():
                 builder.set_dimension(label, dim)
@@ -384,7 +405,7 @@ class Client:
                             summary.row_count,
                         )
                     elif kind == "solving":
-                        _log_progress(data["progress"])
+                        log_progress(_logger, data["progress"])
                     elif kind == "solved":
                         _logger.debug("Downloaded outputs.")
                         response_json = data
@@ -416,7 +437,7 @@ class Client:
 
         outcome = response.outcome
         if isinstance(outcome, FeasibleOutcome):
-            details = _feasible_outcome_details(outcome)
+            details = feasible_outcome_details(outcome)
             _logger.info(
                 "Solve completed with status %s.%s",
                 response.status,
@@ -629,7 +650,7 @@ class Client:
             raise Exception("Missing outcome")
         status = outcome_status(outcome)
         if isinstance(outcome, FeasibleOutcome):
-            details = _feasible_outcome_details(outcome)
+            details = feasible_outcome_details(outcome)
             _logger.info(
                 "Attempt completed with status %s.%s",
                 status,
@@ -678,160 +699,17 @@ class Client:
         )
 
 
-def _log_progress(progress: Json) -> None:
-    kind = progress["kind"]
-    if kind == "activity":
-        iter_count = progress.get("lpIterationCount")
-        gap = progress.get("relativeGap")
-        if iter_count is not None:
-            _logger.info(
-                "Solve in progress... [iterations=%s, gap=%s]",
-                iter_count,
-                "n/a" if gap is None else format_percent(gap),
-            )
-    elif kind == "epsilonConstraint":
-        _logger.info(
-            "Added epsilon constraint. [objective_value=%s]",
-            progress["objectiveValue"],
-        )
-    else:
-        raise Exception(f"Unsupported progress kind: {kind}")
+class _ClientModelValidator(ModelValidator):
+    def __init__(self, client: Client) -> None:
+        self._client = client
 
-
-class _SolveInputsBuilder:
-    def __init__(self, outline: Outline):
-        self._outline = outline
-        self._dimensions: Dict[Label, Any] = {}
-        self._parameters: Dict[Label, Any] = {}
-        self.parameter_entry_count = 0
-
-    def set_dimension(self, label: Label, arg: DimensionArgument) -> None:
-        outline = self._outline.dimensions.get(label)
-        if not outline:
-            raise Exception(f"Unknown dimension: {label}")
-        if label in self._dimensions:
-            raise Exception(f"Duplicate dimension: {label}")
-        items = list(arg)
-        self._dimensions[label] = {"label": label, "items": items}
-
-    def set_parameter(self, label: Label, arg: Any) -> None:
-        outline = self._outline.parameters.get(label)
-        if not outline:
-            raise Exception(f"Unknown parameter: {label}")
-        if label in self._parameters:
-            raise Exception(f"Duplicate parameter: {label}")
+    def validate(self, source: str) -> str:
         try:
-            tensor = Tensor.from_argument(
-                arg, len(outline.bindings), outline.is_indicator
+            run_sync(
+                self._client.validate_specification,
+                InlineSpecification([source]),
             )
-        except Exception as exc:
-            raise ValueError(f"Invalid  parameter: {label}") from exc
-        self._parameters[label] = json_dict(
-            label=label,
-            entries=tensor.entries,
-            default_value=tensor.default_value,
-        )
-        self.parameter_entry_count += len(tensor.entries)
-
-    def build(self) -> SolveInputs:
-        missing_labels = set()
-
-        for label in self._outline.parameters:
-            if label not in self._parameters:
-                missing_labels.add(label)
-
-        if self._dimensions:
-            for label in self._outline.dimensions:
-                if label not in self._dimensions:
-                    missing_labels.add(label)
-
-        if missing_labels:
-            raise Exception(f"Missing label(s): {missing_labels}")
-
-        return SolveInputs(
-            outline=self._outline,
-            raw_parameters=list(self._parameters.values()),
-            raw_dimensions=list(self._dimensions.values()) or None,
-        )
-
-
-class _OutlineGenerator:
-    def __init__(self, executor: Executor, outline_data: Json):
-        self._executor = executor
-        self._pristine_outline_data = outline_data
-        self._transformations = cast(list[Transformation], [])
-
-    @classmethod
-    async def formulation(
-        cls, executor: Executor, specification: FormulationSpecification
-    ) -> Tuple[_OutlineGenerator, str]:
-        data = await executor.execute_graphql_query(
-            query="@FetchOutline",
-            variables={
-                "formulationName": specification.formulation_name,
-                "tagName": specification.tag_name,
-            },
-        )
-        formulation = data.get("formulation")
-        if not formulation:
-            raise Exception("No matching formulation found")
-        tag = formulation.get("tag")
-        if not tag:
-            raise Exception("No matching specification found")
-        spec = tag["specification"]
-        return (_OutlineGenerator(executor, spec["outline"]), tag["name"])
-
-    @classmethod
-    async def sources(
-        cls, executor: Executor, sources: list[str]
-    ) -> _OutlineGenerator:
-        async with executor.execute(
-            result_type=JsonExecutorResult,
-            url="/sources/parse",
-            method="POST",
-            json_data=json_dict(sources=sources, outline=True),
-        ) as res:
-            outline_data = res.json_data()
-        errors = outline_data.get("errors")
-        if errors:
-            raise Exception(f"Invalid sources: {json.dumps(errors)}")
-        return _OutlineGenerator(executor, outline_data["outline"])
-
-    def add_transformation(self, tf: Transformation) -> None:
-        self._transformations.append(tf)
-
-    async def generate(self) -> Tuple[Outline, Json]:
-        if not self._transformations:
-            return outline_from_json(self._pristine_outline_data), []
-
-        executor = self._executor
-        pristine_outline_data = self._pristine_outline_data
-
-        class Context(TransformationContext):
-            async def fetch_outline(self) -> Outline:
-                async with executor.execute(
-                    result_type=JsonExecutorResult,
-                    url="/outlines/transform",
-                    method="POST",
-                    json_data=json_dict(
-                        outline=pristine_outline_data,
-                        transformations=self.get_json(),
-                    ),
-                ) as res:
-                    data = res.json_data()
-                return outline_from_json(data["outline"])
-
-        context = Context()
-        for tf in self._transformations:
-            await tf.register(context)
-        outline = await context.fetch_outline()
-        return outline, context.get_json()
-
-
-def _feasible_outcome_details(outcome: FeasibleOutcome) -> Optional[str]:
-    details = []
-    if outcome.objective_value:
-        details.append(f"objective={outcome.objective_value}")
-    if outcome.relative_gap:
-        details.append(f"gap={format_percent(outcome.relative_gap)}")
-    return ", ".join(details) if details else None
+        except SpecificationValidationError as exc:
+            for issue in exc.issues:
+                _logger.warn(issue.message)
+        return source  # TODO: Annotate

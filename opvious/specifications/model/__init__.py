@@ -11,13 +11,12 @@ from .ast import (
     switch,
     total,
 )
-from .fragments import ActivationIndicator, MaskedSubset
-from .images import Image
-from .model import (
-    Constraint,
-    Dimension,
+from .definitions import (
     Model,
     ModelFragment,
+    ModelValidator,
+    Constraint,
+    Dimension,
     Objective,
     Parameter,
     Variable,
@@ -27,11 +26,18 @@ from .model import (
     objective,
     relabel,
 )
+from .fragments import (
+    ActivationIndicator,
+    DerivedVariable,
+    MaskedSubset,
+)
+from .images import Image
 from .quantified import Quantified
 
 __all__ = [
     "Model",
     "ModelFragment",
+    "ModelValidator",
     "relabel",
     # Definitions
     "Constraint",
@@ -49,9 +55,9 @@ __all__ = [
     "Predicate",
     "interval",
     "literal",
+    "size",
     "switch",
     "total",
-    "size",
     # Quantification
     "Quantifiable",
     "Quantification",
@@ -60,5 +66,6 @@ __all__ = [
     "cross",
     # Fragments
     "ActivationIndicator",
+    "DerivedVariable",
     "MaskedSubset",
 ]

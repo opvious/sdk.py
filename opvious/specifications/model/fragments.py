@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Union
 
-from ..common import Label, untuple
+from ...common import untuple
 from .ast import cross, Quantifiable
-from .identifiers import Name
-from .images import Image
-from .model import (
-    alias,
-    Parameter,
-    Variable,
-    constraint,
+from .definitions import (
+    Constraint,
     Expression,
     ExpressionLike,
     ModelFragment,
+    Parameter,
+    Variable,
+    alias,
+    constraint,
 )
+from .identifiers import Name
+from .images import Image
 from .quantified import Quantified
 
 
@@ -68,6 +69,14 @@ class ActivationIndicator(ModelFragment):
 class MaskedSubset(ModelFragment):
     """Quantifiable subset"""
 
+    @property
+    def mask(self) -> Parameter:
+        raise NotImplementedError()
+
+    @property
+    def masked(self) -> Quantified:
+        raise NotImplementedError()
+
     def __iter__(self) -> Iterable[Any]:
         raise NotImplementedError()
 
@@ -75,26 +84,59 @@ class MaskedSubset(ModelFragment):
     def fragment(
         cls,
         *quantifiables: Quantifiable,
-        parameter_label: Optional[Label] = None,
         alias_name: Optional[Name] = None,
     ) -> MaskedSubset:
         """Returns a quantifiable subset fragment"""
 
         class _Fragment(MaskedSubset):
-            mask = Parameter(
-                quantifiables,
-                image=Image.indicator(),
-                label=parameter_label,
-            )
+            mask = Parameter(quantifiables, image=Image.indicator())
 
             @property
             @alias(alias_name)
             def masked(self) -> Quantified:
                 for t in cross(quantifiables):
                     if self.mask(*t):
-                        yield untuple(t)
+                        yield t
 
             def __iter__(self):
-                return self.masked
+                return (untuple(t) for t in self.masked)
+
+        return _Fragment()
+
+
+class DerivedVariable(ModelFragment):
+    """Variable equal to a given equation"""
+
+    @property
+    def value(self) -> Variable:
+        raise NotImplementedError()
+
+    @property
+    def is_defined(self) -> Constraint:
+        raise NotImplementedError()
+
+    def __call__(self, *subs: ExpressionLike) -> Expression:
+        raise NotImplementedError()
+
+    @classmethod
+    def fragment(
+        cls,
+        body: Callable[..., Any],
+        *quantifiables: Quantifiable,
+        name: Optional[Name] = None,
+        image: Image = Image(),
+    ) -> DerivedVariable:
+        """Returns a derived variable fragment"""
+
+        class _Fragment(DerivedVariable):
+            value = Variable(quantifiables, image=image, name=name)
+
+            @constraint
+            def is_defined(self) -> Quantified:
+                for t in cross(quantifiables):
+                    yield self.value == body(*t)
+
+            def __call__(self, *subs: ExpressionLike) -> Expression:
+                return self.value(*subs)
 
         return _Fragment()

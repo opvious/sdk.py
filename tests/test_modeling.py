@@ -1,22 +1,9 @@
+import opvious
 import opvious.modeling as om
+import pytest
 
 
-class TestRender:
-    def test_set_cover(self):
-        m = SetCover()
-        print(m.render_specification())
-
-    def test_sudoku(self):
-        m = Sudoku()
-        print(m.render_specification())
-
-    def test_lot_sizing(self):
-        m = LotSizing()
-        print(m.render_specification())
-
-    def test_group_expenses(self):
-        m = GroupExpenses()
-        print(m.render_specification())
+client = opvious.Client.from_environment()
 
 
 class SetCover(om.Model):
@@ -195,3 +182,14 @@ class Sudoku(om.Model):
                 self.output(3 * (b // 3) + c // 3, 3 * (b % 3) + c % 3, v) == 1
                 for c in self.positions
             )
+
+
+@pytest.mark.skipif(
+    not client.authenticated, reason="No access token detected"
+)
+class TestModeling:
+    _models = [SetCover(), LotSizing(), GroupExpenses(), Sudoku()]
+
+    @pytest.mark.parametrize("model", _models)
+    def test_parse_rendered_specification(self, model):
+        spec = model.render_specification()

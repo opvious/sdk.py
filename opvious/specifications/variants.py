@@ -5,7 +5,10 @@ import glob
 import os
 from typing import Optional, Union
 
-from .executors import Executor, PlainTextExecutorResult
+from ..common import json_dict
+from ..executors import Executor, JsonExecutorResult, PlainTextExecutorResult
+from .common import SpecificationValidationError, source_issue_from_json
+from .model import Model
 
 
 class AnonymousSpecification:
@@ -16,6 +19,30 @@ class AnonymousSpecification:
 
     async def fetch_sources(self, executor: Executor) -> list[str]:
         raise NotImplementedError()
+
+    async def validate(self, executor: Executor) -> None:
+        sources = await self.fetch_sources(executor)
+        async with executor.execute(
+            result_type=JsonExecutorResult,
+            url="/sources/parse",
+            method="POST",
+            json_data=json_dict(sources=sources),
+        ) as res:
+            data = res.json_data()
+            issues = [source_issue_from_json(e) for e in data["errors"]]
+            if issues:
+                raise SpecificationValidationError(issues)
+
+
+@dataclasses.dataclass(frozen=True)
+class ModelSpecification(AnonymousSpecification):
+    """A model specification from a :class:`opvious.modeling.Model` instance"""
+
+    model: Model
+    """The underlying model"""
+
+    async def fetch_sources(self, _executor: Executor) -> list[str]:
+        return [self.model.render_specification()]
 
 
 @dataclasses.dataclass(frozen=True)

@@ -48,6 +48,8 @@ from .specifications import (
     LocalSpecification,
     RemoteSpecification,
     Specification,
+    SpecificationSourceIssue,
+    SpecificationValidationError,
 )
 from .transformations import (
     ConstrainObjective,
@@ -75,9 +77,11 @@ __all__ = [
     # Specifications
     "FormulationSpecification",
     "InlineSpecification",
+    "SpecificationSourceIssue",
     "LocalSpecification",
     "RemoteSpecification",
     "Specification",
+    "SpecificationValidationError",
     # Solves and attempts
     "Attempt",
     "AttemptNotification",

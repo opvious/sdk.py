@@ -17,7 +17,7 @@ from typing import (
     overload,
 )
 
-from ..common import Label, to_camel_case
+from ...common import Label, to_camel_case
 from .ast import (
     Expression,
     ExpressionLike,
@@ -78,7 +78,7 @@ class _Statement:
 
 
 class ModelFragment:
-    pass
+    """Model partial"""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -88,6 +88,7 @@ class _Relabeled(ModelFragment):
 
 
 def relabel(fragment: ModelFragment, **kwargs: Label) -> ModelFragment:
+    """Updates a fragment's definitions' labels"""
     return _Relabeled(fragment, kwargs)
 
 
@@ -96,13 +97,18 @@ class _StatementVisitor:
         self.statements: list[_Statement] = []
         self._visited: set[int] = set()  # Model IDs
 
-    def visit(self, model: Model, omit_dependencies: bool) -> None:
+    def visit(
+        self,
+        model: Model,
+        omit_dependencies: bool,
+        prefix: Optional[str] = None,
+    ) -> None:
         model_id = id(model)
         if model_id in self._visited:
             return
         self._visited.add(model_id)
 
-        self._visit_fragment(model, [])
+        self._visit_fragment(model, [prefix] if prefix else [])
         if not omit_dependencies:
             for dep in model.dependencies:
                 self.visit(dep, False)
@@ -138,6 +144,11 @@ class _StatementVisitor:
             self.statements.append(_Statement(label, value, frag))
 
 
+class ModelValidator:
+    def validate(self, source: str) -> str:
+        raise NotImplementedError()
+
+
 class Model(ModelFragment):
     """An optimization model
 
@@ -170,18 +181,27 @@ class Model(ModelFragment):
                 return total(self.used(s) for s in self.sets)
     """
 
+    __dependencies: Optional[Sequence[Model]] = None
+    __prefix: Optional[str] = None
+    __validator: Optional[ModelValidator] = None
+
     def __init__(
         self,
         dependencies: Optional[Iterable[Model]] = None,
-        label_prefix: Optional[Label] = None,
+        prefix: Optional[Label] = None,
     ):
-        self._dependencies = list(dependencies or [])
-        self._label_prefix = label_prefix
+        self.__dependencies = list(dependencies) if dependencies else None
+        self.__prefix = prefix
+
+    @classmethod
+    def set_default_validator(cls, validator: Optional[ModelValidator]):
+        """Sets the validator used when no explicit one is provided"""
+        cls.__validator = validator
 
     @property
     def dependencies(self) -> Sequence[Model]:
         """The model's dependencies"""
-        return self._dependencies
+        return self.__dependencies or []
 
     def render_specification(
         self,
@@ -191,6 +211,7 @@ class Model(ModelFragment):
         formatter_factory: Optional[
             Callable[[Mapping[GlobalIdentifier, Label]], IdentifierFormatter]
         ] = None,
+        validator: Union[ModelValidator, None] = None,
     ) -> str:
         """Generates the model's specification
 
@@ -204,7 +225,11 @@ class Model(ModelFragment):
             formatter_factory: Custom name formatter
         """
         visitor = _StatementVisitor()
-        visitor.visit(self, omit_dependencies=omit_dependencies)
+        visitor.visit(
+            self,
+            prefix=self.__prefix,
+            omit_dependencies=omit_dependencies,
+        )
         statements = visitor.statements
 
         allowlist = set(labels or [])
@@ -246,9 +271,16 @@ class Model(ModelFragment):
                     raise Exception(f"Missing rendered statement: {iden}")
                 rendered.append(rs)
             contents = "".join(f"  {s} \\\\\n" for s in rendered if s)
-        return f"$$\n\\begin{{align}}\n{contents}\\end{{align}}\n$$"
+
+        source = f"$$\n\\begin{{align}}\n{contents}\\end{{align}}\n$$"
+        if not validator:
+            validator = self.__validator
+        if validator:
+            source = validator.validate(source)
+        return source
 
     def _repr_latex_(self) -> str:
+        # Magic method used by Jupyter
         return self.render_specification(omit_dependencies=True)
 
 

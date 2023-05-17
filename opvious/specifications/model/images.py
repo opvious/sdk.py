@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import math
 
-from ..common import encode_extended_float
+from ...common import encode_extended_float
 
 
 @dataclasses.dataclass(frozen=True)

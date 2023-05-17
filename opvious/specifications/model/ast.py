@@ -5,7 +5,7 @@ import dataclasses
 import itertools
 from typing import Any, cast, Iterable, Optional, Sequence, TypeVar, Union
 
-from ..common import encode_extended_float
+from ...common import encode_extended_float
 from .identifiers import (
     Identifier,
     Name,

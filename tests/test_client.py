@@ -359,3 +359,19 @@ class TestClient:
             ),
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_validate_ok_specification(self):
+        await client.validate_specification(
+            opvious.RemoteSpecification.example("sudoku")
+        )
+
+    @pytest.mark.asyncio
+    async def test_validate_invalid_specification(self):
+        try:
+            await client.validate_specification(
+                opvious.InlineSpecification([r"\S^v_v: v \in \mathbb{R}"])
+            )
+            raise Exception()
+        except opvious.SpecificationValidationError as exc:
+            assert len(exc.issues) == 1
