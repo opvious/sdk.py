@@ -198,5 +198,7 @@ class TestModeling:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("model", _models)
-    async def test_validate_rendered_specification(self, model):
-        await client.validate_specification(opvious.ModelSpecification(model))
+    async def test_compile_specification(self, model):
+        spec = model.compile_specification()
+        annotation = await spec.fetch_annotation()
+        assert annotation.issues == []

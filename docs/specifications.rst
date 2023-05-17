@@ -17,23 +17,22 @@ sources, listed below.
    :local:
    :backlinks: none
 
-
-Available types
-***************
-
-.. autoclass:: opvious.FormulationSpecification
-   :noindex:
-   :members:
+Local type
+**********
 
 .. autoclass:: opvious.LocalSpecification
    :noindex:
    :members:
 
-.. autoclass:: opvious.RemoteSpecification
+
+External types
+**************
+
+.. autoclass:: opvious.FormulationSpecification
    :noindex:
    :members:
 
-.. autoclass:: opvious.InlineSpecification
+.. autoclass:: opvious.RemoteSpecification
    :noindex:
    :members:
 

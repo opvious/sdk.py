@@ -6,10 +6,10 @@ from opvious.executors.aiohttp import AiohttpExecutor
 from opvious.executors.urllib import UrllibExecutor
 
 
-TOKEN = opvious.ClientSetting.TOKEN.read()
+TOKEN = opvious.Setting.TOKEN.read()
 
 
-DOMAIN = opvious.ClientSetting.DOMAIN.read()
+DOMAIN = opvious.Setting.DOMAIN.read()
 
 
 @pytest.mark.skipif(not TOKEN, reason="No access token detected")

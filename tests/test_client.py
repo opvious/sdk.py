@@ -136,43 +136,42 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_solve_bounded_feasible(self):
-        response = await client.run_solve(
-            specification=opvious.InlineSpecification(
-                [
-                    r"""
-                    $\S^{v}_{target}: \alpha \in \{0,1\}$
-                    $\S^{p}_{bound}: b \in \mathbb{R}_+$
-                    $\S^{c}_{greaterThanBound}: \alpha \geq b$
-                    $\S^o_{maximize}: \max 2 \alpha$
-                """,
-                ]
-            ),
+        spec = opvious.LocalSpecification.inline(
+            r"""
+            $\S^{v}_{target}: \alpha \in \{0,1\}$
+            $\S^{p}_{bound}: b \in \mathbb{R}_+$
+            $\S^{c}_{greaterThanBound}: \alpha \geq b$
+            $\S^o_{maximize}: \max 2 \alpha$
+            """
+        )
+        res = await client.run_solve(
+            specification=spec,
             parameters={"bound": 0.1},
         )
-        assert isinstance(response.outcome, opvious.FeasibleOutcome)
-        assert response.outcome.is_optimal
-        assert response.outcome.objective_value == 2
+        assert isinstance(res.outcome, opvious.FeasibleOutcome)
+        assert res.outcome.is_optimal
+        assert res.outcome.objective_value == 2
 
     @pytest.mark.asyncio
     async def test_solve_bounded_infeasible(self):
-        response = await client.run_solve(
-            specification=opvious.InlineSpecification(
-                [
-                    r"""
-                    $\S^{v}_{target}: \alpha \in \{0,1\}$
-                    $\S^{p}_{bound}: b \in \mathbb{R}_+$
-                    $\S^{c}_{greaterThanBound}: \alpha \geq b$
-                    $\S^o_{maximize}: \max 2 \alpha$
-                """,
-                ]
-            ),
+        spec = opvious.LocalSpecification.inline(
+            r"""
+            $\S^{v}_{target}: \alpha \in \{0,1\}$
+            $\S^{p}_{bound}: b \in \mathbb{R}_+$
+            $\S^{c}_{greaterThanBound}: \alpha \geq b$
+            $\S^o_{maximize}: \max 2 \alpha$
+            """
+        )
+        res = await client.run_solve(
+            specification=spec,
             parameters={"bound": 30},
         )
-        assert isinstance(response.outcome, opvious.InfeasibleOutcome)
+        assert isinstance(res.outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_solve_portfolio_selection(self):
-        source = r"""
+        spec = opvious.LocalSpecification.inline(
+            r"""
             We find an allocation of assets which minimizes risk while
             satisfying a minimum expected return and allocation per group.
 
@@ -189,9 +188,10 @@ class TestClient:
 
             + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
             + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
-        """
+            """
+        )
         response = await client.run_solve(
-            specification=opvious.InlineSpecification([source]),
+            specification=spec,
             parameters={
                 "covariance": {
                     ("AAPL", "AAPL"): 0.2,
@@ -272,32 +272,34 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_solve_no_objective(self):
-        source = r"""
-        # N queens
+        spec = opvious.LocalSpecification.inline(
+            r"""
+            # N queens
 
-        First, let $\S^p_{size}: n \in \mathbb{N}$ be the size of the board.
-        Given this, we define $\S^a: N \doteq \{1 \ldots n\}$ the set of
-        possible positions and $\S^v_{decisions}: \alpha \in \{0,1\}^{N \times
-        N}$ our optimization variable. A valid board must satisfy the following
-        constraints:
+            First, let $\S^p_{size}: n \in \mathbb{N}$ be the size of the
+            board. Given this, we define $\S^a: N \doteq \{1 \ldots n\}$ the
+            set of possible positions and $\S^v_{decisions}: \alpha \in
+            \{0,1\}^{N \times N}$ our optimization variable. A valid board must
+            satisfy the following constraints:
 
-        $$
-        \begin{align}
-            \S^c_{onePerRow}:
-                \forall i \in N, \sum_{j \in N} \alpha_{i,j} = 1 \\
-            \S^c_{onePerColumn}:
-                \forall j \in N, \sum_{i \in N} \alpha_{i,j} = 1 \\
-            \S^c_{onePerDiag1}:
-                \forall d \in \{2 \ldots 2 n\},
-                \sum_{i \in N \mid d - i \in N} \alpha_{i,d-i} \leq 1 \\
-            \S^c_{onePerDiag2}:
-                \forall d \in \{1-n \ldots n-1\},
-                \sum_{i \in N \mid i - d \in N} \alpha_{i,i-d} \leq 1 \\
-        \end{align}
-        $$
-        """
+            $$
+            \begin{align}
+                \S^c_{onePerRow}:
+                    \forall i \in N, \sum_{j \in N} \alpha_{i,j} = 1 \\
+                \S^c_{onePerColumn}:
+                    \forall j \in N, \sum_{i \in N} \alpha_{i,j} = 1 \\
+                \S^c_{onePerDiag1}:
+                    \forall d \in \{2 \ldots 2 n\},
+                    \sum_{i \in N \mid d - i \in N} \alpha_{i,d-i} \leq 1 \\
+                \S^c_{onePerDiag2}:
+                    \forall d \in \{1-n \ldots n-1\},
+                    \sum_{i \in N \mid i - d \in N} \alpha_{i,i-d} \leq 1 \\
+            \end{align}
+            $$
+            """
+        )
         response = await client.run_solve(
-            specification=opvious.InlineSpecification([source]),
+            specification=spec,
             parameters={"size": 2},
         )
         assert isinstance(response.outcome, opvious.InfeasibleOutcome)
@@ -359,19 +361,3 @@ class TestClient:
             ),
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
-
-    @pytest.mark.asyncio
-    async def test_validate_ok_specification(self):
-        await client.validate_specification(
-            opvious.RemoteSpecification.example("sudoku")
-        )
-
-    @pytest.mark.asyncio
-    async def test_validate_invalid_specification(self):
-        try:
-            await client.validate_specification(
-                opvious.InlineSpecification([r"\S^v_v: v \in \mathbb{R}"])
-            )
-            raise Exception()
-        except opvious.SpecificationValidationError as exc:
-            assert len(exc.issues) == 1
