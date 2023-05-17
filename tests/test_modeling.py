@@ -97,7 +97,7 @@ class GroupExpenses(om.Model):
         total_share = om.total(self.share(t, f) for f in self.friends)
         return self.share(t, f) / total_share
 
-    @om.constraint()
+    @om.constraint
     def debts_are_settled(self) -> om.Quantified[om.Predicate]:
         for f in self.friends:
             received = om.total(self.transferred(s, f) for s in self.friends)
@@ -109,7 +109,7 @@ class GroupExpenses(om.Model):
             )
             yield received - sent == owed
 
-    @om.constraint()
+    @om.constraint
     def transfer_count_is_below_max(self) -> om.Quantified[om.Predicate]:
         for s in self.friends:
             transfer_count = om.total(
@@ -117,11 +117,17 @@ class GroupExpenses(om.Model):
             )
             yield transfer_count <= self.max_transfer_count()
 
-    @om.objective()
+    @om.constraint
+    def transfer_is_above_floor(self) -> om.Quantified[om.Predicate]:
+        for s, r in om.cross(self.friends, self.friends):
+            floor = self.floor() * self.tranferred_indicator(s, r)
+            yield self.transferred(s, r) >= floor
+
+    @om.objective
     def minimize_transfer_count(self) -> om.Expression:
         return self.max_transfer_count()
 
-    @om.objective()
+    @om.objective
     def minimize_total_transferred(self) -> om.Expression:
         return om.total(
             self.transferred(s, r)
@@ -190,6 +196,7 @@ class Sudoku(om.Model):
 class TestModeling:
     _models = [SetCover(), LotSizing(), GroupExpenses(), Sudoku()]
 
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("model", _models)
-    def test_parse_rendered_specification(self, model):
-        spec = model.render_specification()
+    async def test_validate_rendered_specification(self, model):
+        await client.validate_specification(opvious.ModelSpecification(model))

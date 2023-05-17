@@ -13,6 +13,7 @@ class SpecificationValidationError(Exception):
     def __init__(self, issues: Sequence[SpecificationSourceIssue]) -> None:
         super().__init__(f"Invalid specification: {len(issues)} issue(s)")
         self.issues = issues
+        print(issues)
 
 
 @dataclasses.dataclass(frozen=True)
