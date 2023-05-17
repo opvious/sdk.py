@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 import math
 from typing import (
     Any,
@@ -47,6 +48,9 @@ from .identifiers import (
 from .images import Image
 from .quantified import Quantified
 from .statements import Definition, ModelFragment
+
+
+_logger = logging.getLogger(__name__)
 
 
 class Dimension(Definition, ScalarQuantifiable):
@@ -99,6 +103,7 @@ class Dimension(Definition, ScalarQuantifiable):
         return self._identifier.format()
 
     def render_statement(self, label: Label, _model: Any) -> Optional[str]:
+        _logger.debug("Rendering dimension %s...", label)
         s = f"\\S^d_{{{label}}}&: {self._identifier.format()}"
         if self._is_numeric:
             s += " \\subset \\mathbb{Z}"
@@ -173,6 +178,7 @@ class _Tensor(Definition):
         )
 
     def render_statement(self, label: Label, _model: Any) -> Optional[str]:
+        _logger.debug("Rendering tensor %s...", label)
         c = self._variant[0]
         s = f"\\S^{c}_{{{_render_label(label, self.qualifiers)}}}&: "
         s += f"{self._identifier.format()} \\in "
@@ -273,6 +279,7 @@ class _Alias(Definition, _FragmentMethod):
         return self._identifier
 
     def render_statement(self, _label: Label, model: Any) -> Optional[str]:
+        _logger.debug("Rendering alias named %s...", self._identifier.name)
         if self._aliased is None:
             return None  # Not used
         quantifiable = tuple(
@@ -406,6 +413,7 @@ class Constraint(Definition, _FragmentMethod):
         return self._label
 
     def render_statement(self, label: Label, frag: Any) -> Optional[str]:
+        _logger.debug("Rendering constraint %s...", label)
         s = f"\\S^c_{{{_render_label(label, self.qualifiers)}}}&: "
         predicate, domain = within_domain(self._body(frag))
         with local_formatting_scope(domain.quantifiers):
@@ -522,6 +530,7 @@ class Objective(Definition, _FragmentMethod):
         return self._body(*args, **kwargs)
 
     def render_statement(self, label: Label, frag: Any) -> Optional[str]:
+        _logger.debug("Rendering objective %s...", label)
         sense = self._sense
         if sense is None:
             if label.startswith("min"):
