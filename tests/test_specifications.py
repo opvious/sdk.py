@@ -1,6 +1,5 @@
 import os
 import pytest
-from typing import Any, cast
 
 
 from opvious.specifications import LocalSpecification

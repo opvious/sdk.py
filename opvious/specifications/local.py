@@ -147,7 +147,7 @@ class LocalSpecification:
                 s,
                 annotation.counts[i] if annotation else None,
                 annotation.issues[i] if annotation else [],
-                start_open=i == 0
+                start_open=i == 0,
             )
             for i, s in enumerate(self.sources)
         )
@@ -157,7 +157,7 @@ def _source_details(
     source: LocalSpecificationSource,
     counts: Optional[collections.Counter],
     issues: Sequence[LocalSpecificationIssue],
-    start_open=False
+    start_open=False,
 ) -> str:
     lines = ["<details open>" if start_open else "<details>"]
     if source.title:
