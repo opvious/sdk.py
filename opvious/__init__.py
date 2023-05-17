@@ -1,7 +1,7 @@
 import logging
 
-from .client import Client, ClientSetting
-from .common import __version__
+from .client import Client
+from .common import __version__, Setting
 from .data.attempts import Attempt, AttemptNotification
 from .data.outcomes import (
     CancelledOutcome,
@@ -44,13 +44,11 @@ from .executors import (
 )
 from .specifications import (
     FormulationSpecification,
-    InlineSpecification,
     LocalSpecification,
-    ModelSpecification,
+    LocalSpecificationIssue,
+    LocalSpecificationSource,
     RemoteSpecification,
     Specification,
-    SpecificationSourceIssue,
-    SpecificationValidationError,
 )
 from .transformations import (
     ConstrainObjective,
@@ -65,9 +63,10 @@ from .transformations import (
 
 
 __all__ = [
+    # Configuration
+    "Setting",
     # Client
     "Client",
-    "ClientSetting",
     # Executors
     "Executor",
     "ExecutorError",
@@ -77,13 +76,11 @@ __all__ = [
     "urllib_executor",
     # Specifications
     "FormulationSpecification",
-    "InlineSpecification",
-    "SpecificationSourceIssue",
     "LocalSpecification",
-    "ModelSpecification",
+    "LocalSpecificationIssue",
+    "LocalSpecificationSource",
     "RemoteSpecification",
     "Specification",
-    "SpecificationValidationError",
     # Solves and attempts
     "Attempt",
     "AttemptNotification",

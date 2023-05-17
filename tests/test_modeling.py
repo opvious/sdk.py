@@ -190,6 +190,22 @@ class Sudoku(om.Model):
             )
 
 
+class InvalidSetCoverModel(om.Model):
+    sets = om.Dimension()
+    vertices = om.Dimension()
+    covers = om.Parameter(sets, vertices, image=om.Image.indicator())
+    used = om.Variable(sets, image=om.Image.indicator())
+
+    @om.constraint
+    def all_covered(self):
+        for v in self.vertices:
+            count = om.total(
+                self.used(s) * self.covers(v, s)  # Bad subscript order
+                for s in self.sets
+            )
+            yield count >= 1
+
+
 @pytest.mark.skipif(
     not client.authenticated, reason="No access token detected"
 )
@@ -198,5 +214,12 @@ class TestModeling:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("model", _models)
-    async def test_validate_rendered_specification(self, model):
-        await client.validate_specification(opvious.ModelSpecification(model))
+    async def test_compile_specification(self, model):
+        spec = await model.compile_specification()
+        assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_annotate_markdown_repr(self):
+        model = InvalidSetCoverModel()
+        spec = await model.compile_specification()
+        assert spec.annotation.issue_count == 2

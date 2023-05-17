@@ -12,9 +12,6 @@ from .ast import (
     total,
 )
 from .definitions import (
-    Model,
-    ModelFragment,
-    ModelValidator,
     Constraint,
     Dimension,
     Objective,
@@ -24,7 +21,6 @@ from .definitions import (
     constraint,
     interval,
     objective,
-    relabel,
 )
 from .fragments import (
     ActivationIndicator,
@@ -33,11 +29,11 @@ from .fragments import (
 )
 from .images import Image
 from .quantified import Quantified
+from .statements import Model, ModelFragment, relabel
 
 __all__ = [
     "Model",
     "ModelFragment",
-    "ModelValidator",
     "relabel",
     # Definitions
     "Constraint",

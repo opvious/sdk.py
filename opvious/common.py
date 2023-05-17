@@ -1,6 +1,8 @@
+import enum
 from importlib import metadata
 import math
-from typing import Any, Union
+import os
+from typing import Any, Optional, Union, cast
 import urllib.parse
 
 
@@ -11,6 +13,41 @@ except metadata.PackageNotFoundError:
 
 
 del metadata
+
+
+# Configuration
+
+
+_DEFAULT_DOMAIN = "beta.opvious.io"
+
+
+class Setting(enum.Enum):
+    """Client configuration environment variables"""
+
+    TOKEN = ("OPVIOUS_TOKEN", "")
+    DOMAIN = ("OPVIOUS_DOMAIN", _DEFAULT_DOMAIN)
+
+    def read(self, env: Optional[dict[str, str]] = None) -> str:
+        """Read the setting's current value or default if missing
+
+        Args:
+            env: Environment, defaults to `os.environ`.
+        """
+        if env is None:
+            env = cast(Any, os.environ)
+        name, default_value = self.value
+        return env.get(name) or default_value
+
+
+def default_api_url(domain: Optional[str] = None) -> str:
+    return f"https://api.{domain or _DEFAULT_DOMAIN}"
+
+
+def default_hub_url(domain: Optional[str] = None) -> str:
+    return f"https://hub.{domain or _DEFAULT_DOMAIN}"
+
+
+# Formatting
 
 
 Label = str

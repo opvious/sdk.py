@@ -1,22 +1,25 @@
-from .common import SpecificationSourceIssue, SpecificationValidationError
-from .variants import (
-    AnonymousSpecification,
-    FormulationSpecification,
-    InlineSpecification,
+from typing import Union
+
+from .local import (
     LocalSpecification,
-    ModelSpecification,
-    RemoteSpecification,
-    Specification,
+    LocalSpecificationIssue,
+    LocalSpecificationSource,
 )
+from .external import FormulationSpecification, RemoteSpecification
+
+
+Specification = Union[
+    LocalSpecification,
+    RemoteSpecification,
+    FormulationSpecification,
+]
+
 
 __all__ = [
-    "AnonymousSpecification",
     "FormulationSpecification",
-    "InlineSpecification",
     "LocalSpecification",
-    "ModelSpecification",
+    "LocalSpecificationIssue",
+    "LocalSpecificationSource",
     "RemoteSpecification",
     "Specification",
-    "SpecificationSourceIssue",
-    "SpecificationValidationError",
 ]

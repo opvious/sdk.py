@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Callable, Optional
+from typing import Optional
 
 from .common import (
     Executor,
@@ -64,18 +64,3 @@ def default_executor(
         return aiohttp_executor(root_url=root_url, authorization=authorization)
     except ImportError:
         return urllib_executor(root_url=root_url, authorization=authorization)
-
-
-def run_sync(fn: Callable[..., Any], *args, **kwargs) -> Any:
-    """Blocks until the function completes"""
-    try:
-        import asyncio
-    except ImportError:
-        fn(*args, **kwargs)
-    else:
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(fn(*args, **kwargs))
-        else:
-            loop.run_until_complete(fn(*args, **kwargs))

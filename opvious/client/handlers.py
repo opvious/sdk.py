@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import backoff
 from datetime import datetime, timezone
-import enum
 import json
 import humanize
 import logging
-import os
-from typing import Any, cast, Mapping, Optional, Union
+from typing import cast, Mapping, Optional, Union
 
-from ..common import format_percent, Json, json_dict
+from ..common import (
+    Json,
+    Setting,
+    default_api_url,
+    default_hub_url,
+    format_percent,
+    json_dict,
+)
 from ..data.attempts import (
     Attempt,
     attempt_from_graphql,
@@ -46,15 +51,11 @@ from ..executors import (
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
-    run_sync,
 )
-from ..modeling import ModelValidator
 from ..specifications import (
-    AnonymousSpecification,
     FormulationSpecification,
-    InlineSpecification,
+    RemoteSpecification,
     Specification,
-    SpecificationValidationError,
 )
 from ..transformations import Transformation
 from .common import (
@@ -66,27 +67,6 @@ from .common import (
 
 
 _logger = logging.getLogger(__name__)
-
-
-_DEFAULT_DOMAIN = "beta.opvious.io"
-
-
-class ClientSetting(enum.Enum):
-    """Client configuration environment variables"""
-
-    TOKEN = ("OPVIOUS_TOKEN", "")
-    DOMAIN = ("OPVIOUS_DOMAIN", _DEFAULT_DOMAIN)
-
-    def read(self, env: Optional[dict[str, str]] = None) -> str:
-        """Read the setting's current value or default if missing
-
-        Args:
-            env: Environment, defaults to `os.environ`.
-        """
-        if env is None:
-            env = cast(Any, os.environ)
-        name, default_value = self.value
-        return env.get(name) or default_value
 
 
 class Client:
@@ -120,14 +100,14 @@ class Client:
         authorization = None
         if token:
             authorization = token if " " in token else f"Bearer {token}"
-        api_url = f"https://api.{domain or _DEFAULT_DOMAIN}"
+        api_url = default_api_url(domain)
         return Client(
             executor=default_executor(
                 root_url=api_url,
                 authorization=authorization,
             ),
             api_url=api_url,
-            hub_url=f"https://hub.{domain}",
+            hub_url=default_hub_url(domain),
         )
 
     @classmethod
@@ -141,35 +121,22 @@ class Client:
             require_authenticated: Throw if the environment does not include a
                 valid API token.
         """
-        token = ClientSetting.TOKEN.read(env)
+        token = Setting.TOKEN.read(env)
         if not token and require_authenticated:
             raise Exception(
-                f"Missing or empty {ClientSetting.TOKEN.value} environment "
-                + "variable"
+                f"Missing or empty {Setting.TOKEN.value} environment variable"
             )
-        return Client.from_token(
-            token=token, domain=ClientSetting.DOMAIN.read(env)
-        )
+        return Client.from_token(token=token, domain=Setting.DOMAIN.read(env))
 
     @property
-    def authenticated(self):
+    def authenticated(self) -> bool:
         """Returns true if the client was created with a non-empty API token"""
         return self._executor.authenticated
 
-    async def validate_specification(
-        self, specification: AnonymousSpecification
-    ) -> None:
-        """Validates a specification's source
-
-        Args:
-            specification: The specification to validate. The call will raise a
-                :class:`.SpecificationValidationError` if its source is
-                invalid.
-        """
-        await specification.validate(self._executor)
-
-    def model_validator(self) -> ModelValidator:
-        return _ClientModelValidator(self)
+    @property
+    def executor(self) -> Executor:
+        """Returns the client's underlying executor"""
+        return self._executor
 
     async def _prepare_solve(
         self,
@@ -192,7 +159,10 @@ class Client:
                 specification_tag_name=tag,
             )
         else:
-            sources = await specification.fetch_sources(self._executor)
+            if isinstance(specification, RemoteSpecification):
+                sources = await specification.fetch_sources(self._executor)
+            else:
+                sources = [s.text for s in specification.sources]
             formulation = json_dict(sources=sources)
             outline_generator = await OutlineGenerator.sources(
                 executor=self._executor, sources=sources
@@ -697,19 +667,3 @@ class Client:
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )
-
-
-class _ClientModelValidator(ModelValidator):
-    def __init__(self, client: Client) -> None:
-        self._client = client
-
-    def validate(self, source: str) -> str:
-        try:
-            run_sync(
-                self._client.validate_specification,
-                InlineSpecification([source]),
-            )
-        except SpecificationValidationError as exc:
-            for issue in exc.issues:
-                _logger.warn(issue.message)
-        return source  # TODO: Annotate

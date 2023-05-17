@@ -1,6 +1,5 @@
-from .instance import Client, ClientSetting
+from .handlers import Client
 
 __all__ = [
     "Client",
-    "ClientSetting",
 ]
