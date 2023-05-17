@@ -99,7 +99,7 @@ class MaskedSubset(ModelFragment):
                         yield t
 
             def __iter__(self):
-                return (untuple(t) for t in self.masked)
+                return (untuple(t) for t in cross(self.masked))
 
         return _Fragment()
 
