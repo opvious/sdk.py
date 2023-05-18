@@ -237,13 +237,24 @@ class _ModelFormatter(IdentifierFormatter):
         super().__init__(labels)
 
     def _format_dimension(self, label: Label, env: Environment) -> Name:
-        return f"D^{{{label}}}"
+        i = _last_capital_index(label)
+        if i is None:
+            return label[0].upper()
+        return f"{label[i]}^{{{label[:i]}}}"
 
     def _format_parameter(self, label: Label, env: Environment) -> Name:
-        return f"p^{{{label}}}"
+        i = _last_capital_index(label)
+        if i is None:
+            return label[0]
+        return f"{label[i].lower()}^{{{label[:i]}}}"
 
     def _format_variable(self, label: Label, env: Environment) -> Name:
-        return f"v^{{{label}}}"
+        i = _last_capital_index(label)
+        r = label[i or 0].lower()
+        g = _greek_letters.get(r, r)
+        if i is None:
+            return g
+        return f"{g}^{{{label[:i]}}}"
 
     def format_quantifier(
         self, identifier: QuantifierIdentifier, env: Environment
@@ -252,10 +263,54 @@ class _ModelFormatter(IdentifierFormatter):
         if not name:
             quantifiable = identifier.quantifiable
             if isinstance(quantifiable, QuantifiableReference):
-                name = quantifiable.identifier.format().lower()
-        return self._first_available(name or "i", env)
+                q = quantifiable.identifier.format()
+                if "^" in q:
+                    parts = q.split("^", 1)
+                    name = f"{parts[0].lower()}^{{{parts[1]}}}"
+                else:
+                    name = q.lower()
+        return _first_available(name or "i", env)
 
-    def _first_available(self, name: Name, env: Environment) -> Name:
-        while name in env:
-            name += "x"
-        return name
+
+def _first_available(name: Name, env: Environment) -> Name:
+    while name in env:
+        name += "'"
+    return name
+
+
+def _last_capital_index(label: Label) -> Optional[int]:
+    j = None
+    for i, c in enumerate(label):
+        if c.isupper():
+            j = i
+    return j
+
+
+_greek_letters = {
+    "a": "\\alpha",
+    "b": "\\beta",
+    "c": "\\chi",
+    "d": "\\delta",
+    "e": "\\epsilon",
+    "f": "\\phi",
+    "g": "\\gamma",
+    "h": "\\eta",
+    "i": "\\iota",
+    "j": "\\xi",  # TODO: Find better alternative
+    "k": "\\kappa",
+    "l": "\\lambda",
+    "m": "\\mu",
+    "n": "\\nu",
+    "o": "\\omicron",
+    "p": "\\pi",
+    "q": "\\theta",
+    "r": "\\rho",
+    "s": "\\sigma",
+    "t": "\\tau",
+    "u": "\\psi",
+    "v": "\\zeta",  # TODO: Find better alternative
+    "w": "\\omega",
+    "x": "\\xi",
+    "y": "\\upsilon",
+    "z": "\\zeta",
+}
