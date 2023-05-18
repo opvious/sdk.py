@@ -6,6 +6,7 @@ import itertools
 import math
 from typing import Any, cast, Iterable, Optional, Sequence, TypeVar, Union
 
+from ...common import untuple
 from .identifiers import (
     Identifier,
     Name,
@@ -289,16 +290,16 @@ class _SwitchExpression(Expression):
         return f"\\begin{{cases}} {sep.join(cs)} \\end{{cases}}"
 
 
-class ScalarQuantifiable:
+class Space:
     def __iter__(self) -> Quantified[Quantifier]:
-        return (t[0] for t in cross(self))
+        return (untuple(t) for t in cross(self))
 
     def render(self) -> str:
         raise NotImplementedError()
 
 
 @dataclasses.dataclass(frozen=True)
-class QuantifiableReference(ScalarQuantifiable, _Reference):
+class QuantifiableReference(Space, _Reference):
     def render(self) -> str:
         return render_identifier(self.identifier, *self.subscripts)
 
@@ -323,7 +324,7 @@ Quantification = Quantified[tuple[Quantifier, ...]]
 """Generic quantification result"""
 
 
-def expression_quantifiable(expr: Expression) -> Optional[ScalarQuantifiable]:
+def expression_quantifiable(expr: Expression) -> Optional[Space]:
     """Returns the underlying scalar quantifiable for an expression if any"""
     if isinstance(expr, Quantifier):
         return expr.identifier.quantifiable
@@ -422,7 +423,7 @@ class _BinaryPredicate(Predicate):
 Quantifiable = Union[
     Quantification,
     Quantified[Quantifier],
-    ScalarQuantifiable,
+    Space,
     Domain,
     tuple["Quantifiable", ...],
 ]
@@ -504,7 +505,7 @@ def _quantifiable_quantifiers(
     if isinstance(quantifiable, tuple):
         for component in quantifiable:
             yield from _quantifiable_quantifiers(component)
-    elif isinstance(quantifiable, (ScalarQuantifiable, QuantifiableReference)):
+    elif isinstance(quantifiable, Space):
         yield QuantifierIdentifier.root(quantifiable)
     else:  # Quantification or domain
         if isinstance(quantifiable, Domain):

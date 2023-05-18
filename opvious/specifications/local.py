@@ -142,7 +142,7 @@ class LocalSpecification:
                     sources[i].title,
                     "\n".join(messages),
                 )
-        return "\n---\n".join(
+        return "\n\n---\n\n".join(
             _source_details(
                 s,
                 annotation.counts[i] if annotation else None,

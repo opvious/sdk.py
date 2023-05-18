@@ -23,7 +23,7 @@ from .ast import (
     ExpressionReference,
     literal,
     Predicate,
-    ScalarQuantifiable,
+    Space,
     Quantifiable,
     QuantifiableReference,
     Quantification,
@@ -53,7 +53,7 @@ from .statements import Definition, Model, ModelFragment
 _logger = logging.getLogger(__name__)
 
 
-class Dimension(Definition, ScalarQuantifiable):
+class Dimension(Definition, Space):
     """An abstract collection of values
 
     Args:
@@ -111,9 +111,10 @@ class Dimension(Definition, ScalarQuantifiable):
 
 
 @dataclasses.dataclass(frozen=True)
-class _Interval(ScalarQuantifiable):
+class _Interval(Space):
     lower_bound: Expression
     upper_bound: Expression
+    identifier = None
 
     def render(self) -> str:
         lb = self.lower_bound
@@ -256,7 +257,7 @@ _AliasedVariant = Literal[
 @dataclasses.dataclass(frozen=True)
 class _Aliased:
     variant: _AliasedVariant
-    quantifiables: Sequence[Optional[ScalarQuantifiable]]
+    quantifiables: Sequence[Optional[Space]]
 
 
 class _Alias(Definition, _FragmentMethod):
