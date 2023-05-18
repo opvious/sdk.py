@@ -262,7 +262,7 @@ class _ModelFormatter(IdentifierFormatter):
         name = identifier.name
         if not name:
             q = identifier.quantifiable
-            if isinstance(q, Space) and hasattr(q, 'identifier'):
+            if isinstance(q, Space) and hasattr(q, "identifier"):
                 if q.identifier:
                     f = q.identifier.format()
                     if "^" in f:
