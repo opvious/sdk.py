@@ -140,12 +140,12 @@ class Sudoku(om.Model):
 
     def __init__(self) -> None:
         self.input = om.Parameter(
-            (self.positions, self.positions, self.values),
+            (self.grid, self.values),
             image=om.Image.indicator(),
             qualifiers=self._qualifiers,
         )
         self.output = om.Variable(
-            (self.positions, self.positions, self.values),
+            (self.grid, self.values),
             image=om.Image.indicator(),
             qualifiers=self._qualifiers,
         )
@@ -160,6 +160,11 @@ class Sudoku(om.Model):
     def positions(self) -> om.Quantified[om.Quantifier]:
         return om.interval(0, 8)
 
+    @property
+    @om.alias("G")
+    def grid(self) -> om.Quantification:
+        return om.cross(self.positions, self.positions)
+
     @om.constraint(qualifiers=_qualifiers)
     def output_matches_input(self):
         for i, j, v in om.cross(self.positions, self.positions, self.values):
@@ -168,7 +173,7 @@ class Sudoku(om.Model):
 
     @om.constraint
     def one_output_per_cell(self):
-        for i, j in om.cross(self.positions, self.positions):
+        for i, j in self.grid:
             yield om.total(self.output(i, j, v) == 1 for v in self.values)
 
     @om.constraint
@@ -210,7 +215,12 @@ class InvalidSetCoverModel(om.Model):
     not client.authenticated, reason="No access token detected"
 )
 class TestModeling:
-    _models = [SetCover(), LotSizing(), GroupExpenses(), Sudoku()]
+    _models = [
+        SetCover(),
+        LotSizing(),
+        GroupExpenses(),
+        Sudoku(),
+    ]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("model", _models)
@@ -223,3 +233,23 @@ class TestModeling:
         model = InvalidSetCoverModel()
         spec = await model.compile_specification()
         assert spec.annotation.issue_count == 2
+
+    @pytest.mark.asyncio
+    async def test_compile_specification_with_space_alias(self):
+        class _Model(om.Model):
+            days = om.Dimension()
+            steps = om.Dimension()
+            target = om.Variable(days, steps)
+
+            @property
+            @om.alias("T")
+            def times(self):
+                return om.cross(self.days, self.steps)
+
+            @om.objective
+            def minimize_target(self):
+                return om.total(self.target(d, s) for d, s in self.times)
+
+        model = _Model()
+        spec = await model.compile_specification()
+        assert spec.annotation.issue_count == 0
