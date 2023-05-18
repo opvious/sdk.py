@@ -253,3 +253,4 @@ class TestModeling:
         model = _Model()
         spec = await model.compile_specification()
         assert spec.annotation.issue_count == 0
+        assert "(d, s) \\in T" in spec.sources[0].text
