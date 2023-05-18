@@ -106,7 +106,7 @@ class Dimension(Definition, Space):
 
     def render_statement(self, label: Label, _model: Any) -> Optional[str]:
         _logger.debug("Rendering dimension %s...", label)
-        s = f"\\S^d_{{{label}}}&: {self._identifier.format()}"
+        s = f"\\S^d_\\mathrm{{{label}}}&: {self._identifier.format()}"
         if self._is_numeric:
             s += " \\subset \\mathbb{Z}"
         return s
@@ -182,7 +182,7 @@ class _Tensor(Definition):
     def render_statement(self, label: Label, _model: Any) -> Optional[str]:
         _logger.debug("Rendering tensor %s...", label)
         c = self._variant[0]
-        s = f"\\S^{c}_{{{_render_label(label, self.qualifiers)}}}&: "
+        s = f"\\S^{c}_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
         s += f"{self._identifier.format()} \\in "
         s += self.image.render()
         domain = self._domain
@@ -435,7 +435,7 @@ class Constraint(Definition, _FragmentMethod):
 
     def render_statement(self, label: Label, frag: Any) -> Optional[str]:
         _logger.debug("Rendering constraint %s...", label)
-        s = f"\\S^c_{{{_render_label(label, self.qualifiers)}}}&: "
+        s = f"\\S^c_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
         predicate, domain = within_domain(self._body(frag))
         with local_formatting_scope(domain.quantifiers):
             if domain.quantifiers:
@@ -561,7 +561,7 @@ class Objective(Definition, _FragmentMethod):
             else:
                 raise Exception(f"Missing sense for objective {label}")
         expression = to_expression(self._body(frag))
-        return f"\\S^o_{{{label}}}&: \\{sense} {expression.render()}"
+        return f"\\S^o_\\mathrm{{{label}}}&: \\{sense} {expression.render()}"
 
 
 @overload
