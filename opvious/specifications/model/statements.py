@@ -297,7 +297,7 @@ def _lower_principal(name: Name) -> Name:
     if "^" not in name:
         return name.lower()
     parts = name.split("^", 1)
-    return f"{parts[0].lower()}^{{{parts[1]}}}"
+    return f"{parts[0].lower()}^{parts[1]}"
 
 
 _greek_letters = {

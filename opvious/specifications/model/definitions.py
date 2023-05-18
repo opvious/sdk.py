@@ -144,7 +144,6 @@ def interval(
     return iter(interval)
 
 
-@dataclasses.dataclass(init=False)
 class _Tensor(Definition):
     def __init__(
         self,
