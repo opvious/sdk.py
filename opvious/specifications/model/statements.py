@@ -7,7 +7,7 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from ...common import Label, to_camel_case
 from ..local import LocalSpecification, LocalSpecificationSource
-from .ast import QuantifiableReference
+from .ast import Space
 from .identifiers import (
     Environment,
     GlobalIdentifier,
@@ -261,14 +261,15 @@ class _ModelFormatter(IdentifierFormatter):
     ) -> Name:
         name = identifier.name
         if not name:
-            quantifiable = identifier.quantifiable
-            if isinstance(quantifiable, QuantifiableReference):
-                q = quantifiable.identifier.format()
-                if "^" in q:
-                    parts = q.split("^", 1)
-                    name = f"{parts[0].lower()}^{{{parts[1]}}}"
-                else:
-                    name = q.lower()
+            q = identifier.quantifiable
+            if isinstance(q, Space) and hasattr(q, "identifier"):
+                if q.identifier:
+                    f = q.identifier.format()
+                    if "^" in f:
+                        parts = f.split("^", 1)
+                        name = f"{parts[0].lower()}^{{{parts[1]}}}"
+                    else:
+                        name = f.lower()
         return _first_available(name or "i", env)
 
 
