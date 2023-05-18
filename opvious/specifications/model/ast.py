@@ -3,9 +3,9 @@ from __future__ import annotations
 import collections
 import dataclasses
 import itertools
+import math
 from typing import Any, cast, Iterable, Optional, Sequence, TypeVar, Union
 
-from ...common import encode_extended_float
 from .identifiers import (
     Identifier,
     Name,
@@ -140,7 +140,12 @@ class _LiteralExpression(Expression):
     value: float
 
     def render(self, _precedence=0) -> str:
-        return str(encode_extended_float(self.value))
+        if self.value == math.inf:
+            return "\\infty"
+        elif self.value == -math.inf:
+            return "-\\infty"
+        else:
+            return str(self.value)
 
 
 def literal(val: Union[float, int]) -> Expression:
