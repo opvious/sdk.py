@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 import logging
 import math
 from typing import (
@@ -28,9 +29,10 @@ from .ast import (
     QuantifiableReference,
     Quantification,
     Quantifier,
+    QuantifierIdentifier,
     cross,
     domain_from_quantifiable,
-    expression_quantifiable,
+    expression_space,
     is_literal,
     render_identifier,
     to_expression,
@@ -46,7 +48,7 @@ from .identifiers import (
     local_formatting_scope,
 )
 from .images import Image
-from .quantified import Quantified
+from .quantified import Quantified, unquantify
 from .statements import Definition, Model, ModelFragment
 
 
@@ -114,7 +116,6 @@ class Dimension(Definition, Space):
 class _Interval(Space):
     lower_bound: Expression
     upper_bound: Expression
-    identifier = None
 
     def render(self) -> str:
         lb = self.lower_bound
@@ -190,9 +191,16 @@ class _Tensor(Definition):
                 if domain.mask:
                     sup = domain.render()
                 else:
-                    formatted = [
-                        q.quantifiable.render() for q in domain.quantifiers
-                    ]
+                    formatted: list[str] = []
+                    for g, qs in itertools.groupby(
+                        domain.quantifiers, key=lambda q: q.outer_group
+                    ):
+                        if g is None:
+                            formatted.extend(
+                                q.quantifiable.render() for q in qs
+                            )
+                        else:
+                            formatted.append(g.alias.format())
                     sup = " \\times ".join(formatted)
                 s += f"^{{{sup}}}"
         return s
@@ -247,17 +255,12 @@ class _Aliasable(Protocol[_M, _R]):
         pass
 
 
-_AliasedVariant = Literal[
-    "expression",
-    "scalar_quantification",
-    "quantification",
-]
-
-
 @dataclasses.dataclass(frozen=True)
 class _Aliased:
-    variant: _AliasedVariant
     quantifiables: Sequence[Optional[Space]]
+    quantifiers: Union[
+        None, QuantifierIdentifier, tuple[QuantifierIdentifier, ...]
+    ]
 
 
 class _Alias(Definition, _FragmentMethod):
@@ -297,7 +300,7 @@ class _Alias(Definition, _FragmentMethod):
                 s += f"\\forall {outer_domain.render()}, "
             s += render_identifier(self._identifier, *expressions)
             s += " \\doteq "
-            if self._aliased.variant == "expression":
+            if self._aliased.quantifiers is None:
                 s += value.render()
             else:
                 inner_domain = domain_from_quantifiable(value)
@@ -311,29 +314,43 @@ class _Alias(Definition, _FragmentMethod):
                         s += inner_domain.quantifiers[0].quantifiable.render()
         return s
 
-    def __call__(self, model: Any, *subscripts: ExpressionLike) -> Any:
-        # This is used for property calls
+    def __call__(self, frag: Any, *subscripts: ExpressionLike) -> Any:
         exprs = tuple(to_expression(s) for s in subscripts)
         if self._aliased is None:
-            value = self._aliasable(model, *exprs)
+            value = self._aliasable(frag, *exprs)
             if isinstance(value, Expression):
-                variant: _AliasedVariant = "expression"
-            elif isinstance(value, tuple):
-                variant = "quantification"
+                quantifiers = None
             else:
-                variant = "scalar_quantification"
+                quantifiers, _ = unquantify(value)
             self._aliased = _Aliased(
-                variant,
-                [expression_quantifiable(x) for x in exprs],
+                [expression_space(x) for x in exprs],
+                tuple(_quantifier_identifier(q) for q in quantifiers)
+                if isinstance(quantifiers, tuple)
+                else None
+                if quantifiers is None
+                else _quantifier_identifier(quantifiers),
             )
-        if self._aliased.variant == "expression":
+        quantifiers = self._aliased.quantifiers
+        if quantifiers is None:
             return ExpressionReference(self._identifier, exprs)
         else:
-            ref = QuantifiableReference(self._identifier, exprs)
-            if self._aliased.variant == "quantification":
+            ref = QuantifiableReference(
+                identifier=self._identifier,
+                subscripts=exprs,
+                quantifiers=quantifiers
+                if isinstance(quantifiers, tuple)
+                else (quantifiers,),
+            )
+            if isinstance(self._aliased.quantifiers, tuple):
                 return cross(ref)
             else:
                 return iter(ref)
+
+
+def _quantifier_identifier(arg: Any) -> QuantifierIdentifier:
+    if not isinstance(arg, Quantifier):
+        raise TypeError(f"Space aliases should only return quantifiers: {arg}")
+    return arg.identifier
 
 
 _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
@@ -548,14 +565,14 @@ class Objective(Definition, _FragmentMethod):
 
 
 @overload
-def objective(body: ObjectiveBody) -> Constraint:
+def objective(body: ObjectiveBody) -> Objective:
     ...
 
 
 @overload
 def objective(
     *, sense: Optional[ObjectiveSense] = None, label: Optional[Label] = None
-) -> Callable[[ObjectiveBody], Constraint]:
+) -> Callable[[ObjectiveBody], Objective]:
     ...
 
 
@@ -599,19 +616,23 @@ def objective(
             def optimize_count(self):
                 return total(self.count(p) for p in self.products)
     """
+    if body:
+        return Objective(body, sense=_objective_sense(body))
 
     def wrap(fn):
         if disabled:
             return fn
-        method_sense = sense
-        if method_sense is None:
-            name = fn.__name__
-            if name.startswith("min"):
-                method_sense = "min"
-            elif name.startswith("max"):
-                method_sense = "max"
-            else:
-                raise Exception(f"Missing sense for objective {name}")
+        method_sense = sense or _objective_sense(fn)
         return Objective(fn, sense=method_sense, label=label)
 
     return wrap
+
+
+def _objective_sense(fn: Callable[..., Any]) -> ObjectiveSense:
+    name = fn.__name__
+    if name.startswith("min"):
+        return "min"
+    elif name.startswith("max"):
+        return "max"
+    else:
+        raise Exception(f"Missing sense for objective {name}")

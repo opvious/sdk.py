@@ -39,6 +39,7 @@ class LocalSpecificationIssue:
     start_offset: int
     end_offset: int
     message: str
+    code: str
 
 
 @dataclasses.dataclass(frozen=True)
@@ -135,7 +136,7 @@ class LocalSpecification:
             for i, issues in enumerate(annotation.issues):
                 if not issues:
                     continue
-                messages = [f"  * {i.message}" for i in issues]
+                messages = [f"  * [{i.code}] {i.message}" for i in issues]
                 _logger.error(
                     "%s issue(s) in %s specification:\n%s",
                     len(issues),
@@ -179,6 +180,7 @@ def _issue_from_json(data: Json) -> LocalSpecificationIssue:
         message=data["message"],
         start_offset=rg["start"]["offset"],
         end_offset=rg["end"]["offset"],
+        code=data["code"],
     )
 
 
@@ -190,6 +192,10 @@ def _colorize(text: str, issues: Sequence[LocalSpecificationIssue]) -> str:
     cutoffs: list[int] = []
     end = 0
     for issue in by_start:
+        if issue.code == "ERR_INVALID_SYNTAX":
+            # These issues can't be easily colorized as they span name
+            # boundaries
+            continue
         if issue.start_offset <= end:
             end = max(issue.end_offset + 1, end)
         else:

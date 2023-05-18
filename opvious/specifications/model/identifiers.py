@@ -54,34 +54,59 @@ class AliasIdentifier(GlobalIdentifier):
     name: Name
 
 
+@dataclasses.dataclass(eq=False, frozen=True)
+class QuantifierGroup:
+    alias: AliasIdentifier
+    size: int
+
+
 class QuantifierIdentifier(Identifier):
+    quantifiable: Any  # Space
+    groups: Sequence[QuantifierGroup]
     name: Optional[Name]
-    quantifiable: Any
 
     @classmethod
-    def root(cls, quantifiable: Any) -> QuantifierIdentifier:
-        return _RootQuantifierIdentifier(quantifiable=quantifiable)
+    def base(cls, quantifiable: Any) -> QuantifierIdentifier:
+        return _BaseQuantifierIdentifier(quantifiable=quantifiable, groups=[])
 
-    def child(self, name: Optional[Name]) -> QuantifierIdentifier:
+    def grouped_within(self, group: QuantifierGroup) -> QuantifierIdentifier:
+        return _BaseQuantifierIdentifier(
+            quantifiable=self.quantifiable, groups=[group, *self.groups]
+        ).named(self.name)
+
+    def named(self, name: Optional[Name]) -> QuantifierIdentifier:
         if name is None or name == self.name:
             return self
-        return _ChildQuantifierIdentifier(name=name, parent=self)
+        return _NamedQuantifierIdentifier(name=name, parent=self)
+
+    @property
+    def outer_group(self) -> Optional[QuantifierGroup]:
+        return self.groups[0] if self.groups else None
+
+    @property
+    def domain_grouping_key(self) -> Any:  # Space or AliasIdentifier
+        return self.groups[0].alias if self.groups else self.quantifiable
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
-class _RootQuantifierIdentifier(QuantifierIdentifier):
+class _BaseQuantifierIdentifier(QuantifierIdentifier):
     quantifiable: Any
+    groups: Sequence[QuantifierGroup]
     name = None
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
-class _ChildQuantifierIdentifier(QuantifierIdentifier):
+class _NamedQuantifierIdentifier(QuantifierIdentifier):
     name: Name
     parent: QuantifierIdentifier
 
     @property
     def quantifiable(self) -> Any:
         return self.parent.quantifiable
+
+    @property
+    def groups(self) -> Sequence[QuantifierGroup]:  # type: ignore[override]
+        return self.parent.groups
 
 
 class IdentifierFormatter:
@@ -164,7 +189,7 @@ class _Scope:
                 raise TypeError(f"Unexpected identifier: {identifier}")
             self.environment[name] = identifier
             self.quantifier_names[identifier] = name
-            while isinstance(identifier, _ChildQuantifierIdentifier):
+            while isinstance(identifier, _NamedQuantifierIdentifier):
                 identifier = identifier.parent
                 self.quantifier_names[identifier] = name
         return name

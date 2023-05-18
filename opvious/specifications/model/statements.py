@@ -240,19 +240,19 @@ class _ModelFormatter(IdentifierFormatter):
         i = _last_capital_index(label)
         if i is None:
             return label[0].upper()
-        return f"{label[i]}^{{{label[:i]}}}"
+        return f"{label[i]}^{{{label[:i]}}}" if i > 0 else label[i]
 
     def _format_parameter(self, label: Label, env: Environment) -> Name:
         i = _last_capital_index(label)
-        if i is None:
-            return label[0]
+        if not i:
+            return label[0].lower()
         return f"{label[i].lower()}^{{{label[:i]}}}"
 
     def _format_variable(self, label: Label, env: Environment) -> Name:
         i = _last_capital_index(label)
         r = label[i or 0].lower()
         g = _greek_letters.get(r, r)
-        if i is None:
+        if not i:
             return g
         return f"{g}^{{{label[:i]}}}"
 
@@ -262,15 +262,21 @@ class _ModelFormatter(IdentifierFormatter):
         name = identifier.name
         if not name:
             q = identifier.quantifiable
-            if isinstance(q, Space) and hasattr(q, "identifier"):
-                if q.identifier:
-                    f = q.identifier.format()
-                    if "^" in f:
-                        parts = f.split("^", 1)
-                        name = f"{parts[0].lower()}^{{{parts[1]}}}"
-                    else:
-                        name = f.lower()
-        return _first_available(name or "i", env)
+            if not isinstance(q, Space):
+                raise TypeError(f"Unexpected quantifiable: {q}")
+            if hasattr(q, "identifier") and q.identifier:
+                name = _lower_principal(q.identifier.format())
+            group = identifier.outer_group
+            for g in identifier.groups:
+                if g.size == 1:
+                    group = g
+                    break
+            if group:
+                name = _lower_principal(group.alias.format())
+        return _first_available(name or _DEFAULT_QUANTIFIER_NAME, env)
+
+
+_DEFAULT_QUANTIFIER_NAME = "x"
 
 
 def _first_available(name: Name, env: Environment) -> Name:
@@ -285,6 +291,13 @@ def _last_capital_index(label: Label) -> Optional[int]:
         if c.isupper():
             j = i
     return j
+
+
+def _lower_principal(name: Name) -> Name:
+    if "^" not in name:
+        return name.lower()
+    parts = name.split("^", 1)
+    return f"{parts[0].lower()}^{parts[1]}"
 
 
 _greek_letters = {

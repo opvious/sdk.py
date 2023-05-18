@@ -8,18 +8,14 @@ from typing import Any, cast, Iterable, Optional, Sequence, TypeVar, Union
 
 from ...common import untuple
 from .identifiers import (
+    AliasIdentifier,
     Identifier,
     Name,
     local_formatting_scope,
+    QuantifierGroup,
     QuantifierIdentifier,
 )
 from .quantified import Quantified, unquantify, declare
-
-
-@dataclasses.dataclass(eq=False, frozen=True)
-class _Reference:
-    identifier: Identifier
-    subscripts: tuple[Expression, ...] = ()
 
 
 def render_identifier(iden: Identifier, *subscripts: Expression) -> str:
@@ -176,7 +172,10 @@ def to_expression(val: ExpressionLike) -> Expression:
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
-class ExpressionReference(Expression, _Reference):
+class ExpressionReference(Expression):
+    identifier: Identifier
+    subscripts: tuple[Expression, ...]
+
     def render(self, _precedence=0) -> str:
         return render_identifier(self.identifier, *self.subscripts)
 
@@ -238,10 +237,25 @@ class Domain:
 
     def render(self) -> str:
         groups = []
-        grouped = itertools.groupby(self.quantifiers, lambda q: q.quantifiable)
-        for quantifiable, qs in grouped:
-            names = ", ".join(q.format() for q in qs)
-            groups.append(f"{names} \\in {quantifiable.render()}")
+        outer = itertools.groupby(
+            self.quantifiers, lambda q: q.domain_grouping_key
+        )
+        for key, outer_qs in outer:
+            if isinstance(key, AliasIdentifier):
+                inner = itertools.groupby(outer_qs, lambda q: q.outer_group)
+                components: list[str] = []
+                for g, inner_qs in inner:
+                    group_names = list(q.format() for q in inner_qs)
+                    joined = ", ".join(group_names)
+                    components.append(
+                        f"({joined})" if len(group_names) > 1 else joined
+                    )
+                group = ", ".join(components)
+                group += f" \\in {key.format()}"
+                groups.append(group)
+            else:
+                names = ", ".join(q.format() for q in outer_qs)
+                groups.append(f"{names} \\in {key.render()}")
         rendered = ", ".join(groups)
         if self.mask is not None:
             rendered += f" \\mid {self.mask.render()}"
@@ -256,7 +270,7 @@ class _SummationExpression(Expression):
     def render(self, precedence=0) -> str:
         inner = max(3, precedence)
         with local_formatting_scope(self.domain.quantifiers):
-            rendered = f"\\sum_{{{self.domain.render()}}}"
+            rendered = f"\\sum_{{{self.domain.render()}}} "
             rendered += self.summand.render(inner)
         return rendered
 
@@ -299,7 +313,11 @@ class Space:
 
 
 @dataclasses.dataclass(frozen=True)
-class QuantifiableReference(Space, _Reference):
+class QuantifiableReference(Space):
+    identifier: AliasIdentifier
+    subscripts: tuple[Expression, ...]
+    quantifiers: tuple[QuantifierIdentifier, ...]
+
     def render(self) -> str:
         return render_identifier(self.identifier, *self.subscripts)
 
@@ -324,7 +342,7 @@ Quantification = Quantified[tuple[Quantifier, ...]]
 """Generic quantification result"""
 
 
-def expression_quantifiable(expr: Expression) -> Optional[Space]:
+def expression_space(expr: Expression) -> Optional[Space]:
     """Returns the underlying scalar quantifiable for an expression if any"""
     if isinstance(expr, Quantifier):
         return expr.identifier.quantifiable
@@ -494,7 +512,7 @@ def cross(
     """
     names_by_index = dict(enumerate(quantifier_names or []))
     yield tuple(
-        Quantifier(declare(q.child(name=names_by_index.get(i))))
+        Quantifier(declare(q.named(names_by_index.get(i))))
         for i, q in enumerate(_quantifiable_quantifiers(quantifiables))
     )
 
@@ -505,8 +523,13 @@ def _quantifiable_quantifiers(
     if isinstance(quantifiable, tuple):
         for component in quantifiable:
             yield from _quantifiable_quantifiers(component)
+    elif isinstance(quantifiable, QuantifiableReference):
+        qs = quantifiable.quantifiers
+        group = QuantifierGroup(quantifiable.identifier, len(qs))
+        for q in qs:
+            yield q.grouped_within(group)
     elif isinstance(quantifiable, Space):
-        yield QuantifierIdentifier.root(quantifiable)
+        yield QuantifierIdentifier.base(quantifiable)
     else:  # Quantification or domain
         if isinstance(quantifiable, Domain):
             domain = quantifiable
