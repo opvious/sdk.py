@@ -262,7 +262,7 @@ class Domain:
 
 
 def _quantifier_grouping_key(
-    q: QuantifierIdentifier
+    q: QuantifierIdentifier,
 ) -> Union[Space, tuple[AliasIdentifier, tuple[Expression, ...]]]:
     sp = q.space
     if not isinstance(sp, Space):

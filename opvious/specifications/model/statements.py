@@ -103,7 +103,7 @@ class _ModelVisitor:
 
         path = [*prefix, ""]
         for attr, value in attrs.items():
-            if attr.startswith('_'):
+            if attr.startswith("_"):
                 continue
             path[-1] = attr
             if isinstance(value, property):
