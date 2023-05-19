@@ -289,7 +289,7 @@ class _Alias(Definition, _FragmentMethod):
             q or _integers for q in self._aliased.quantifiables
         )
         outer_domain = domain_from_quantifiable(
-            quantifiable, quantifier_names=self._quantifier_names
+            quantifiable, names=self._quantifier_names
         )
         expressions = [Quantifier(q) for q in outer_domain.quantifiers]
         value = self._aliasable(owner, *expressions)
