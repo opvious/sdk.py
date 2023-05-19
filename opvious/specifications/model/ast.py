@@ -440,7 +440,7 @@ class _BinaryPredicate(Predicate):
 
     def render(self, precedence=0) -> str:
         cond = self.condition
-        inner = _binary_operator_precedences[cond]
+        inner = _binary_condition_precedences[cond]
         left = self.left_predicate.render(inner)
         right = self.right_predicate.render(inner)
         rendered = f"{left} \\l{cond} {right}"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import inspect
 import itertools
 import logging
 import math
@@ -419,6 +420,8 @@ class Constraint(Definition, _FragmentMethod):
         label: Optional[Label] = None,
         qualifiers: Optional[Sequence[Label]] = None,
     ):
+        if not inspect.isgeneratorfunction(body):
+            raise TypeError("Non-generator function constraint body")
         super().__init__()
         self._body = body
         self._label = label
