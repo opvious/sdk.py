@@ -300,6 +300,29 @@ class TestModeling:
 
         model = _Model()
         spec = await model.compile_specification()
+        assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
         assert r"\forall v \in C_{2}, \tau_{v} = 0" in text
+
+    @pytest.mark.asyncio
+    async def test_dependency_prefix(self):
+        class _Nested(om.Model):
+            def __init__(self, prefix: str) -> None:
+                super().__init__(prefix=[prefix])
+                self.target = om.Variable()
+
+        class _Model(om.Model):
+            def __init__(self) -> None:
+                self.bar = _Nested("bar")
+                self.foo = _Nested("foo")
+                super().__init__([self.bar, self.foo])
+
+            @om.objective
+            def maximize_targets(self):
+                return self.bar.target() + self.foo.target()
+
+        model = _Model()
+        spec = await model.compile_specification()
         assert spec.annotation.issue_count == 0
+        text = spec.sources[0].text
+        assert r"\max \tau^\mathrm{bar} + \tau^\mathrm{foo}" in text

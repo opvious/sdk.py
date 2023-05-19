@@ -68,27 +68,22 @@ class _ModelVisitor:
         self.statements: list[_Statement] = []
         self._visited: set[int] = set()  # Fragment IDs
 
-    def visit(
-        self,
-        model: Model,
-        prefix: Optional[str] = None,
-    ) -> None:
+    def visit(self, model: Model) -> None:
         model_id = id(model)
         if model_id in self._visited:
             return
         self._visited.add(model_id)
-
-        self._visit_fragment(model, None, [prefix] if prefix else [])
+        self._visit_fragment(model=model, fragment=None, prefix=model.prefix)
         for dep in model.dependencies:
             self.visit(dep)
 
     def _visit_fragment(
         self,
         model: Model,
-        frag: Optional[ModelFragment],
+        fragment: Optional[ModelFragment],
         prefix: Sequence[str],
     ) -> None:
-        obj = frag or model
+        obj = fragment or model
 
         labels: dict[str, Label] = {}
         while isinstance(obj, _Relabeled):
@@ -108,16 +103,17 @@ class _ModelVisitor:
             path[-1] = attr
             if isinstance(value, property):
                 value = value.fget
+            if isinstance(value, ModelFragment):
+                self._visit_fragment(model, value, path)
+                continue
             if not isinstance(value, Definition):
-                if isinstance(value, ModelFragment):
-                    self._visit_fragment(model, value, path)
                 continue
             label = (
                 labels.get(attr)
                 or value.label
                 or to_camel_case("_".join(path))
             )
-            self.statements.append(_Statement(label, value, frag, model))
+            self.statements.append(_Statement(label, value, fragment, model))
 
 
 class Model:
@@ -153,13 +149,13 @@ class Model:
     """
 
     __dependencies: Optional[Sequence[Model]] = None
-    __prefix: Optional[str] = None
+    __prefix: Optional[Sequence[str]] = None
     __title: Optional[str] = None
 
     def __init__(
         self,
         dependencies: Optional[Iterable[Model]] = None,
-        prefix: Optional[Label] = None,
+        prefix: Optional[Sequence[str]] = None,
         title: Optional[str] = None,
     ):
         self.__dependencies = list(dependencies) if dependencies else None
@@ -167,13 +163,16 @@ class Model:
         self.__title = title
 
     @property
-    def title(self) -> str:
-        return self.__title or f"<code>{self.__class__.__name__}</code>"
+    def dependencies(self) -> Sequence[Model]:
+        return self.__dependencies or []
 
     @property
-    def dependencies(self) -> Sequence[Model]:
-        """The model's dependencies"""
-        return self.__dependencies or []
+    def prefix(self) -> Sequence[str]:
+        return self.__prefix or []
+
+    @property
+    def title(self) -> str:
+        return self.__title or f"<code>{self.__class__.__name__}</code>"
 
     async def compile_specification(
         self,
@@ -181,7 +180,7 @@ class Model:
     ) -> LocalSpecification:
         """Generates the model's specification"""
         visitor = _ModelVisitor()
-        visitor.visit(self, prefix=self.__prefix)
+        visitor.visit(self)
         statements = visitor.statements
 
         by_identifier = {

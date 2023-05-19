@@ -69,6 +69,11 @@ class LocalSpecification:
         return LocalSpecification(sources)
 
     @classmethod
+    def notebook(cls, _path: str) -> LocalSpecification:
+        """Creates a local specification from a notebook"""
+        raise NotImplementedError()  # TODO
+
+    @classmethod
     def globs(
         cls, *likes: str, root: Optional[str] = None
     ) -> LocalSpecification:
@@ -136,9 +141,9 @@ class LocalSpecification:
             for i, issues in enumerate(annotation.issues):
                 if not issues:
                     continue
-                messages = [f"  * [{i.code}] {i.message}" for i in issues]
+                messages = [f"  [{i.code}] {i.message}" for i in issues]
                 _logger.error(
-                    "%s issue(s) in %s specification:\n%s",
+                    "%s issue(s) in specification %s:\n%s",
                     len(issues),
                     sources[i].title,
                     "\n".join(messages),
@@ -162,7 +167,7 @@ def _source_details(
 ) -> str:
     lines = ["<details open>" if start_open else "<details>"]
     if source.title:
-        lines.append('<summary style="cursor:pointer;">&#9656; ')
+        lines.append('<summary style="cursor:pointer;">')
         summary = source.title
         if counts:
             parens = ", ".join(f"{k}: {v}" for k, v in counts.most_common())
