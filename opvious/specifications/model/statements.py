@@ -47,6 +47,10 @@ class _Statement:
     fragment: Optional[ModelFragment]
     model: Model
 
+    def render(self) -> Optional[str]:
+        owner = self.fragment or self.model
+        return self.definition.render_statement(self.label, owner)
+
 
 @dataclasses.dataclass(frozen=True)
 class _Relabeled(ModelFragment):
@@ -99,6 +103,8 @@ class _ModelVisitor:
 
         path = [*prefix, ""]
         for attr, value in attrs.items():
+            if attr.startswith("_"):
+                continue
             path[-1] = attr
             if isinstance(value, property):
                 value = value.fget
@@ -192,9 +198,7 @@ class Model:
         with global_formatting_scope(formatter, reserved):
             idens = set()
             for s in statements:
-                rs = s.definition.render_statement(
-                    s.label, s.fragment or s.model
-                )
+                rs = s.render()
                 if not rs:
                     continue
                 rendered_by_title[s.model.title].append(rs)
@@ -206,7 +210,7 @@ class Model:
                 ds = by_identifier.get(iden)
                 if not ds:
                     raise Exception(f"Missing statement: {iden}")
-                rs = ds.definition.render_statement(ds.label, self)
+                rs = ds.render()
                 if not rs:
                     raise Exception(f"Missing rendered statement: {iden}")
                 rendered_by_title[ds.model.title].append(rs)
@@ -261,15 +265,15 @@ class _ModelFormatter(IdentifierFormatter):
     ) -> Name:
         name = identifier.name
         if not name:
-            q = identifier.quantifiable
-            if not isinstance(q, Space):
-                raise TypeError(f"Unexpected quantifiable: {q}")
-            if hasattr(q, "identifier") and q.identifier:  # Dimension
-                name = _lower_principal(q.identifier.format())
+            sp = identifier.space
+            if not isinstance(sp, Space):
+                raise TypeError(f"Unexpected space: {sp}")
+            if hasattr(sp, "identifier") and sp.identifier:  # Dimension
+                name = _lower_principal(sp.identifier.format())
             else:  # Interval, possibly aliased
                 group = identifier.outer_group
                 for g in identifier.groups:
-                    if g.size == 1:
+                    if g.rank == 1:
                         group = g
                         break
                 if group:

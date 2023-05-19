@@ -235,7 +235,7 @@ class TestModeling:
         assert spec.annotation.issue_count == 2
 
     @pytest.mark.asyncio
-    async def test_compile_specification_with_space_alias(self):
+    async def test_model_space_alias(self):
         class _Model(om.Model):
             days = om.Dimension()
             steps = om.Dimension()
@@ -254,3 +254,52 @@ class TestModeling:
         spec = await model.compile_specification()
         assert spec.annotation.issue_count == 0
         assert "(d, s) \\in T" in spec.sources[0].text
+
+    @pytest.mark.asyncio
+    async def test_masked_subset(self):
+        class _Model(om.Model):
+            days = om.Dimension()
+            holidays = om.MaskedSubset.fragment(days, alias_name="H")
+            target = om.Variable(holidays)
+
+            @om.constraint
+            def nothing_on_holidays(self):
+                yield om.total(self.target(d) for d in self.holidays) == 0
+
+        model = _Model()
+        spec = await model.compile_specification()
+        text = spec.sources[0].text
+        assert (
+            r"H \doteq \{ d \in D \mid m^\mathrm{holidays}_{d} \neq 0 \}"
+            in text
+        )
+        assert r"\tau \in \mathbb{R}^{H}" in text
+        assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_fragment_alias_call(self):
+        class _Fragment(om.ModelFragment):
+            def __init__(self, dim):
+                self._dimension = dim
+
+            @om.alias("C")
+            def at_least(self, val):
+                for d in self._dimension:
+                    if d >= val:
+                        yield d
+
+        class _Model(om.Model):
+            values = om.Dimension(is_numeric=True)
+            above = _Fragment(values)
+            target = om.Variable(values)
+
+            @om.constraint
+            def zero_above_two(self):
+                for v in self.above.at_least(2):
+                    yield self.target(v) == 0
+
+        model = _Model()
+        spec = await model.compile_specification()
+        text = spec.sources[0].text
+        assert r"\forall v \in C_{2}, \tau_{v} = 0" in text
+        assert spec.annotation.issue_count == 0

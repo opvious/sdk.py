@@ -33,14 +33,28 @@ class ActivationIndicator(ModelFragment):
     def fragment(
         cls,
         variable: Variable,
+        *,
         upper_bound: Union[ExpressionLike, bool] = False,
         lower_bound: Union[ExpressionLike, bool] = False,
+        name: Optional[Name] = None,
     ) -> ActivationIndicator:
-        """Returns a variable activation fragment"""
+        """Returns a variable activation fragment
+
+        Args:
+            variable: Non-negative variable
+            upper_bound: Value of the upper bound used in the activation
+                constraint. If `True` the variable's image's upper bound will
+                be used, if `False` no activation constraint will be added.
+            lower_bound: Value of the lower bound used in the deactivation
+                constraint. If `True` the variable's image's lower bound will
+                be used, if `False` no deactivation constraint will be added.
+            name: Name of the generated activation variable
+        """
 
         class _Fragment(ActivationIndicator):
             is_active = Variable(
                 variable.quantification(),
+                name=name,
                 image=Image.indicator(),
             )
 
@@ -59,7 +73,7 @@ class ActivationIndicator(ModelFragment):
             def deactivates(self):
                 bound = lower_bound
                 if bound is True:
-                    bound = variable.image.upper_bound
+                    bound = variable.image.lower_bound
                 for t in variable.quantification():
                     yield variable(*t) >= bound * self.is_active(*t)
 
@@ -96,7 +110,7 @@ class MaskedSubset(ModelFragment):
             def masked(self) -> Quantified:
                 for t in cross(quantifiables):
                     if self.mask(*t):
-                        yield t
+                        yield untuple(t)
 
             def __iter__(self):
                 return (untuple(t) for t in cross(self.masked))
