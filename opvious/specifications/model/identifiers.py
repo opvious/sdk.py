@@ -57,21 +57,22 @@ class AliasIdentifier(GlobalIdentifier):
 @dataclasses.dataclass(eq=False, frozen=True)
 class QuantifierGroup:
     alias: AliasIdentifier
-    size: int
+    subscripts: tuple[Any, ...]
+    rank: int
 
 
 class QuantifierIdentifier(Identifier):
-    quantifiable: Any  # Space
+    space: Any  # Space
     groups: Sequence[QuantifierGroup]
     name: Optional[Name]
 
     @classmethod
-    def base(cls, quantifiable: Any) -> QuantifierIdentifier:
-        return _BaseQuantifierIdentifier(quantifiable=quantifiable, groups=[])
+    def base(cls, space: Any) -> QuantifierIdentifier:
+        return _BaseQuantifierIdentifier(space=space, groups=[])
 
     def grouped_within(self, group: QuantifierGroup) -> QuantifierIdentifier:
         return _BaseQuantifierIdentifier(
-            quantifiable=self.quantifiable, groups=[group, *self.groups]
+            space=self.space, groups=[group, *self.groups]
         ).named(self.name)
 
     def named(self, name: Optional[Name]) -> QuantifierIdentifier:
@@ -83,14 +84,10 @@ class QuantifierIdentifier(Identifier):
     def outer_group(self) -> Optional[QuantifierGroup]:
         return self.groups[0] if self.groups else None
 
-    @property
-    def domain_grouping_key(self) -> Any:  # Space or AliasIdentifier
-        return self.groups[0].alias if self.groups else self.quantifiable
-
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class _BaseQuantifierIdentifier(QuantifierIdentifier):
-    quantifiable: Any
+    space: Any
     groups: Sequence[QuantifierGroup]
     name = None
 
@@ -101,8 +98,8 @@ class _NamedQuantifierIdentifier(QuantifierIdentifier):
     parent: QuantifierIdentifier
 
     @property
-    def quantifiable(self) -> Any:
-        return self.parent.quantifiable
+    def space(self) -> Any:
+        return self.parent.space
 
     @property
     def groups(self) -> Sequence[QuantifierGroup]:  # type: ignore[override]

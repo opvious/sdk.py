@@ -104,7 +104,7 @@ class Dimension(Definition, Space):
     def render(self) -> str:
         return self._identifier.format()
 
-    def render_statement(self, label: Label, _model: Any) -> Optional[str]:
+    def render_statement(self, label: Label, _owner: Any) -> Optional[str]:
         _logger.debug("Rendering dimension %s...", label)
         s = f"\\S^d_\\mathrm{{{label}}}&: {self._identifier.format()}"
         if self._is_numeric:
@@ -179,7 +179,7 @@ class _Tensor(Definition):
             self._identifier, tuple(to_expression(s) for s in subscripts)
         )
 
-    def render_statement(self, label: Label, _model: Any) -> Optional[str]:
+    def render_statement(self, label: Label, _owner: Any) -> Optional[str]:
         _logger.debug("Rendering tensor %s...", label)
         c = self._variant[0]
         s = f"\\S^{c}_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
@@ -188,20 +188,18 @@ class _Tensor(Definition):
         domain = self._domain
         if domain.quantifiers:
             with local_formatting_scope(domain.quantifiers):
-                if domain.mask:
-                    sup = domain.render()
-                else:
+                if domain.mask is None:
                     formatted: list[str] = []
                     for g, qs in itertools.groupby(
                         domain.quantifiers, key=lambda q: q.outer_group
                     ):
                         if g is None:
-                            formatted.extend(
-                                q.quantifiable.render() for q in qs
-                            )
+                            formatted.extend(q.space.render() for q in qs)
                         else:
                             formatted.append(g.alias.format())
                     sup = " \\times ".join(formatted)
+                else:
+                    sup = f"\\{{ {domain.render()} \\}}"
                 s += f"^{{{sup}}}"
         return s
 
@@ -282,7 +280,7 @@ class _Alias(Definition, _FragmentMethod):
     def identifier(self) -> Optional[GlobalIdentifier]:
         return self._identifier
 
-    def render_statement(self, _label: Label, model: Any) -> Optional[str]:
+    def render_statement(self, _label: Label, owner: Any) -> Optional[str]:
         _logger.debug("Rendering alias named %s...", self._identifier.name)
         if self._aliased is None:
             return None  # Not used
@@ -293,7 +291,7 @@ class _Alias(Definition, _FragmentMethod):
             quantifiable, quantifier_names=self._quantifier_names
         )
         expressions = [Quantifier(q) for q in outer_domain.quantifiers]
-        value = self._aliasable(model, *expressions)
+        value = self._aliasable(owner, *expressions)
         s = "\\S^a&: "
         with local_formatting_scope(outer_domain.quantifiers):
             if outer_domain.quantifiers:
@@ -311,7 +309,7 @@ class _Alias(Definition, _FragmentMethod):
                     ):
                         s += f"\\{{ {inner_domain.render()} \\}}"
                     else:
-                        s += inner_domain.quantifiers[0].quantifiable.render()
+                        s += inner_domain.quantifiers[0].space.render()
         return s
 
     def __call__(self, frag: Any, *subscripts: ExpressionLike) -> Any:
@@ -433,10 +431,10 @@ class Constraint(Definition, _FragmentMethod):
     def label(self):
         return self._label
 
-    def render_statement(self, label: Label, frag: Any) -> Optional[str]:
+    def render_statement(self, label: Label, owner: Any) -> Optional[str]:
         _logger.debug("Rendering constraint %s...", label)
         s = f"\\S^c_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
-        predicate, domain = within_domain(self._body(frag))
+        predicate, domain = within_domain(self._body(owner))
         with local_formatting_scope(domain.quantifiers):
             if domain.quantifiers:
                 s += f"\\forall {domain.render()}, "
@@ -550,7 +548,7 @@ class Objective(Definition, _FragmentMethod):
     def __call__(self, *args, **kwargs):
         return self._body(*args, **kwargs)
 
-    def render_statement(self, label: Label, frag: Any) -> Optional[str]:
+    def render_statement(self, label: Label, owner: Any) -> Optional[str]:
         _logger.debug("Rendering objective %s...", label)
         sense = self._sense
         if sense is None:
@@ -560,7 +558,7 @@ class Objective(Definition, _FragmentMethod):
                 sense = "max"
             else:
                 raise Exception(f"Missing sense for objective {label}")
-        expression = to_expression(self._body(frag))
+        expression = to_expression(self._body(owner))
         return f"\\S^o_\\mathrm{{{label}}}&: \\{sense} {expression.render()}"
 
 

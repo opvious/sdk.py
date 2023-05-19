@@ -237,11 +237,10 @@ class Domain:
 
     def render(self) -> str:
         groups = []
-        outer = itertools.groupby(
-            self.quantifiers, lambda q: q.domain_grouping_key
-        )
+        outer = itertools.groupby(self.quantifiers, _quantifier_grouping_key)
         for key, outer_qs in outer:
-            if isinstance(key, AliasIdentifier):
+            if isinstance(key, tuple):
+                iden, subs = key
                 inner = itertools.groupby(outer_qs, lambda q: q.outer_group)
                 components: list[str] = []
                 for g, inner_qs in inner:
@@ -251,7 +250,7 @@ class Domain:
                         f"({joined})" if len(group_names) > 1 else joined
                     )
                 group = ", ".join(components)
-                group += f" \\in {key.format()}"
+                group += f" \\in {render_identifier(iden, *subs)}"
                 groups.append(group)
             else:
                 names = ", ".join(q.format() for q in outer_qs)
@@ -260,6 +259,18 @@ class Domain:
         if self.mask is not None:
             rendered += f" \\mid {self.mask.render()}"
         return rendered
+
+
+def _quantifier_grouping_key(
+    q: QuantifierIdentifier
+) -> Union[Space, tuple[AliasIdentifier, tuple[Expression, ...]]]:
+    sp = q.space
+    if not isinstance(sp, Space):
+        raise TypeError(f"Unexpected space: {sp}")
+    if not q.groups:
+        return sp
+    g = q.groups[0]
+    return (g.alias, g.subscripts)
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
@@ -345,7 +356,7 @@ Quantification = Quantified[tuple[Quantifier, ...]]
 def expression_space(expr: Expression) -> Optional[Space]:
     """Returns the underlying scalar quantifiable for an expression if any"""
     if isinstance(expr, Quantifier):
-        return expr.identifier.quantifiable
+        return expr.identifier.space
     return None
 
 
@@ -456,10 +467,10 @@ def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
     mask: Optional[Predicate] = None
     for declaration in declarations:
         if isinstance(declaration, Predicate):
-            if mask:
-                mask = _BinaryPredicate("and", mask, declaration)
-            else:
+            if mask is None:
                 mask = declaration
+            else:
+                mask = _BinaryPredicate("and", mask, declaration)
         elif isinstance(declaration, QuantifierIdentifier):
             quantifiers.append(declaration)
         else:
@@ -525,7 +536,11 @@ def _quantifiable_quantifiers(
             yield from _quantifiable_quantifiers(component)
     elif isinstance(quantifiable, QuantifiableReference):
         qs = quantifiable.quantifiers
-        group = QuantifierGroup(quantifiable.identifier, len(qs))
+        group = QuantifierGroup(
+            alias=quantifiable.identifier,
+            subscripts=quantifiable.subscripts,
+            rank=len(qs),
+        )
         for q in qs:
             yield q.grouped_within(group)
     elif isinstance(quantifiable, Space):
