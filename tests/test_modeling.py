@@ -297,7 +297,7 @@ class TestModeling:
         spec = await model.compile_specification()
         assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
-        assert r"\forall v \in C_{2}, \tau_{v} = 0" in text
+        assert r"\forall c \in C_{2}, \tau_{c} = 0" in text
 
     @pytest.mark.asyncio
     async def test_dependency_prefix(self):

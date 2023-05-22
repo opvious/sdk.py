@@ -21,6 +21,7 @@ from typing import (
 
 from ...common import Label
 from .ast import (
+    Domain,
     Expression,
     ExpressionLike,
     ExpressionReference,
@@ -124,6 +125,11 @@ class _Interval(Space):
         ub = self.upper_bound
         if is_literal(lb, 0) and is_literal(ub, 1):
             return "\\{0, 1\\}"
+        if is_literal(ub, math.inf):
+            if is_literal(lb, 0):
+                return "\\mathbb{N}"
+            elif is_literal(lb, -math.inf):
+                return "\\mathbb{Z}"
         return f"\\{{ {lb.render()} \\ldots {ub.render()} \\}}"
 
 
@@ -232,7 +238,7 @@ class _Tensor(Definition):
         domain = self._domain
         if domain.quantifiers:
             with local_formatting_scope(domain.quantifiers):
-                if domain.mask is None:
+                if _is_simple_domain(domain):
                     formatted: list[str] = []
                     for g, qs in itertools.groupby(
                         domain.quantifiers, key=lambda q: q.outer_group
@@ -246,6 +252,16 @@ class _Tensor(Definition):
                     sup = f"\\{{ {domain.render()} \\}}"
                 s += f"^{{{sup}}}"
         return s
+
+
+def _is_simple_domain(d: Domain) -> bool:
+    if d.mask is not None:
+        return False
+    for q in d.quantifiers:
+        for g in q.groups:
+            if g.subscripts:
+                return False
+    return True
 
 
 def _render_label(label: Label, qualifiers: Optional[Sequence[Label]]) -> str:

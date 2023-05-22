@@ -267,14 +267,19 @@ class _ModelFormatter(IdentifierFormatter):
             sp = identifier.space
             if not isinstance(sp, Space):
                 raise TypeError(f"Unexpected space: {sp}")
-            if hasattr(sp, "identifier") and sp.identifier:  # Dimension
+            group = None
+            for g in identifier.groups:
+                if g.rank == 1:
+                    # Single rank alias
+                    group = g
+                    break
+            if not group and hasattr(sp, "identifier") and sp.identifier:
+                # Dimension
                 name = _lower_principal(sp.identifier.format())
-            else:  # Interval, possibly aliased
-                group = identifier.outer_group
-                for g in identifier.groups:
-                    if g.rank == 1:
-                        group = g
-                        break
+            else:
+                # Interval, possibly aliased
+                if not group:
+                    group = identifier.outer_group
                 if group:
                     name = _lower_principal(group.alias.format())
         return _first_available(name or _DEFAULT_QUANTIFIER_NAME, env)
