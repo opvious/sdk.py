@@ -7,9 +7,17 @@ from .model import Model
 
 
 def load_notebook_specification(
-    path: str, attr: Optional[str] = None, root: Optional[str] = None
+    path: str, model_attr: Optional[str] = None, root: Optional[str] = None
 ) -> LocalSpecification:
-    """Loads a local specification from a notebook"""
+    """Loads a local specification from a notebook
+
+    Args:
+        path: Path to the notebook, relative to `root` if present otherwise CWD
+        model_attr: Name of the attribute containing the model to specify. Can
+            be omitted if the notebook contains a single model
+        root: Root path. If set to a file, its parent directory will be used
+            (convenient for use with `__file__`).
+    """
     with warnings.catch_warnings():
         warnings.filterwarnings(
             action="ignore",
@@ -26,7 +34,7 @@ def load_notebook_specification(
     nb = importnb.Notebook.load_file(path)
 
     model = None
-    if attr is None:
+    if model_attr is None:
         for attr in dir(nb):
             value = getattr(nb, attr)
             if isinstance(value, Model):
@@ -36,7 +44,7 @@ def load_notebook_specification(
                     )
                 model = value
     else:
-        model = getattr(nb, attr)
+        model = getattr(nb, model_attr)
     if not model:
         raise Exception("No model found")
 
