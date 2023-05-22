@@ -220,7 +220,7 @@ class Model:
         return [
             LocalSpecificationSource(
                 title=title,
-                text=f"$$\n\\begin{{align}}\n{contents}\\end{{align}}\n$$",
+                text=f"$$\n\\begin{{align*}}\n{contents}\\end{{align*}}\n$$",
             )
             for title, contents in contents_by_title.items()
         ]
