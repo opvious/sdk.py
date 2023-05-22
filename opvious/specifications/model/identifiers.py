@@ -231,3 +231,105 @@ def local_formatting_scope(
         yield
     finally:
         _active_scope.reset(token)
+
+
+class DefaultIdentifierFormatter(IdentifierFormatter):
+    def __init__(self, labels: Mapping[GlobalIdentifier, Label]) -> None:
+        super().__init__(labels)
+
+    def _format_dimension(self, label: Label, env: Environment) -> Name:
+        i = _last_capital_index(label)
+        if i is None:
+            return label[0].upper()
+        return f"{label[i]}^\\mathrm{{{label[:i]}}}" if i > 0 else label[i]
+
+    def _format_parameter(self, label: Label, env: Environment) -> Name:
+        i = _last_capital_index(label)
+        if not i:
+            return label[0].lower()
+        return f"{label[i].lower()}^\\mathrm{{{label[:i]}}}"
+
+    def _format_variable(self, label: Label, env: Environment) -> Name:
+        i = _last_capital_index(label)
+        r = label[i or 0].lower()
+        g = _greek_letters.get(r, r)
+        if not i:
+            return g
+        return f"{g}^\\mathrm{{{label[:i]}}}"
+
+    def format_quantifier(
+        self, identifier: QuantifierIdentifier, env: Environment
+    ) -> Name:
+        name = identifier.name
+        if not name:
+            sp = identifier.space
+            group = None
+            for g in identifier.groups:
+                if g.rank == 1:
+                    # Single rank alias
+                    group = g
+                    break
+            if not group and hasattr(sp, "identifier") and sp.identifier:
+                # Dimension
+                name = _lower_principal(sp.identifier.format())
+            else:
+                # Interval, possibly aliased
+                if not group:
+                    group = identifier.outer_group
+                if group:
+                    name = _lower_principal(group.alias.format())
+        return _first_available(name or _DEFAULT_QUANTIFIER_NAME, env)
+
+
+_DEFAULT_QUANTIFIER_NAME = "x"
+
+
+def _first_available(name: Name, env: Environment) -> Name:
+    while name in env:
+        name += "'"
+    return name
+
+
+def _last_capital_index(label: Label) -> Optional[int]:
+    j = None
+    for i, c in enumerate(label):
+        if c.isupper():
+            j = i
+    return j
+
+
+def _lower_principal(name: Name) -> Name:
+    if "^" not in name:
+        return name.lower()
+    parts = name.split("^", 1)
+    return f"{parts[0].lower()}^{parts[1]}"
+
+
+_greek_letters = {
+    "a": "\\alpha",
+    "b": "\\beta",
+    "c": "\\chi",
+    "d": "\\delta",
+    "e": "\\epsilon",
+    "f": "\\phi",
+    "g": "\\gamma",
+    "h": "\\eta",
+    "i": "\\iota",
+    "j": "\\xi",  # TODO: Find better alternative
+    "k": "\\kappa",
+    "l": "\\lambda",
+    "m": "\\mu",
+    "n": "\\nu",
+    "o": "\\omicron",
+    "p": "\\pi",
+    "q": "\\theta",
+    "r": "\\rho",
+    "s": "\\sigma",
+    "t": "\\tau",
+    "u": "\\psi",
+    "v": "\\zeta",  # TODO: Find better alternative
+    "w": "\\omega",
+    "x": "\\xi",
+    "y": "\\upsilon",
+    "z": "\\zeta",
+}

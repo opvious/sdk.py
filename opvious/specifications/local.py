@@ -55,8 +55,13 @@ class LocalSpecification:
     )
 
     sources: Sequence[LocalSpecificationSource]
+    """The model's mathematical source definitions"""
+
+    description: Optional[str] = None
+    """Optional description"""
 
     annotation: Optional[LocalSpecificationAnnotation] = None
+    """API-issued annotation"""
 
     @classmethod
     def set_default_executor(cls, executor: Executor) -> None:
@@ -67,11 +72,6 @@ class LocalSpecification:
         """Creates a local specification from strings"""
         sources = [LocalSpecificationSource(s) for s in texts]
         return LocalSpecification(sources)
-
-    @classmethod
-    def notebook(cls, _path: str) -> LocalSpecification:
-        """Creates a local specification from a notebook"""
-        raise NotImplementedError()  # TODO
 
     @classmethod
     def globs(
@@ -106,6 +106,7 @@ class LocalSpecification:
         ignore_codes: Optional[Iterable[str]] = None,
         executor: Optional[Executor] = None,
     ) -> LocalSpecification:
+        """Returns an annotated copy of the original specification"""
         sources = self.sources
         codes = set(ignore_codes or [])
 

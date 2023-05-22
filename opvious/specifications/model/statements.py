@@ -7,13 +7,9 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from ...common import Label, to_camel_case
 from ..local import LocalSpecification, LocalSpecificationSource
-from .ast import Space
 from .identifiers import (
-    Environment,
+    DefaultIdentifierFormatter,
     GlobalIdentifier,
-    IdentifierFormatter,
-    Name,
-    QuantifierIdentifier,
     global_formatting_scope,
 )
 
@@ -131,8 +127,8 @@ class Model:
         class SetCover(Model):
             sets = Dimension()
             vertices = Dimension()
-            covers = Parameter(sets, vertices, image=indicator())
-            used = Variable(sets, image=indicator())
+            covers = Parameter.indicator(sets, vertices)
+            used = Variable.indicator(sets)
 
             @constraint
             def all_covered(self):
@@ -174,11 +170,14 @@ class Model:
     def title(self) -> str:
         return self.__title or f"<code>{self.__class__.__name__}</code>"
 
-    async def compile_specification(
+    def compile_specification_sources(
         self,
-        allow_unused=True,
-    ) -> LocalSpecification:
-        """Generates the model's specification"""
+    ) -> Sequence[LocalSpecificationSource]:
+        """Generates the model's specification sources
+
+        See also :meth:`.Model.compile_specification` for a convenience method
+        which also annotates the
+        """
         visitor = _ModelVisitor()
         visitor.visit(self)
         statements = visitor.statements
@@ -191,7 +190,7 @@ class Model:
         labels_by_identifier = {
             i: d.label for i, d in by_identifier.items() if d.label
         }
-        formatter = _ModelFormatter(labels_by_identifier)
+        formatter = DefaultIdentifierFormatter(labels_by_identifier)
         reserved = {i.name: i for i in labels_by_identifier if i.name}
         rendered_by_title = collections.defaultdict(list)
         with global_formatting_scope(formatter, reserved):
@@ -218,122 +217,24 @@ class Model:
             title: "".join(f"  {s} \\\\\n" for s in lines)
             for title, lines in rendered_by_title.items()
         }
-        sources = [
+        return [
             LocalSpecificationSource(
                 title=title,
                 text=f"$$\n\\begin{{align}}\n{contents}\\end{{align}}\n$$",
             )
             for title, contents in contents_by_title.items()
         ]
-        spec = LocalSpecification(sources=sources)
 
+    async def compile_specification(
+        self,
+        allow_unused=True,
+    ) -> LocalSpecification:
+        """Generates the model's specification"""
+        sources = self.compile_specification_sources()
+        spec = LocalSpecification(sources=sources)
         try:
             codes = ["ERR_UNUSED_DEFINITION"] if allow_unused else []
             spec = await spec.annotated(ignore_codes=codes)
         except Exception:
             _logger.warning("Unable to annotate specification", exc_info=True)
         return spec
-
-
-class _ModelFormatter(IdentifierFormatter):
-    def __init__(self, labels: Mapping[GlobalIdentifier, Label]) -> None:
-        super().__init__(labels)
-
-    def _format_dimension(self, label: Label, env: Environment) -> Name:
-        i = _last_capital_index(label)
-        if i is None:
-            return label[0].upper()
-        return f"{label[i]}^\\mathrm{{{label[:i]}}}" if i > 0 else label[i]
-
-    def _format_parameter(self, label: Label, env: Environment) -> Name:
-        i = _last_capital_index(label)
-        if not i:
-            return label[0].lower()
-        return f"{label[i].lower()}^\\mathrm{{{label[:i]}}}"
-
-    def _format_variable(self, label: Label, env: Environment) -> Name:
-        i = _last_capital_index(label)
-        r = label[i or 0].lower()
-        g = _greek_letters.get(r, r)
-        if not i:
-            return g
-        return f"{g}^\\mathrm{{{label[:i]}}}"
-
-    def format_quantifier(
-        self, identifier: QuantifierIdentifier, env: Environment
-    ) -> Name:
-        name = identifier.name
-        if not name:
-            sp = identifier.space
-            if not isinstance(sp, Space):
-                raise TypeError(f"Unexpected space: {sp}")
-            group = None
-            for g in identifier.groups:
-                if g.rank == 1:
-                    # Single rank alias
-                    group = g
-                    break
-            if not group and hasattr(sp, "identifier") and sp.identifier:
-                # Dimension
-                name = _lower_principal(sp.identifier.format())
-            else:
-                # Interval, possibly aliased
-                if not group:
-                    group = identifier.outer_group
-                if group:
-                    name = _lower_principal(group.alias.format())
-        return _first_available(name or _DEFAULT_QUANTIFIER_NAME, env)
-
-
-_DEFAULT_QUANTIFIER_NAME = "x"
-
-
-def _first_available(name: Name, env: Environment) -> Name:
-    while name in env:
-        name += "'"
-    return name
-
-
-def _last_capital_index(label: Label) -> Optional[int]:
-    j = None
-    for i, c in enumerate(label):
-        if c.isupper():
-            j = i
-    return j
-
-
-def _lower_principal(name: Name) -> Name:
-    if "^" not in name:
-        return name.lower()
-    parts = name.split("^", 1)
-    return f"{parts[0].lower()}^{parts[1]}"
-
-
-_greek_letters = {
-    "a": "\\alpha",
-    "b": "\\beta",
-    "c": "\\chi",
-    "d": "\\delta",
-    "e": "\\epsilon",
-    "f": "\\phi",
-    "g": "\\gamma",
-    "h": "\\eta",
-    "i": "\\iota",
-    "j": "\\xi",  # TODO: Find better alternative
-    "k": "\\kappa",
-    "l": "\\lambda",
-    "m": "\\mu",
-    "n": "\\nu",
-    "o": "\\omicron",
-    "p": "\\pi",
-    "q": "\\theta",
-    "r": "\\rho",
-    "s": "\\sigma",
-    "t": "\\tau",
-    "u": "\\psi",
-    "v": "\\zeta",  # TODO: Find better alternative
-    "w": "\\omega",
-    "x": "\\xi",
-    "y": "\\upsilon",
-    "z": "\\zeta",
-}

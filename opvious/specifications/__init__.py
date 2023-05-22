@@ -6,6 +6,7 @@ from .local import (
     LocalSpecificationSource,
 )
 from .external import FormulationSpecification, RemoteSpecification
+from .notebook import load_notebook_specification
 
 
 Specification = Union[
@@ -22,4 +23,5 @@ __all__ = [
     "LocalSpecificationSource",
     "RemoteSpecification",
     "Specification",
+    "load_notebook_specification",
 ]

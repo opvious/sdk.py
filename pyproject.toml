@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "opvious"
-version = "0.12.0rc14"
+version = "0.12.0rc15"
 description = "Opvious Python SDK"
 authors = ["Opvious Engineering <oss@opvious.io>"]
 readme = "README.md"
@@ -16,11 +16,12 @@ aiohttp = {version = "^3.8", optional = true}
 backoff = "^2.2"
 Brotli = {version = "^1.0.9", optional = true}
 humanize = "^4.4.0"
+importnb = "^2023.1.7"
 pandas = "^1.4"
 python = ">=3.9,<3.12"
 
 [tool.poetry.group.dev.dependencies]
-black = "^22.10.0"
+black = {extras = ["jupyter"], version = "^22.10.0"}
 flake8 = "^4.0.1"
 mypy = "^1.2.0"
 pytest = "~7.1.2"
@@ -36,3 +37,4 @@ include = '\.py$'
 
 [tool.pytest.ini_options]
 log_level = 'DEBUG'
+addopts = '-p no:importnb'

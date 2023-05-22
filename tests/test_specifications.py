@@ -2,7 +2,7 @@ import os
 import pytest
 
 
-from opvious.specifications import LocalSpecification
+from opvious.specifications import LocalSpecification, load_notebook_specification
 
 
 class TestSpecifications:
@@ -24,3 +24,10 @@ class TestSpecifications:
         spec = LocalSpecification.globs("tests/sources/bounded.md")
         assert len(spec.sources) == 1
         assert "greaterThanBound" in spec.sources[0].text
+
+    def test_load_notebook_specification(self):
+        spec = load_notebook_specification(
+            "notebooks/set-cover.ipynb",
+            root=__file__
+        )
+        print(spec)
