@@ -13,6 +13,7 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
+    Type,
     TypeVar,
     Union,
     overload,
@@ -145,20 +146,61 @@ def interval(
     return iter(interval)
 
 
+_T = TypeVar("_T", bound="_Tensor")
+
+
 class _Tensor(Definition):
     def __init__(
         self,
+        image: Image,
         *quantifiables: Quantifiable,
         name: Optional[Name] = None,
         label: Optional[Label] = None,
-        image: Image = Image(),
         qualifiers: Optional[Sequence[Label]] = None,
     ):
+        if not isinstance(image, Image):
+            raise TypeError(f"Unexpected image: {image}")
         self._identifier = TensorIdentifier(name=name, variant=self._variant)
         self._domain = domain_from_quantifiable(quantifiables)
         self._label = label
         self.image = image
         self.qualifiers = qualifiers
+
+    @classmethod
+    def continuous(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with real image"""
+        return cls(Image(), *args, **kwargs)
+
+    @classmethod
+    def non_negative(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with non-negative real image"""
+        return cls(Image(lower_bound=0), *args, **kwargs)
+
+    @classmethod
+    def non_positive(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with non-positive real image"""
+        return cls(Image(upper_bound=0), *args, **kwargs)
+
+    @classmethod
+    def unit(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with `[0, 1]` real image"""
+        return cls(Image(lower_bound=0, upper_bound=1), *args, **kwargs)
+
+    @classmethod
+    def discrete(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with integral image"""
+        return cls(Image(is_integral=True), *args, **kwargs)
+
+    @classmethod
+    def natural(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with non-negative integral image"""
+        return cls(Image(lower_bound=0, is_integral=True), *args, **kwargs)
+
+    @classmethod
+    def indicator(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with `{0, 1}` integral image"""
+        image = Image(lower_bound=0, upper_bound=1, is_integral=True)
+        return cls(image, *args, **kwargs)
 
     @property
     def identifier(self) -> Optional[GlobalIdentifier]:
@@ -168,6 +210,7 @@ class _Tensor(Definition):
     def label(self) -> Optional[Label]:
         return self._label
 
+    @property
     def quantification(self) -> Quantification:
         return cross(self._domain)
 

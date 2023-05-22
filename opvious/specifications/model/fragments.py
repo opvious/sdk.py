@@ -23,7 +23,7 @@ class ActivationIndicator(ModelFragment):
     """Variable activation tracking"""
 
     @property
-    def is_active(self) -> Variable:
+    def value(self) -> Variable:
         raise NotImplementedError()
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
@@ -52,30 +52,26 @@ class ActivationIndicator(ModelFragment):
         """
 
         class _Fragment(ActivationIndicator):
-            is_active = Variable(
-                variable.quantification(),
-                name=name,
-                image=Image.indicator(),
-            )
+            value = Variable.indicator(variable.quantification, name=name)
 
             def __call__(self, *subs: ExpressionLike) -> Expression:
-                return self.is_active(*subs)
+                return self.value(*subs)
 
             @constraint(disabled=upper_bound is False)
             def activates(self):
                 bound = upper_bound
                 if bound is True:
                     bound = variable.image.upper_bound
-                for t in variable.quantification():
-                    yield variable(*t) <= bound * self.is_active(*t)
+                for t in variable.quantification:
+                    yield variable(*t) <= bound * self.value(*t)
 
             @constraint(disabled=lower_bound is False)
             def deactivates(self):
                 bound = lower_bound
                 if bound is True:
                     bound = variable.image.lower_bound
-                for t in variable.quantification():
-                    yield variable(*t) >= bound * self.is_active(*t)
+                for t in variable.quantification:
+                    yield variable(*t) >= bound * self.value(*t)
 
         return _Fragment()
 
@@ -103,7 +99,7 @@ class MaskedSubset(ModelFragment):
         """Returns a quantifiable subset fragment"""
 
         class _Fragment(MaskedSubset):
-            mask = Parameter(quantifiables, image=Image.indicator())
+            mask = Parameter.indicator(quantifiables)
 
             @property
             @alias(alias_name)
@@ -143,7 +139,7 @@ class DerivedVariable(ModelFragment):
         """Returns a derived variable fragment"""
 
         class _Fragment(DerivedVariable):
-            value = Variable(quantifiables, image=image, name=name)
+            value = Variable(image, quantifiables, name=name)
 
             @constraint
             def is_defined(self) -> Quantified:
