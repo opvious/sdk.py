@@ -9,8 +9,8 @@ client = opvious.Client.from_environment()
 class SetCover(om.Model):
     sets = om.Dimension()
     vertices = om.Dimension()
-    covers = om.Parameter(sets, vertices, image=om.Image.indicator())
-    used = om.Variable(sets, image=om.Image.indicator())
+    covers = om.Parameter.indicator(sets, vertices)
+    used = om.Variable.indicator(sets)
 
     @om.constraint
     def all_covered(self):
@@ -27,20 +27,18 @@ class SetCover(om.Model):
 
 class LotSizing(om.Model):
     def __init__(self) -> None:
-        self.horizon = om.Parameter(image=om.Image.natural())
+        self.horizon = om.Parameter.natural()
 
-        self.holding_cost = om.Parameter(self.steps, name="c")
-        self.setup_cost = om.Parameter(self.steps)
-        self.demand = om.Parameter(self.steps, image=om.Image.non_negative())
+        self.holding_cost = om.Parameter.non_negative(self.steps, name="c")
+        self.setup_cost = om.Parameter.non_negative(self.steps)
+        self.demand = om.Parameter.non_negative(self.steps)
 
-        self.production = om.Variable(
-            self.steps, image=om.Image.non_negative()
-        )
+        self.production = om.Variable.non_negative(self.steps)
         self.production_indicator = om.ActivationIndicator.fragment(
             variable=self.production,
             upper_bound=om.total(self.demand(t) for t in self.steps),
         )
-        self.inventory = om.Variable(self.steps, image=om.Image.non_negative())
+        self.inventory = om.Variable.non_negative(self.steps)
 
     @property
     @om.alias("T")
@@ -68,14 +66,13 @@ class GroupExpenses(om.Model):
         self.friends = om.Dimension()
         self.transactions = om.Dimension()
 
-        self.paid = om.Parameter(self.transactions, self.friends)
-        self.share = om.Parameter(self.transactions, self.friends)
-        self.floor = om.Parameter()
+        self.paid = om.Parameter.continuous(self.transactions, self.friends)
+        self.share = om.Parameter.non_negative(self.transactions, self.friends)
+        self.floor = om.Parameter.non_negative()
 
-        self.max_transfer_count = om.Variable(image=om.Image.natural())
-        self.transferred = om.Variable(
+        self.max_transfer_count = om.Variable.natural()
+        self.transferred = om.Variable.non_negative(
             (self.friends, self.friends),
-            image=om.Image.non_negative(),
             qualifiers=["sender", "recipient"],
         )
         self.tranferred_indicator = om.ActivationIndicator.fragment(
@@ -139,14 +136,12 @@ class Sudoku(om.Model):
     _qualifiers = ["row", "column", "value"]
 
     def __init__(self) -> None:
-        self.input = om.Parameter(
+        self.input = om.Parameter.indicator(
             (self.grid, self.values),
-            image=om.Image.indicator(),
             qualifiers=self._qualifiers,
         )
-        self.output = om.Variable(
+        self.output = om.Variable.indicator(
             (self.grid, self.values),
-            image=om.Image.indicator(),
             qualifiers=self._qualifiers,
         )
 
@@ -198,8 +193,8 @@ class Sudoku(om.Model):
 class InvalidSetCoverModel(om.Model):
     sets = om.Dimension()
     vertices = om.Dimension()
-    covers = om.Parameter(sets, vertices, image=om.Image.indicator())
-    used = om.Variable(sets, image=om.Image.indicator())
+    covers = om.Parameter.indicator(sets, vertices)
+    used = om.Variable.indicator(sets)
 
     @om.constraint
     def all_covered(self):
@@ -239,7 +234,7 @@ class TestModeling:
         class _Model(om.Model):
             days = om.Dimension()
             steps = om.Dimension()
-            target = om.Variable(days, steps)
+            target = om.Variable.continuous(days, steps)
 
             @property
             @om.alias("T")
@@ -260,7 +255,7 @@ class TestModeling:
         class _Model(om.Model):
             days = om.Dimension()
             holidays = om.MaskedSubset.fragment(days, alias_name="H")
-            target = om.Variable(holidays)
+            target = om.Variable.discrete(holidays)
 
             @om.constraint
             def nothing_on_holidays(self):
@@ -273,7 +268,7 @@ class TestModeling:
             r"H \doteq \{ d \in D \mid m^\mathrm{holidays}_{d} \neq 0 \}"
             in text
         )
-        assert r"\tau \in \mathbb{R}^{H}" in text
+        assert r"\tau \in \mathbb{Z}^{H}" in text
         assert spec.annotation.issue_count == 0
 
     @pytest.mark.asyncio
@@ -291,7 +286,7 @@ class TestModeling:
         class _Model(om.Model):
             values = om.Dimension(is_numeric=True)
             above = _Fragment(values)
-            target = om.Variable(values)
+            target = om.Variable.continuous(values)
 
             @om.constraint
             def zero_above_two(self):
@@ -302,14 +297,14 @@ class TestModeling:
         spec = await model.compile_specification()
         assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
-        assert r"\forall v \in C_{2}, \tau_{v} = 0" in text
+        assert r"\forall c \in C_{2}, \tau_{c} = 0" in text
 
     @pytest.mark.asyncio
     async def test_dependency_prefix(self):
         class _Nested(om.Model):
             def __init__(self, prefix: str) -> None:
                 super().__init__(prefix=[prefix])
-                self.target = om.Variable()
+                self.target = om.Variable.continuous()
 
         class _Model(om.Model):
             def __init__(self) -> None:

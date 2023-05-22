@@ -13,6 +13,7 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
+    Type,
     TypeVar,
     Union,
     overload,
@@ -20,6 +21,7 @@ from typing import (
 
 from ...common import Label
 from .ast import (
+    Domain,
     Expression,
     ExpressionLike,
     ExpressionReference,
@@ -123,6 +125,11 @@ class _Interval(Space):
         ub = self.upper_bound
         if is_literal(lb, 0) and is_literal(ub, 1):
             return "\\{0, 1\\}"
+        if is_literal(ub, math.inf):
+            if is_literal(lb, 0):
+                return "\\mathbb{N}"
+            elif is_literal(lb, -math.inf):
+                return "\\mathbb{Z}"
         return f"\\{{ {lb.render()} \\ldots {ub.render()} \\}}"
 
 
@@ -145,20 +152,61 @@ def interval(
     return iter(interval)
 
 
+_T = TypeVar("_T", bound="_Tensor")
+
+
 class _Tensor(Definition):
     def __init__(
         self,
+        image: Image,
         *quantifiables: Quantifiable,
         name: Optional[Name] = None,
         label: Optional[Label] = None,
-        image: Image = Image(),
         qualifiers: Optional[Sequence[Label]] = None,
     ):
+        if not isinstance(image, Image):
+            raise TypeError(f"Unexpected image: {image}")
         self._identifier = TensorIdentifier(name=name, variant=self._variant)
         self._domain = domain_from_quantifiable(quantifiables)
         self._label = label
         self.image = image
         self.qualifiers = qualifiers
+
+    @classmethod
+    def continuous(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with real image"""
+        return cls(Image(), *args, **kwargs)
+
+    @classmethod
+    def non_negative(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with non-negative real image"""
+        return cls(Image(lower_bound=0), *args, **kwargs)
+
+    @classmethod
+    def non_positive(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with non-positive real image"""
+        return cls(Image(upper_bound=0), *args, **kwargs)
+
+    @classmethod
+    def unit(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with `[0, 1]` real image"""
+        return cls(Image(lower_bound=0, upper_bound=1), *args, **kwargs)
+
+    @classmethod
+    def discrete(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with integral image"""
+        return cls(Image(is_integral=True), *args, **kwargs)
+
+    @classmethod
+    def natural(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with non-negative integral image"""
+        return cls(Image(lower_bound=0, is_integral=True), *args, **kwargs)
+
+    @classmethod
+    def indicator(cls: Type[_T], *args, **kwargs) -> _T:
+        """Returns a tensor with `{0, 1}` integral image"""
+        image = Image(lower_bound=0, upper_bound=1, is_integral=True)
+        return cls(image, *args, **kwargs)
 
     @property
     def identifier(self) -> Optional[GlobalIdentifier]:
@@ -168,6 +216,7 @@ class _Tensor(Definition):
     def label(self) -> Optional[Label]:
         return self._label
 
+    @property
     def quantification(self) -> Quantification:
         return cross(self._domain)
 
@@ -189,7 +238,7 @@ class _Tensor(Definition):
         domain = self._domain
         if domain.quantifiers:
             with local_formatting_scope(domain.quantifiers):
-                if domain.mask is None:
+                if _is_simple_domain(domain):
                     formatted: list[str] = []
                     for g, qs in itertools.groupby(
                         domain.quantifiers, key=lambda q: q.outer_group
@@ -203,6 +252,16 @@ class _Tensor(Definition):
                     sup = f"\\{{ {domain.render()} \\}}"
                 s += f"^{{{sup}}}"
         return s
+
+
+def _is_simple_domain(d: Domain) -> bool:
+    if d.mask is not None:
+        return False
+    for q in d.quantifiers:
+        for g in q.groups:
+            if g.subscripts:
+                return False
+    return True
 
 
 def _render_label(label: Label, qualifiers: Optional[Sequence[Label]]) -> str:
