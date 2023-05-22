@@ -2,7 +2,10 @@ import os
 import pytest
 
 
-from opvious.specifications import LocalSpecification, load_notebook_specification
+from opvious.specifications import (
+    LocalSpecification,
+    load_notebook_specification,
+)
 
 
 class TestSpecifications:
@@ -27,7 +30,6 @@ class TestSpecifications:
 
     def test_load_notebook_specification(self):
         spec = load_notebook_specification(
-            "notebooks/set-cover.ipynb",
-            root=__file__
+            "notebooks/set-cover.ipynb", root=__file__
         )
         print(spec)

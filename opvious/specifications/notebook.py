@@ -12,9 +12,9 @@ def load_notebook_specification(
     """Loads a local specification from a notebook"""
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            action='ignore',
+            action="ignore",
             category=DeprecationWarning,
-            module=r'.*(importnb|IPython)'
+            module=r".*(importnb|IPython)",
         )
         import importnb  # type: ignore
 
