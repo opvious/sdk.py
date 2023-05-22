@@ -70,14 +70,14 @@ class Dimension(Definition, Space):
             enables arithmetic operations on this dimension's quantifiers
 
     Dimensions are `Quantifiable` and as such can be quantified over using
-    :func:`.cross`. As a convenience, iterating on a dimension also a suitable
-    quantifier. This allows creating simple constraints directly:
+    :func:`.cross`. As a convenience, iterating on a dimension also yields a
+    suitable quantifier. This allows creating simple constraints directly:
 
     .. code-block:: python
 
         class ProductModel(Model):
             products = Dimension()
-            count = Variable(products)
+            count = Variable.natural(products)
 
             @constraint
             def at_least_one_of_each(self):
@@ -435,7 +435,7 @@ def alias(
 
         class ProductModel(Model):
             products = Dimension()
-            count = Variable(products)
+            count = Variable.natural(products)
 
             @property
             @alias("t")
@@ -464,7 +464,7 @@ class Constraint(Definition, _FragmentMethod):
 
         class ProductModel:
             products = Dimension()
-            count = Variable(products)
+            count = Variable.natural(products)
 
             @constraint
             def at_least_one(self):
@@ -582,7 +582,7 @@ class Objective(Definition, _FragmentMethod):
 
         class ProductModel:
             products = Dimension()
-            count = Variable(products)
+            count = Variable.natural(products)
 
             @objective
             def minimize_total_count(self):
@@ -662,8 +662,8 @@ def objective(
 
         class ProductModel(Model):
             products = Dimension()
-            cost = Parameter(products)
-            count = Variable(products)
+            cost = Parameter.non_negative(products)
+            count = Variable.natural(products)
 
             @objective
             def minimize_cost(self):
