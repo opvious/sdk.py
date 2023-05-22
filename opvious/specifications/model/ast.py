@@ -291,7 +291,7 @@ class _CardinalityExpression(Expression):
     domain: Domain
 
     def render(self, precedence=0) -> str:
-        raise NotImplementedError()  # TODO
+        return f"\\lvert {self.domain.render()} \\rvert"
 
 
 @dataclasses.dataclass(frozen=True)
