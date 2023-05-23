@@ -5,17 +5,7 @@ import dataclasses
 import functools
 import logging
 import pandas as pd
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import (Any, Callable, Iterable, Literal, Mapping, Optional, Sequence)
 import weakref
 
 from ...common import Label, to_camel_case
