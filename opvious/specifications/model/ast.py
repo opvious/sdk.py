@@ -290,7 +290,7 @@ class _SummationExpression(Expression):
 class _CardinalityExpression(Expression):
     domain: Domain
 
-    def render(self, precedence=0) -> str:
+    def render(self, _precedence=0) -> str:
         return f"\\lvert {self.domain.render()} \\rvert"
 
 

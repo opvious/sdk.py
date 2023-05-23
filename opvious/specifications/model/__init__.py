@@ -1,3 +1,4 @@
+from . import fragments
 from .ast import (
     Expression,
     ExpressionLike,
@@ -21,11 +22,6 @@ from .definitions import (
     constraint,
     interval,
     objective,
-)
-from .fragments import (
-    ActivationIndicator,
-    DerivedVariable,
-    MaskedSubset,
 )
 from .images import Image
 from .quantified import Quantified
@@ -61,7 +57,5 @@ __all__ = [
     "Quantifier",
     "cross",
     # Fragments
-    "ActivationIndicator",
-    "DerivedVariable",
-    "MaskedSubset",
+    "fragments",
 ]

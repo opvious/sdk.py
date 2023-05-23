@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import functools
 import logging
-from typing import Any, Iterable, Mapping, Optional, Sequence
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Union
 
 from ...common import Label, to_camel_case
 from ..local import LocalSpecification, LocalSpecificationSource
@@ -28,7 +29,7 @@ class Definition:
     def identifier(self) -> Optional[GlobalIdentifier]:
         raise NotImplementedError()
 
-    def render_statement(self, label: Label, model: Any) -> Optional[str]:
+    def render_statement(self, label: Label) -> Optional[str]:
         raise NotImplementedError()
 
 
@@ -36,16 +37,46 @@ class ModelFragment:
     """Model partial"""
 
 
+def method_decorator(wrapper: Callable[..., Any]) -> Any:
+    def wrap(fn):
+        return _DecoratedMethod(fn, wrapper)
+
+    return wrap
+
+
+class _DecoratedMethod:
+    def __init__(
+        self,
+        body: Callable[..., Any],
+        wrapper: Callable[[Callable[..., Any]], Any],
+    ) -> None:
+        self._body = body
+        self._wrapper = wrapper
+        self._data: Union[None, tuple[Any, Any]] = None
+
+    def bound_to(self, owner: Any) -> Any:
+        if self._data is None:
+            bound = functools.partial(self._body, owner)
+            self._data = (owner, self._wrapper(bound))
+        elif self._data[0] is not owner:
+            raise Exception("Inconsistent method owner")
+        return self._data[1]
+
+    def __get__(self, owner: Any, _objtype=None) -> Any:
+        return self.bound_to(owner)
+
+    def __call__(self, owner) -> Any:  # Property call
+        return self.bound_to(owner)()
+
+
 @dataclasses.dataclass(frozen=True)
 class _Statement:
     label: Label
     definition: Definition
-    fragment: Optional[ModelFragment]
     model: Model
 
     def render(self) -> Optional[str]:
-        owner = self.fragment or self.model
-        return self.definition.render_statement(self.label, owner)
+        return self.definition.render_statement(self.label)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -79,18 +110,18 @@ class _ModelVisitor:
         fragment: Optional[ModelFragment],
         prefix: Sequence[str],
     ) -> None:
-        obj = fragment or model
+        owner = fragment or model
 
         labels: dict[str, Label] = {}
-        while isinstance(obj, _Relabeled):
-            labels.update(obj.labels)
-            obj = obj.fragment
+        while isinstance(owner, _Relabeled):
+            labels.update(owner.labels)
+            owner = owner.fragment
 
         attrs: dict[str, Any] = {}
-        for cls in reversed(obj.__class__.__mro__[1:]):
+        for cls in reversed(owner.__class__.__mro__[1:]):
             attrs.update(cls.__dict__)
-        attrs.update(obj.__dict__)
-        attrs.update(obj.__class__.__dict__)
+        attrs.update(owner.__dict__)
+        attrs.update(owner.__class__.__dict__)
 
         path = [*prefix, ""]
         for attr, value in attrs.items():
@@ -99,6 +130,8 @@ class _ModelVisitor:
             path[-1] = attr
             if isinstance(value, property):
                 value = value.fget
+            if isinstance(value, _DecoratedMethod):
+                value = value.bound_to(owner)
             if isinstance(value, ModelFragment):
                 self._visit_fragment(model, value, path)
                 continue
@@ -109,7 +142,7 @@ class _ModelVisitor:
                 or value.label
                 or to_camel_case("_".join(path))
             )
-            self.statements.append(_Statement(label, value, fragment, model))
+            self.statements.append(_Statement(label, value, model))
 
 
 class Model:

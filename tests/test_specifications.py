@@ -32,4 +32,5 @@ class TestSpecifications:
         spec = load_notebook_specification(
             "notebooks/set-cover.ipynb", root=__file__
         )
-        print(spec)
+        text = spec.sources[0].text
+        assert r"\S^d_\mathrm{sets}&: S" in text
