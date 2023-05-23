@@ -284,7 +284,7 @@ class Model:
     def definition_counts(self) -> pd.DataFrame:
         df = pd.DataFrame(dataclasses.asdict(s) for s in self.statements())
         grouped: Any = df.groupby(["title", "category"])["text"].count()
-        return grouped.unstack(["category"])
+        return grouped.unstack(["category"]).fillna(0).astype(int)
 
     def specification(self) -> LocalSpecification:
         """Generates the model's specification"""

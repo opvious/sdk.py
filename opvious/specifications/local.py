@@ -119,7 +119,7 @@ class LocalSpecification:
         if self.annotation:
             issues = self.annotation.issues
             for index, group in issues.items():
-                messages = [f"  [{i.code}] {i.message}" for i in group]
+                messages = [f"\t* {i.message} [{i.code}]" for i in group]
                 _logger.error(
                     "%s issue(s) in specification '%s':\n%s",
                     len(group),
@@ -128,15 +128,16 @@ class LocalSpecification:
                 )
         else:
             issues = {}
-        return "\n\n---\n\n".join(
-            _source_details(s, issues.get(i) or [])
+        return "\n---\n".join(
+            _source_details(s, issues.get(i) or [], i == 0)
             for i, s in enumerate(self.sources)
         )
 
 
-_SUMMARY_STYLE = "".join(
+_SUMMARY_STYLE = " ".join(
     [
         "cursor: pointer;",
+        "margin-bottom: 1em;",
         "text-decoration: underline;",
         "text-decoration-style: dotted;",
     ]
@@ -153,10 +154,12 @@ def _source_details(
         summary += " &#9888;"
     return "\n".join(
         [
+            "",
             "<details open>" if start_open else "<details>",
             f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
             _colorize(source.text, issues),
             "</details>",
+            "",
         ]
     )
 
