@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 import dataclasses
 import glob
+import logging
 import os
 from typing import Iterable, Mapping, Optional, Sequence
 
@@ -12,24 +13,13 @@ from ..common import Json
 _DEFAULT_TITLE = "untitled"
 
 
+_logger = logging.getLogger(__name__)
+
+
 @dataclasses.dataclass(frozen=True)
 class LocalSpecificationSource:
     text: str
     title: str = _DEFAULT_TITLE
-
-    def html_details(
-        self,
-        start_open=False,
-        issues: Optional[Sequence[LocalSpecificationIssue]] = None,
-    ) -> str:
-        return "\n".join(
-            [
-                "<details open>" if start_open else "<details>",
-                f'<summary style="cursor:pointer;">{self.title}</summary>',
-                self.text,
-                "</details>",
-            ]
-        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -126,7 +116,18 @@ class LocalSpecification:
         return dataclasses.replace(self, annotation=annotation)
 
     def _repr_markdown_(self) -> str:
-        issues = self.annotation.issues if self.annotation else {}
+        if self.annotation:
+            issues = self.annotation.issues
+            for index, group in issues.items():
+                messages = [f"  [{i.code}] {i.message}" for i in group]
+                _logger.error(
+                    "%s issue(s) in specification '%s':\n%s",
+                    len(group),
+                    self.sources[index].title,
+                    "\n".join(messages),
+                )
+        else:
+            issues = {}
         return "\n\n---\n\n".join(
             _source_details(s, issues.get(i) or [])
             for i, s in enumerate(self.sources)
