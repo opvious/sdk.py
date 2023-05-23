@@ -350,3 +350,38 @@ class TestModeling:
         assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
         assert r"\forall c \in C, t^c_{c} = \sum_{v \in V} \tau_{v,c}" in text
+
+    @pytest.mark.asyncio
+    async def test_derived_variable_alias_quantifiable(self):
+        class _Colors(om.Model):
+            available = om.Dimension()
+
+            @property
+            @om.alias("P")
+            def available_pairs(self):
+                for c1, c2 in om.cross(self.available, self.available):
+                    if c1 != c2:
+                        yield c1, c2
+
+        colors = _Colors()
+
+        class _Model(om.Model):
+            cost = om.Parameter.non_negative(colors.available)
+            target = om.Variable.natural(colors.available_pairs)
+
+            def __init__(self) -> None:
+                super().__init__([colors])
+
+            @om.fragments.derived_variable(colors.available_pairs)
+            def cost_by_pair(self, c1, c2) -> om.Expression:
+                return self.cost(c1) * self.cost(c2) * self.target(c1, c2)
+
+            @om.objective
+            def minimize_cost(self) -> om.Expression:
+                return om.total(
+                    self.cost_by_pair(*tp) for tp in colors.available_pairs
+                )
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        assert spec.annotation.issue_count == 0

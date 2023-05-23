@@ -115,7 +115,12 @@ class IdentifierFormatter:
             self._formatted[identifier] = True
             if identifier.name:
                 return identifier.name
-            label = self._labels[identifier]
+            try:
+                label = self._labels[identifier]
+            except KeyError as exc:
+                raise Exception(
+                    "Unknown identifier, did you forget to add a dependency?"
+                ) from exc
             if isinstance(identifier, DimensionIdentifier):
                 return self._format_dimension(label, env)
             elif isinstance(identifier, TensorIdentifier):
