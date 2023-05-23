@@ -5,20 +5,15 @@ import dataclasses
 import glob
 import logging
 import os
-from typing import Any, ClassVar, Iterable, Optional, Sequence
+from typing import Iterable, Mapping, Optional, Sequence
 
-from ..common import Json, Setting, default_api_url, json_dict
-from ..executors import (
-    Executor,
-    JsonExecutorResult,
-    default_executor,
-)
+from ..common import Json
+
+
+_DEFAULT_TITLE = "untitled"
 
 
 _logger = logging.getLogger(__name__)
-
-
-_DEFAULT_TITLE = "<inline>"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -30,16 +25,27 @@ class LocalSpecificationSource:
 @dataclasses.dataclass(frozen=True)
 class LocalSpecificationAnnotation:
     issue_count: int
-    issues: Sequence[Sequence[LocalSpecificationIssue]]
-    counts: Sequence[collections.Counter]
+    issues: Mapping[int, Sequence[LocalSpecificationIssue]]
 
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecificationIssue:
+    source_index: int
     start_offset: int
     end_offset: int
     message: str
     code: str
+
+
+def local_specification_issue_from_json(data: Json) -> LocalSpecificationIssue:
+    rg = data["range"]
+    return LocalSpecificationIssue(
+        message=data["message"],
+        source_index=data["index"],
+        start_offset=rg["start"]["offset"],
+        end_offset=rg["end"]["offset"],
+        code=data["code"],
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -50,10 +56,6 @@ class LocalSpecification:
     This type of specification cannot be used to start attempts.
     """
 
-    __executor: ClassVar[Executor] = default_executor(
-        default_api_url(Setting.DOMAIN.read())
-    )
-
     sources: Sequence[LocalSpecificationSource]
     """The model's mathematical source definitions"""
 
@@ -62,10 +64,6 @@ class LocalSpecification:
 
     annotation: Optional[LocalSpecificationAnnotation] = None
     """API-issued annotation"""
-
-    @classmethod
-    def set_default_executor(cls, executor: Executor) -> None:
-        cls.__executor = executor
 
     @classmethod
     def inline(cls, *texts: str) -> LocalSpecification:
@@ -101,92 +99,65 @@ class LocalSpecification:
                     )
         return LocalSpecification(sources)
 
-    async def annotated(
-        self,
-        ignore_codes: Optional[Iterable[str]] = None,
-        executor: Optional[Executor] = None,
+    def annotated(
+        self, issues: Iterable[LocalSpecificationIssue]
     ) -> LocalSpecification:
-        """Returns an annotated copy of the original specification"""
-        sources = self.sources
-        codes = set(ignore_codes or [])
-
-        if not executor:
-            executor = self.__executor
-        async with executor.execute(
-            result_type=JsonExecutorResult,
-            url="/sources/parse",
-            method="POST",
-            json_data=json_dict(sources=[s.text for s in sources]),
-        ) as res:
-            data = res.json_data()
-            counts: Sequence[Any] = [collections.Counter() for _ in sources]
-            for s in data["slices"]:
-                category = s["definition"]["category"].lower()
-                counts[s["index"]][category] += 1
-            issues: Sequence[Any] = [[] for _ in sources]
-            for e in data["errors"]:
-                if e["code"] in codes:
-                    continue
-                issues[e["index"]].append(_issue_from_json(e))
-            annotation = LocalSpecificationAnnotation(
-                issue_count=len(data["errors"]),
-                issues=issues,
-                counts=counts,
-            )
+        count = 0
+        grouped: dict[
+            int, list[LocalSpecificationIssue]
+        ] = collections.defaultdict(list)
+        for issue in issues:
+            count += 1
+            grouped[issue.source_index].append(issue)
+        annotation = LocalSpecificationAnnotation(
+            issues=dict(grouped),
+            issue_count=count,
+        )
         return dataclasses.replace(self, annotation=annotation)
 
     def _repr_markdown_(self) -> str:
-        annotation = self.annotation
-        sources = self.sources
-        if annotation:
-            for i, issues in enumerate(annotation.issues):
-                if not issues:
-                    continue
-                messages = [f"  [{i.code}] {i.message}" for i in issues]
+        if self.annotation:
+            issues = self.annotation.issues
+            for index, group in issues.items():
+                messages = [f"  [{i.code}] {i.message}" for i in group]
                 _logger.error(
-                    "%s issue(s) in specification %s:\n%s",
-                    len(issues),
-                    sources[i].title,
+                    "%s issue(s) in specification '%s':\n%s",
+                    len(group),
+                    self.sources[index].title,
                     "\n".join(messages),
                 )
+        else:
+            issues = {}
         return "\n\n---\n\n".join(
-            _source_details(
-                s,
-                annotation.counts[i] if annotation else None,
-                annotation.issues[i] if annotation else [],
-                start_open=i == 0,
-            )
+            _source_details(s, issues.get(i) or [])
             for i, s in enumerate(self.sources)
         )
 
 
+_SUMMARY_STYLE = "".join(
+    [
+        "cursor: pointer;",
+        "text-decoration: underline;",
+        "text-decoration-style: dotted;",
+    ]
+)
+
+
 def _source_details(
     source: LocalSpecificationSource,
-    counts: Optional[collections.Counter],
     issues: Sequence[LocalSpecificationIssue],
     start_open=False,
 ) -> str:
-    lines = ["<details open>" if start_open else "<details>"]
-    if source.title:
-        lines.append('<summary style="cursor:pointer;">')
-        summary = source.title
-        if counts:
-            parens = ", ".join(f"{k}: {v}" for k, v in counts.most_common())
-            summary += f" ({parens})"
-        lines.append(summary)
-        lines.append("</summary>\n")
-    lines.append(_colorize(source.text, issues))
-    lines.append("</details>")
-    return "\n".join(lines)
-
-
-def _issue_from_json(data: Json) -> LocalSpecificationIssue:
-    rg = data["range"]
-    return LocalSpecificationIssue(
-        message=data["message"],
-        start_offset=rg["start"]["offset"],
-        end_offset=rg["end"]["offset"],
-        code=data["code"],
+    summary = source.title
+    if issues:
+        summary += " &#9888;"
+    return "\n".join(
+        [
+            "<details open>" if start_open else "<details>",
+            f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
+            _colorize(source.text, issues),
+            "</details>",
+        ]
     )
 
 

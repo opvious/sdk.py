@@ -47,7 +47,6 @@ from .identifiers import (
     GlobalIdentifier,
     Name,
     TensorIdentifier,
-    TensorVariant,
     local_formatting_scope,
 )
 from .quantified import Quantified, unquantify
@@ -83,6 +82,8 @@ class Dimension(Definition, Space):
                 for p in self.products:  # Note the iteration here
                     yield self.count(p) >= 1
     """
+
+    category = "DIMENSION"
 
     def __init__(
         self,
@@ -196,7 +197,10 @@ class _Tensor(Definition):
     ):
         if not isinstance(image, Image):
             raise TypeError(f"Unexpected image: {image}")
-        self._identifier = TensorIdentifier(name=name, variant=self._variant)
+        self._identifier = TensorIdentifier(
+            name=name,
+            is_parameter=self.category == "PARAMETER",
+        )
         self._domain = domain_from_quantifiable(quantifiables)
         self._label = label
         self.image = image
@@ -264,10 +268,6 @@ class _Tensor(Definition):
     def quantification(self) -> Quantification:
         return cross(self._domain)
 
-    @property
-    def _variant(self) -> TensorVariant:
-        raise NotImplementedError()
-
     def __call__(self, *subscripts: ExpressionLike) -> Expression:
         return ExpressionReference(
             self._identifier, tuple(to_expression(s) for s in subscripts)
@@ -275,7 +275,7 @@ class _Tensor(Definition):
 
     def render_statement(self, label: Label) -> Optional[str]:
         _logger.debug("Rendering tensor %s...", label)
-        c = self._variant[0]
+        c = self.category[0].lower()
         s = f"\\S^{c}_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
         s += f"{self._identifier.format()} \\in "
         s += self.image.render()
@@ -318,13 +318,13 @@ def _render_label(label: Label, qualifiers: Optional[Sequence[Label]]) -> str:
 class Parameter(_Tensor):
     """An optimization input parameter"""
 
-    _variant = "parameter"
+    category = "PARAMETER"
 
 
 class Variable(_Tensor):
     """An optimization output variable"""
 
-    _variant = "variable"
+    category = "VARIABLE"
 
 
 _Aliasable = Callable[..., Any]
@@ -339,6 +339,7 @@ class _Aliased:
 
 
 class _Alias(Definition):
+    category = "ALIAS"
     label = None
 
     def __init__(
@@ -495,6 +496,7 @@ class Constraint(Definition):
                 yield total(self.count(p) for p in self.products) >= 1
     """
 
+    category = "CONSTRAINT"
     identifier = None
 
     def __init__(
@@ -611,6 +613,7 @@ class Objective(Definition):
 
     """
 
+    category = "OBJECTIVE"
     identifier = None
 
     def __init__(

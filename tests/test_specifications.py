@@ -4,7 +4,7 @@ import pytest
 
 from opvious.specifications import (
     LocalSpecification,
-    load_notebook_specification,
+    load_notebook_models,
 )
 
 
@@ -28,9 +28,8 @@ class TestSpecifications:
         assert len(spec.sources) == 1
         assert "greaterThanBound" in spec.sources[0].text
 
-    def test_load_notebook_specification(self):
-        spec = load_notebook_specification(
-            "notebooks/set-cover.ipynb", root=__file__
-        )
+    def test_load_notebook_models(self):
+        ns = load_notebook_models("notebooks/set-cover.ipynb", root=__file__)
+        spec = ns.model.specification()
         text = spec.sources[0].text
         assert r"\S^d_\mathrm{sets}&: S" in text

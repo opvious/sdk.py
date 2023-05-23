@@ -9,7 +9,6 @@ from typing import (
     Generator,
     Iterable,
     KeysView,
-    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -40,13 +39,10 @@ class DimensionIdentifier(GlobalIdentifier):
     name: Optional[Name]
 
 
-TensorVariant = Literal["variable", "parameter"]
-
-
 @dataclasses.dataclass(eq=False, frozen=True)
 class TensorIdentifier(GlobalIdentifier):
     name: Optional[Name]
-    variant: TensorVariant
+    is_parameter: bool
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
@@ -123,7 +119,7 @@ class IdentifierFormatter:
             if isinstance(identifier, DimensionIdentifier):
                 return self._format_dimension(label, env)
             elif isinstance(identifier, TensorIdentifier):
-                if identifier.variant == "parameter":
+                if identifier.is_parameter:
                     return self._format_parameter(label, env)
                 else:
                     return self._format_variable(label, env)

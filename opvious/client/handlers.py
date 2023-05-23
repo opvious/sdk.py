@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import json
 import humanize
 import logging
-from typing import cast, Mapping, Optional, Union
+from typing import cast, Iterable, Mapping, Optional, Union
 
 from ..common import (
     Json,
@@ -54,8 +54,10 @@ from ..executors import (
 )
 from ..specifications import (
     FormulationSpecification,
+    LocalSpecification,
     RemoteSpecification,
     Specification,
+    local_specification_issue_from_json,
 )
 from ..transformations import Transformation
 from .common import (
@@ -137,6 +139,34 @@ class Client:
     def executor(self) -> Executor:
         """Returns the client's underlying executor"""
         return self._executor
+
+    async def annotate_specification(
+        self,
+        specification: LocalSpecification,
+        ignore_codes: Optional[Iterable[str]] = None,
+    ) -> LocalSpecification:
+        codes = set(ignore_codes or [])
+        async with self._executor.execute(
+            result_type=JsonExecutorResult,
+            url="/sources/parse",
+            method="POST",
+            json_data=json_dict(
+                sources=[s.text for s in specification.sources]
+            ),
+        ) as res:
+            data = res.json_data()
+            issues = [
+                local_specification_issue_from_json(e)
+                for e in data["errors"]
+                if not e["code"] in codes
+            ]
+        return specification.annotated(issues)
+
+    async def save_specification(
+        self,
+        _specification: LocalSpecification,
+    ) -> None:
+        raise NotImplementedError()
 
     async def _prepare_solve(
         self,
