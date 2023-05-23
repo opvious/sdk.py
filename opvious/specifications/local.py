@@ -134,6 +134,15 @@ class LocalSpecification:
         )
 
 
+_SUMMARY_STYLE = "".join(
+    [
+        "cursor: pointer;",
+        "text-decoration: underline;",
+        "text-decoration-style: dotted;",
+    ]
+)
+
+
 def _source_details(
     source: LocalSpecificationSource,
     issues: Sequence[LocalSpecificationIssue],
@@ -145,7 +154,7 @@ def _source_details(
     return "\n".join(
         [
             "<details open>" if start_open else "<details>",
-            f'<summary style="cursor:pointer;">{summary}</summary>',
+            f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
             _colorize(source.text, issues),
             "</details>",
         ]
