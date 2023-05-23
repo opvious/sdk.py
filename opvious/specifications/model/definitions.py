@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import inspect
 import itertools
 import logging
@@ -11,7 +12,6 @@ from typing import (
     Iterable,
     Literal,
     Optional,
-    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -52,7 +52,7 @@ from .identifiers import (
 )
 from .images import Image
 from .quantified import Quantified, unquantify
-from .statements import Definition, Model, ModelFragment
+from .statements import Definition, Model, ModelFragment, method_decorator
 
 
 _logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ class Dimension(Definition, Space):
     def render(self) -> str:
         return self._identifier.format()
 
-    def render_statement(self, label: Label, _owner: Any) -> Optional[str]:
+    def render_statement(self, label: Label) -> Optional[str]:
         _logger.debug("Rendering dimension %s...", label)
         s = f"\\S^d_\\mathrm{{{label}}}&: {self._identifier.format()}"
         if self._is_numeric:
@@ -229,7 +229,7 @@ class _Tensor(Definition):
             self._identifier, tuple(to_expression(s) for s in subscripts)
         )
 
-    def render_statement(self, label: Label, _owner: Any) -> Optional[str]:
+    def render_statement(self, label: Label) -> Optional[str]:
         _logger.debug("Rendering tensor %s...", label)
         c = self._variant[0]
         s = f"\\S^{c}_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
@@ -283,34 +283,7 @@ class Variable(_Tensor):
     _variant = "variable"
 
 
-class _FragmentMethod:
-    def __call__(self, *args, **kwargs) -> Any:
-        raise NotImplementedError()
-
-    def __get__(self, frag: Any, _objtype=None) -> Callable[..., Any]:
-        # This is needed for non-property calls
-        if not isinstance(frag, (Model, ModelFragment)):
-            raise TypeError(f"Unexpected owner: {frag}")
-
-        def wrapped(*args, **kwargs) -> Any:
-            return self(frag, *args, **kwargs)
-
-        return wrapped
-
-
-_M = TypeVar("_M", contravariant=True)
-
-
-_R = TypeVar(
-    "_R",
-    bound=Union[Expression, Quantification, Quantified[Quantifier]],
-    covariant=True,
-)
-
-
-class _Aliasable(Protocol[_M, _R]):
-    def __call__(self, model: _M, *exprs: ExpressionLike) -> _R:
-        pass
+_Aliasable = Callable[..., Any]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -321,12 +294,12 @@ class _Aliased:
     ]
 
 
-class _Alias(Definition, _FragmentMethod):
+class _Alias(Definition):
     label = None
 
     def __init__(
         self,
-        aliasable: _Aliasable[Any, Any],
+        aliasable: _Aliasable,
         name: Name,
         quantifier_names: Optional[Iterable[Name]] = None,
     ):
@@ -340,10 +313,12 @@ class _Alias(Definition, _FragmentMethod):
     def identifier(self) -> Optional[GlobalIdentifier]:
         return self._identifier
 
-    def render_statement(self, _label: Label, owner: Any) -> Optional[str]:
-        _logger.debug("Rendering alias named %s...", self._identifier.name)
+    def render_statement(self, _label: Label) -> Optional[str]:
         if self._aliased is None:
+            _logger.debug("Skipping alias named %s.", self._identifier.name)
             return None  # Not used
+
+        _logger.debug("Rendering alias named %s...", self._identifier.name)
         quantifiable = tuple(
             q or _integers for q in self._aliased.quantifiables
         )
@@ -351,7 +326,8 @@ class _Alias(Definition, _FragmentMethod):
             quantifiable, names=self._quantifier_names
         )
         expressions = [Quantifier(q) for q in outer_domain.quantifiers]
-        value = self._aliasable(owner, *expressions)
+        value = self._aliasable(*expressions)
+
         s = "\\S^a&: "
         with local_formatting_scope(outer_domain.quantifiers):
             if outer_domain.quantifiers:
@@ -372,10 +348,10 @@ class _Alias(Definition, _FragmentMethod):
                         s += inner_domain.quantifiers[0].space.render()
         return s
 
-    def __call__(self, frag: Any, *subscripts: ExpressionLike) -> Any:
-        exprs = tuple(to_expression(s) for s in subscripts)
+    def __call__(self, *subs: ExpressionLike) -> Any:
+        exprs = tuple(to_expression(s) for s in subs)
         if self._aliased is None:
-            value = self._aliasable(frag, *exprs)
+            value = self._aliasable(*exprs)
             if isinstance(value, Expression):
                 quantifiers = None
             else:
@@ -411,6 +387,9 @@ def _quantifier_identifier(arg: Any) -> QuantifierIdentifier:
     return arg.identifier
 
 
+_M = TypeVar("_M", bound=Union[Model, ModelFragment], contravariant=True)
+
+
 _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
 
 
@@ -443,18 +422,19 @@ def alias(
                 return total(self.count(p) for p in self.products)
     """
 
-    def wrap(fn):
+    @method_decorator
+    def wrapper(fn):
         if name is None:
             return fn
         return _Alias(fn, name=name, quantifier_names=quantifier_names)
 
-    return wrap
+    return wrapper
 
 
-ConstraintBody = Callable[[_M], Quantified[Predicate]]
+ConstraintMethod = Callable[[_M], Quantified[Predicate]]
 
 
-class Constraint(Definition, _FragmentMethod):
+class Constraint(Definition):
     """Optimization constraint
 
     Constraints are best created directly from :class:`.Model` methods via the
@@ -475,28 +455,24 @@ class Constraint(Definition, _FragmentMethod):
 
     def __init__(
         self,
-        body: ConstraintBody,
+        body: Callable[[], Quantified[Predicate]],
         label: Optional[Label] = None,
         qualifiers: Optional[Sequence[Label]] = None,
     ):
-        if not inspect.isgeneratorfunction(body):
-            raise TypeError("Non-generator function constraint body")
         super().__init__()
         self._body = body
         self._label = label
         self.qualifiers = qualifiers
 
-    def __call__(self, *args, **kwargs):
-        return self._body(*args, **kwargs)
-
     @property
     def label(self):
         return self._label
 
-    def render_statement(self, label: Label, owner: Any) -> Optional[str]:
+    def render_statement(self, label: Label) -> Optional[str]:
         _logger.debug("Rendering constraint %s...", label)
+
         s = f"\\S^c_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
-        predicate, domain = within_domain(self._body(owner))
+        predicate, domain = within_domain(self._body())
         with local_formatting_scope(domain.quantifiers):
             if domain.quantifiers:
                 s += f"\\forall {domain.render()}, "
@@ -505,7 +481,7 @@ class Constraint(Definition, _FragmentMethod):
 
 
 @overload
-def constraint(body: ConstraintBody) -> Constraint:
+def constraint(method: ConstraintMethod) -> Constraint:
     ...
 
 
@@ -515,12 +491,12 @@ def constraint(
     label: Optional[Label] = None,
     qualifiers: Optional[Sequence[Label]] = None,
     disabled=False,
-) -> Callable[[ConstraintBody], Constraint]:
+) -> Callable[[ConstraintMethod], Constraint]:
     ...
 
 
 def constraint(
-    body: Optional[ConstraintBody] = None,
+    method: Optional[ConstraintMethod] = None,
     *,
     label: Optional[Label] = None,
     qualifiers: Optional[Sequence[Label]] = None,
@@ -553,26 +529,27 @@ def constraint(
             def ensure_something_else(self):
                 # ...
     """
-    if body:
-        return Constraint(body)
 
-    def wrap(fn):
+    @method_decorator
+    def wrapper(fn):
+        if not inspect.isgeneratorfunction(fn):
+            raise TypeError(f"Non-generator constraint function: {fn}")
         if disabled:
-            return fn
+            return None
         return Constraint(fn, label=label, qualifiers=qualifiers)
 
-    return wrap
+    return wrapper(method) if method else wrapper
 
 
 ObjectiveSense = Literal["max", "min"]
 """Optimization direction"""
 
 
-ObjectiveBody = Callable[[_M], Expression]
+ObjectiveMethod = Callable[[_M], Expression]
 """Optimization target expression"""
 
 
-class Objective(Definition, _FragmentMethod):
+class Objective(Definition):
     """Optimization objective
 
     Objectives are best created directly from :class:`.Model` methods via the
@@ -594,7 +571,7 @@ class Objective(Definition, _FragmentMethod):
 
     def __init__(
         self,
-        body: ObjectiveBody,
+        body: Callable[[], Expression],
         sense: ObjectiveSense,
         label: Optional[Label] = None,
     ):
@@ -607,11 +584,9 @@ class Objective(Definition, _FragmentMethod):
     def label(self) -> Optional[Label]:
         return self._label
 
-    def __call__(self, *args, **kwargs):
-        return self._body(*args, **kwargs)
-
-    def render_statement(self, label: Label, owner: Any) -> Optional[str]:
+    def render_statement(self, label: Label) -> Optional[str]:
         _logger.debug("Rendering objective %s...", label)
+
         sense = self._sense
         if sense is None:
             if label.startswith("min"):
@@ -620,24 +595,25 @@ class Objective(Definition, _FragmentMethod):
                 sense = "max"
             else:
                 raise Exception(f"Missing sense for objective {label}")
-        expression = to_expression(self._body(owner))
+
+        expression = to_expression(self._body())
         return f"\\S^o_\\mathrm{{{label}}}&: \\{sense} {expression.render()}"
 
 
 @overload
-def objective(body: ObjectiveBody) -> Objective:
+def objective(method: ObjectiveMethod) -> Objective:
     ...
 
 
 @overload
 def objective(
     *, sense: Optional[ObjectiveSense] = None, label: Optional[Label] = None
-) -> Callable[[ObjectiveBody], Objective]:
+) -> Callable[[ObjectiveMethod], Objective]:
     ...
 
 
 def objective(
-    body: Optional[ObjectiveBody] = None,
+    method: Optional[ObjectiveMethod] = None,
     *,
     sense: Optional[ObjectiveSense] = None,
     label: Optional[Label] = None,
@@ -676,19 +652,20 @@ def objective(
             def optimize_count(self):
                 return total(self.count(p) for p in self.products)
     """
-    if body:
-        return Objective(body, sense=_objective_sense(body))
 
-    def wrap(fn):
+    @method_decorator
+    def wrapper(fn):
         if disabled:
-            return fn
+            return None
         method_sense = sense or _objective_sense(fn)
         return Objective(fn, sense=method_sense, label=label)
 
-    return wrap
+    return wrapper(method) if method else wrapper
 
 
 def _objective_sense(fn: Callable[..., Any]) -> ObjectiveSense:
+    while isinstance(fn, functools.partial):
+        fn = fn.func
     name = fn.__name__
     if name.startswith("min"):
         return "min"

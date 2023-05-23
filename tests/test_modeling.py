@@ -34,7 +34,7 @@ class LotSizing(om.Model):
         self.demand = om.Parameter.non_negative(self.steps)
 
         self.production = om.Variable.non_negative(self.steps)
-        self.production_indicator = om.ActivationIndicator.fragment(
+        self.production_indicator = om.fragments.ActivationIndicator(
             variable=self.production,
             upper_bound=om.total(self.demand(t) for t in self.steps),
         )
@@ -75,7 +75,7 @@ class GroupExpenses(om.Model):
             (self.friends, self.friends),
             qualifiers=["sender", "recipient"],
         )
-        self.tranferred_indicator = om.ActivationIndicator.fragment(
+        self.tranferred_indicator = om.fragments.ActivationIndicator(
             variable=self.transferred,
             upper_bound=self.overall_cost(),
             lower_bound=False,
@@ -254,7 +254,7 @@ class TestModeling:
     async def test_masked_subset(self):
         class _Model(om.Model):
             days = om.Dimension()
-            holidays = om.MaskedSubset.fragment(days, alias_name="H")
+            holidays = om.fragments.MaskedSubset(days, alias_name="H")
             target = om.Variable.discrete(holidays)
 
             @om.constraint
@@ -321,3 +321,24 @@ class TestModeling:
         assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
         assert r"\max \tau^\mathrm{bar} + \tau^\mathrm{foo}" in text
+
+    @pytest.mark.asyncio
+    async def test_derived_variable(self):
+        class _Model(om.Model):
+            values = om.Dimension()
+            colors = om.Dimension()
+            target = om.Variable.continuous(values, colors)
+
+            @om.fragments.derived_variable(colors, name="t^c")
+            def target_by_color(self, c) -> om.Expression:
+                return om.total(self.target(v, c) for v in self.values)
+
+            @om.objective
+            def maximize_target(self) -> om.Expression:
+                return om.total(self.target_by_color(c) for c in self.colors)
+
+        model = _Model()
+        spec = await model.compile_specification()
+        assert spec.annotation.issue_count == 0
+        text = spec.sources[0].text
+        assert r"\forall c \in C, t^c_{c} = \sum_{v \in V} \tau_{v,c}" in text
