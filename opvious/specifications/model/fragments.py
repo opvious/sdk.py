@@ -8,13 +8,13 @@ from .definitions import (
     Constraint,
     Expression,
     ExpressionLike,
+    Image,
     Parameter,
     Variable,
     alias,
     constraint,
 )
 from .identifiers import Name
-from .images import Image
 from .quantified import Quantified
 from .statements import method_decorator, ModelFragment
 
