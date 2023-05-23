@@ -1,8 +1,8 @@
 import opvious
-import opvious.modeling as om
 import pytest
 
 
+om = opvious.modeling
 client = opvious.Client.from_environment()
 
 
@@ -221,14 +221,14 @@ class TestModeling:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("model", _models)
-    async def test_compile_specification(self, model):
-        spec = await model.compile_specification()
+    async def test_specification(self, model):
+        spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
 
     @pytest.mark.asyncio
     async def test_annotate_markdown_repr(self):
         model = InvalidSetCoverModel()
-        spec = await model.compile_specification()
+        spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 2
 
     @pytest.mark.asyncio
@@ -248,7 +248,7 @@ class TestModeling:
                 return om.total(self.target(d, s) for d, s in self.times)
 
         model = _Model()
-        spec = await model.compile_specification()
+        spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
         assert "(d, s) \\in T" in spec.sources[0].text
 
@@ -264,7 +264,7 @@ class TestModeling:
                 yield om.total(self.target(d) for d in self.holidays) == 0
 
         model = _Model()
-        spec = await model.compile_specification()
+        spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
         assert (
             r"H \doteq \{ d \in D \mid m^\mathrm{holidays}_{d} \neq 0 \}"
@@ -296,7 +296,7 @@ class TestModeling:
                     yield self.target(v) == 0
 
         model = _Model()
-        spec = await model.compile_specification()
+        spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
         assert r"\forall c \in C_{2}, \tau_{c} = 0" in text
@@ -319,7 +319,7 @@ class TestModeling:
                 return self.bar.target() + self.foo.target()
 
         model = _Model()
-        spec = await model.compile_specification()
+        spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
         assert r"\max \tau^\mathrm{bar} + \tau^\mathrm{foo}" in text
@@ -340,7 +340,7 @@ class TestModeling:
                 return om.total(self.target_by_color(c) for c in self.colors)
 
         model = _Model()
-        spec = await model.compile_specification()
+        spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
         text = spec.sources[0].text
         assert r"\forall c \in C, t^c_{c} = \sum_{v \in V} \tau_{v,c}" in text

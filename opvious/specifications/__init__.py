@@ -4,9 +4,10 @@ from .local import (
     LocalSpecification,
     LocalSpecificationIssue,
     LocalSpecificationSource,
+    local_specification_issue_from_json,
 )
 from .external import FormulationSpecification, RemoteSpecification
-from .notebook import load_notebook_specification
+from .notebook import load_notebook_models
 
 
 Specification = Union[
@@ -23,5 +24,6 @@ __all__ = [
     "LocalSpecificationSource",
     "RemoteSpecification",
     "Specification",
-    "load_notebook_specification",
+    "local_specification_issue_from_json",
+    "load_notebook_models",
 ]

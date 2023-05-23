@@ -49,7 +49,8 @@ from .specifications import (
     LocalSpecificationSource,
     RemoteSpecification,
     Specification,
-    load_notebook_specification,
+    load_notebook_models,
+    model as modeling,
 )
 from .transformations import (
     ConstrainObjective,
@@ -82,7 +83,8 @@ __all__ = [
     "LocalSpecificationSource",
     "RemoteSpecification",
     "Specification",
-    "load_notebook_specification",
+    "load_notebook_models",
+    "modeling",
     # Solves and attempts
     "Attempt",
     "AttemptNotification",

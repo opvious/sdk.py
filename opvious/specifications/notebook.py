@@ -1,20 +1,22 @@
+import logging
 import os
+import types
 from typing import Optional
 import warnings
 
-from .local import LocalSpecification
 from .model import Model
 
 
-def load_notebook_specification(
-    path: str, model_attr: Optional[str] = None, root: Optional[str] = None
-) -> LocalSpecification:
-    """Loads a local specification from a notebook
+_logger = logging.getLogger(__name__)
+
+
+def load_notebook_models(
+    path: str, root: Optional[str] = None
+) -> types.SimpleNamespace:
+    """Loads all models from a notebook
 
     Args:
         path: Path to the notebook, relative to `root` if present otherwise CWD
-        model_attr: Name of the attribute containing the model to specify. Can
-            be omitted if the notebook contains a single model
         root: Root path. If set to a file, its parent directory will be used
             (convenient for use with `__file__`).
     """
@@ -33,21 +35,15 @@ def load_notebook_specification(
         path = os.path.join(root, path)
     nb = importnb.Notebook.load_file(path)
 
-    model = None
-    if model_attr is None:
-        for attr in dir(nb):
-            value = getattr(nb, attr)
-            if isinstance(value, Model):
-                if model:
-                    raise Exception(
-                        "Multiple models found, please disambiguate"
-                    )
-                model = value
-    else:
-        model = getattr(nb, model_attr)
-    if not model:
-        raise Exception("No model found")
+    ns = types.SimpleNamespace()
+    count = 0
+    for attr in dir(nb):
+        value = getattr(nb, attr)
+        if isinstance(value, Model):
+            count += 1
+            setattr(ns, attr, value)
+    if not count:
+        raise Exception("No models found")
+    _logger.debug("Loaded %s model(s) from %s.", count, path)
 
-    sources = model.compile_specification_sources()
-    # TODO: Set description from notebook markdown cells
-    return LocalSpecification(sources=sources, description=model.__doc__)
+    return ns

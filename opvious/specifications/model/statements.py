@@ -4,13 +4,25 @@ import collections
 import dataclasses
 import functools
 import logging
-from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Union
+import pandas as pd
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from ...common import Label, to_camel_case
 from ..local import LocalSpecification, LocalSpecificationSource
 from .identifiers import (
     DefaultIdentifierFormatter,
     GlobalIdentifier,
+    Name,
     global_formatting_scope,
 )
 
@@ -18,8 +30,22 @@ from .identifiers import (
 _logger = logging.getLogger(__name__)
 
 
+DefinitionCategory = Literal[
+    "ALIAS",
+    "CONSTRAINT",
+    "DIMENSION",
+    "OBJECTIVE",
+    "PARAMETER",
+    "VARIABLE",
+]
+
+
 class Definition:
     """Internal model definition"""
+
+    @property
+    def category(self) -> DefinitionCategory:
+        raise NotImplementedError()
 
     @property
     def label(self) -> Optional[Label]:
@@ -70,13 +96,32 @@ class _DecoratedMethod:
 
 
 @dataclasses.dataclass(frozen=True)
-class _Statement:
+class Statement:
+    group: str
+    category: DefinitionCategory
+    label: Label
+    name: Optional[Name]
+    text: str
+
+
+@dataclasses.dataclass(frozen=True)
+class _Candidate:
     label: Label
     definition: Definition
     model: Model
 
-    def render(self) -> Optional[str]:
-        return self.definition.render_statement(self.label)
+    def render_statement(self) -> Optional[Statement]:
+        d = self.definition
+        text = d.render_statement(self.label)
+        if text is None:
+            return None
+        return Statement(
+            group=self.model.group,
+            category=d.category,
+            label=self.label,
+            name=d.identifier.format() if d.identifier else None,
+            text=text,
+        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -92,7 +137,7 @@ def relabel(fragment: ModelFragment, **kwargs: Label) -> ModelFragment:
 
 class _ModelVisitor:
     def __init__(self) -> None:
-        self.statements: list[_Statement] = []
+        self.candidates: list[_Candidate] = []
         self._visited: set[int] = set()  # Fragment IDs
 
     def visit(self, model: Model) -> None:
@@ -142,7 +187,7 @@ class _ModelVisitor:
                 or value.label
                 or to_camel_case("_".join(path))
             )
-            self.statements.append(_Statement(label, value, model))
+            self.candidates.append(_Candidate(label, value, model))
 
 
 class Model:
@@ -179,17 +224,17 @@ class Model:
 
     __dependencies: Optional[Sequence[Model]] = None
     __prefix: Optional[Sequence[str]] = None
-    __title: Optional[str] = None
+    __group: Optional[str] = None
 
     def __init__(
         self,
         dependencies: Optional[Iterable[Model]] = None,
         prefix: Optional[Sequence[str]] = None,
-        title: Optional[str] = None,
+        group: Optional[str] = None,
     ):
         self.__dependencies = list(dependencies) if dependencies else None
         self.__prefix = prefix
-        self.__title = title
+        self.__group = group
 
     @property
     def dependencies(self) -> Sequence[Model]:
@@ -200,74 +245,63 @@ class Model:
         return self.__prefix or []
 
     @property
-    def title(self) -> str:
-        return self.__title or f"<code>{self.__class__.__name__}</code>"
+    def group(self) -> str:
+        return self.__group or self.__class__.__qualname__
 
-    def compile_specification_sources(
-        self,
-    ) -> Sequence[LocalSpecificationSource]:
-        """Generates the model's specification sources
-
-        See also :meth:`.Model.compile_specification` for a convenience method
-        which also annotates the
-        """
+    def statements(self) -> Iterable[Statement]:
         visitor = _ModelVisitor()
         visitor.visit(self)
-        statements = visitor.statements
+        candidates = visitor.candidates
 
         by_identifier = {
-            s.definition.identifier: s
-            for s in statements
-            if s.definition.identifier
+            c.definition.identifier: c
+            for c in candidates
+            if c.definition.identifier
         }
         labels_by_identifier = {
             i: d.label for i, d in by_identifier.items() if d.label
         }
         formatter = DefaultIdentifierFormatter(labels_by_identifier)
         reserved = {i.name: i for i in labels_by_identifier if i.name}
-        rendered_by_title = collections.defaultdict(list)
         with global_formatting_scope(formatter, reserved):
             idens = set()
-            for s in statements:
-                rs = s.render()
-                if not rs:
+            for c in candidates:
+                s = c.render_statement()
+                if not s:
                     continue
-                rendered_by_title[s.model.title].append(rs)
-                if s.definition.identifier:
-                    idens.add(s.definition.identifier)
+                yield s
+                if c.definition.identifier:
+                    idens.add(c.definition.identifier)
             for iden in formatter.formatted_globals():
                 if iden in idens:
                     continue
-                ds = by_identifier.get(iden)
-                if not ds:
+                dc = by_identifier.get(iden)
+                if not dc:
+                    raise Exception(f"Missing candidate: {iden}")
+                s = dc.render_statement()
+                if not s:
                     raise Exception(f"Missing statement: {iden}")
-                rs = ds.render()
-                if not rs:
-                    raise Exception(f"Missing rendered statement: {iden}")
-                rendered_by_title[ds.model.title].append(rs)
+                yield s
 
-        contents_by_title = {
-            title: "".join(f"  {s} \\\\\n" for s in lines)
-            for title, lines in rendered_by_title.items()
+    def definition_counts(self) -> pd.DataFrame:
+        df = pd.DataFrame(dataclasses.asdict(s) for s in self.statements())
+        grouped = df.groupby(["section", "category"]).count().unstack()
+        return cast(Any, grouped)
+
+    def specification(self) -> LocalSpecification:
+        """Generates the model's specification"""
+        grouped = collections.defaultdict(list)
+        for s in self.statements():
+            grouped[s.group].append(s.text)
+        joined = {
+            group: "".join(f"  {s} \\\\\n" for s in lines)
+            for group, lines in grouped.items()
         }
-        return [
+        sources = [
             LocalSpecificationSource(
-                title=title,
+                title=group,
                 text=f"$$\n\\begin{{align*}}\n{contents}\\end{{align*}}\n$$",
             )
-            for title, contents in contents_by_title.items()
+            for group, contents in joined.items()
         ]
-
-    async def compile_specification(
-        self,
-        allow_unused=True,
-    ) -> LocalSpecification:
-        """Generates the model's specification"""
-        sources = self.compile_specification_sources()
-        spec = LocalSpecification(sources=sources)
-        try:
-            codes = ["ERR_UNUSED_DEFINITION"] if allow_unused else []
-            spec = await spec.annotated(ignore_codes=codes)
-        except Exception:
-            _logger.warning("Unable to annotate specification", exc_info=True)
-        return spec
+        return LocalSpecification(sources=sources, description=self.__doc__)
