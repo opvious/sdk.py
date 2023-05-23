@@ -136,7 +136,7 @@ class DerivedVariable(ModelFragment):
 
             @constraint
             def is_defined(self) -> Quantified:
-                for t in cross(quantifiables):
+                for t in cross(self.value.quantification):
                     yield self.value(*t) == body(*t)
 
             def __call__(self, *subs: ExpressionLike) -> Expression:
