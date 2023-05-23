@@ -291,7 +291,8 @@ class _CardinalityExpression(Expression):
     domain: Domain
 
     def render(self, _precedence=0) -> str:
-        return f"\\lvert {self.domain.render()} \\rvert"
+        with local_formatting_scope(self.domain.quantifiers):
+            return f"\\lvert \\{{ {self.domain.render()} \\}} \\rvert"
 
 
 @dataclasses.dataclass(frozen=True)

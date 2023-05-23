@@ -50,7 +50,6 @@ from .identifiers import (
     TensorVariant,
     local_formatting_scope,
 )
-from .images import Image
 from .quantified import Quantified, unquantify
 from .statements import Definition, Model, ModelFragment, method_decorator
 
@@ -152,6 +151,37 @@ def interval(
     return iter(interval)
 
 
+@dataclasses.dataclass(frozen=True)
+class Image:
+    """A tensor's set of possible values
+
+    See the methods below various convenience factories.
+    """
+
+    lower_bound: ExpressionLike = -math.inf
+    """The image's smallest value (inclusive)"""
+
+    upper_bound: ExpressionLike = math.inf
+    """The image's largest value (inclusive)"""
+
+    is_integral: bool = False
+    """Whether the image only contain integers"""
+
+    def render(self) -> str:
+        lb = to_expression(self.lower_bound)
+        ub = to_expression(self.upper_bound)
+        if is_literal(ub, math.inf):
+            if is_literal(lb, -math.inf):
+                return "\\mathbb{Z}" if self.is_integral else "\\mathbb{R}"
+            if is_literal(lb, 0):
+                return "\\mathbb{N}" if self.is_integral else "\\mathbb{R}_+"
+        if self.is_integral:
+            if is_literal(lb, 0) and is_literal(ub, 1):
+                return "\\{0, 1\\}"
+            return f"\\{{{lb.render()} \\ldots {ub.render()}\\}}"
+        return f"[{lb.render()}, {ub.render()}]"
+
+
 _T = TypeVar("_T", bound="_Tensor")
 
 
@@ -173,40 +203,54 @@ class _Tensor(Definition):
         self.qualifiers = qualifiers
 
     @classmethod
-    def continuous(cls: Type[_T], *args, **kwargs) -> _T:
+    def continuous(cls: Type[_T], *quantifiables, **kwargs) -> _T:
         """Returns a tensor with real image"""
-        return cls(Image(), *args, **kwargs)
+        return cls(Image(), *quantifiables, **kwargs)
 
     @classmethod
-    def non_negative(cls: Type[_T], *args, **kwargs) -> _T:
+    def non_negative(
+        cls: Type[_T],
+        *quantifiables,
+        upper_bound: ExpressionLike = math.inf,
+        **kwargs,
+    ) -> _T:
         """Returns a tensor with non-negative real image"""
-        return cls(Image(lower_bound=0), *args, **kwargs)
+        img = Image(lower_bound=0, upper_bound=upper_bound)
+        return cls(img, *quantifiables, **kwargs)
 
     @classmethod
-    def non_positive(cls: Type[_T], *args, **kwargs) -> _T:
+    def non_positive(cls: Type[_T], *quantifiables, **kwargs) -> _T:
         """Returns a tensor with non-positive real image"""
-        return cls(Image(upper_bound=0), *args, **kwargs)
+        return cls(Image(upper_bound=0), *quantifiables, **kwargs)
 
     @classmethod
-    def unit(cls: Type[_T], *args, **kwargs) -> _T:
+    def unit(cls: Type[_T], *quantifiables, **kwargs) -> _T:
         """Returns a tensor with `[0, 1]` real image"""
-        return cls(Image(lower_bound=0, upper_bound=1), *args, **kwargs)
+        return cls(
+            Image(lower_bound=0, upper_bound=1), *quantifiables, **kwargs
+        )
 
     @classmethod
-    def discrete(cls: Type[_T], *args, **kwargs) -> _T:
+    def discrete(cls: Type[_T], *quantifiables, **kwargs) -> _T:
         """Returns a tensor with integral image"""
-        return cls(Image(is_integral=True), *args, **kwargs)
+        return cls(Image(is_integral=True), *quantifiables, **kwargs)
 
     @classmethod
-    def natural(cls: Type[_T], *args, **kwargs) -> _T:
+    def natural(
+        cls: Type[_T],
+        *quantifiables,
+        upper_bound: ExpressionLike = math.inf,
+        **kwargs,
+    ) -> _T:
         """Returns a tensor with non-negative integral image"""
-        return cls(Image(lower_bound=0, is_integral=True), *args, **kwargs)
+        img = Image(lower_bound=0, upper_bound=upper_bound, is_integral=True)
+        return cls(img, *quantifiables, **kwargs)
 
     @classmethod
-    def indicator(cls: Type[_T], *args, **kwargs) -> _T:
+    def indicator(cls: Type[_T], *quantifiables, **kwargs) -> _T:
         """Returns a tensor with `{0, 1}` integral image"""
         image = Image(lower_bound=0, upper_bound=1, is_integral=True)
-        return cls(image, *args, **kwargs)
+        return cls(image, *quantifiables, **kwargs)
 
     @property
     def identifier(self) -> Optional[GlobalIdentifier]:

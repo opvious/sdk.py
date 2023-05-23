@@ -15,6 +15,7 @@ from .ast import (
 from .definitions import (
     Constraint,
     Dimension,
+    Image,
     Objective,
     Parameter,
     Variable,
@@ -23,7 +24,6 @@ from .definitions import (
     interval,
     objective,
 )
-from .images import Image
 from .quantified import Quantified
 from .statements import Model, ModelFragment, relabel
 

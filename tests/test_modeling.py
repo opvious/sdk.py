@@ -68,9 +68,11 @@ class GroupExpenses(om.Model):
 
         self.paid = om.Parameter.continuous(self.transactions, self.friends)
         self.share = om.Parameter.non_negative(self.transactions, self.friends)
-        self.floor = om.Parameter.non_negative()
+        self.floor = om.Parameter.non_negative(name="t^\\mathrm{min}")
 
-        self.max_transfer_count = om.Variable.natural()
+        self.max_transfer_count = om.Variable.natural(
+            upper_bound=om.size(self.friends)
+        )
         self.transferred = om.Variable.non_negative(
             (self.friends, self.friends),
             qualifiers=["sender", "recipient"],
