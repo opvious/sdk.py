@@ -16,6 +16,7 @@ from typing import (
     Union,
     cast,
 )
+import weakref
 
 from ...common import Label, to_camel_case
 from ..local import LocalSpecification, LocalSpecificationSource
@@ -78,15 +79,14 @@ class _DecoratedMethod:
     ) -> None:
         self._body = body
         self._wrapper = wrapper
-        self._data: Union[None, tuple[Any, Any]] = None
+        self._bindings: Any = weakref.WeakKeyDictionary()
 
     def bound_to(self, owner: Any) -> Any:
-        if self._data is None:
-            bound = functools.partial(self._body, owner)
-            self._data = (owner, self._wrapper(bound))
-        elif self._data[0] is not owner:
-            raise Exception("Inconsistent method owner")
-        return self._data[1]
+        binding = self._bindings.get(owner)
+        if not binding:
+            binding = self._wrapper(functools.partial(self._body, owner))
+            self._bindings[owner] = binding
+        return binding
 
     def __get__(self, owner: Any, _objtype=None) -> Any:
         return self.bound_to(owner)
@@ -97,7 +97,7 @@ class _DecoratedMethod:
 
 @dataclasses.dataclass(frozen=True)
 class Statement:
-    group: str
+    title: str
     category: DefinitionCategory
     label: Label
     name: Optional[Name]
@@ -116,7 +116,7 @@ class _Candidate:
         if text is None:
             return None
         return Statement(
-            group=self.model.group,
+            title=self.model.title,
             category=d.category,
             label=self.label,
             name=d.identifier.format() if d.identifier else None,
@@ -224,17 +224,17 @@ class Model:
 
     __dependencies: Optional[Sequence[Model]] = None
     __prefix: Optional[Sequence[str]] = None
-    __group: Optional[str] = None
+    __title: Optional[str] = None
 
     def __init__(
         self,
         dependencies: Optional[Iterable[Model]] = None,
         prefix: Optional[Sequence[str]] = None,
-        group: Optional[str] = None,
+        title: Optional[str] = None,
     ):
         self.__dependencies = list(dependencies) if dependencies else None
         self.__prefix = prefix
-        self.__group = group
+        self.__title = title
 
     @property
     def dependencies(self) -> Sequence[Model]:
@@ -245,8 +245,8 @@ class Model:
         return self.__prefix or []
 
     @property
-    def group(self) -> str:
-        return self.__group or self.__class__.__qualname__
+    def title(self) -> str:
+        return self.__title or self.__class__.__qualname__
 
     def statements(self) -> Iterable[Statement]:
         visitor = _ModelVisitor()
@@ -285,23 +285,23 @@ class Model:
 
     def definition_counts(self) -> pd.DataFrame:
         df = pd.DataFrame(dataclasses.asdict(s) for s in self.statements())
-        grouped = df.groupby(["section", "category"]).count().unstack()
-        return cast(Any, grouped)
+        grouped: Any = df.groupby(["title", "category"])["text"].count()
+        return grouped.unstack(["category"])
 
     def specification(self) -> LocalSpecification:
         """Generates the model's specification"""
         grouped = collections.defaultdict(list)
         for s in self.statements():
-            grouped[s.group].append(s.text)
+            grouped[s.title].append(s.text)
         joined = {
-            group: "".join(f"  {s} \\\\\n" for s in lines)
-            for group, lines in grouped.items()
+            title: "".join(f"  {s} \\\\\n" for s in lines)
+            for title, lines in grouped.items()
         }
         sources = [
             LocalSpecificationSource(
-                title=group,
+                title=title,
                 text=f"$$\n\\begin{{align*}}\n{contents}\\end{{align*}}\n$$",
             )
-            for group, contents in joined.items()
+            for title, contents in joined.items()
         ]
         return LocalSpecification(sources=sources, description=self.__doc__)

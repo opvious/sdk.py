@@ -226,6 +226,12 @@ class TestModeling:
         assert spec.annotation.issue_count == 0
 
     @pytest.mark.asyncio
+    async def test_definition_counts(self):
+        model = LotSizing()
+        counts = model.definition_counts()
+        assert counts["PARAMETER"].iloc[0] == 4
+
+    @pytest.mark.asyncio
     async def test_annotate_markdown_repr(self):
         model = InvalidSetCoverModel()
         spec = await client.annotate_specification(model.specification())
