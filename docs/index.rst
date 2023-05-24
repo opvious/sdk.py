@@ -10,6 +10,7 @@ models
 Highlights
 ----------
 
++ **Declarative modeling API** which can be exported to LaTeX
 + **Remote solves** with real-time progress notifications, no local solver 
   installation required
 + Seamless **data import/export** via native support for `pandas`

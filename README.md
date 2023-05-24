@@ -2,10 +2,16 @@
 
 An optimization SDK for solving linear, mixed-integer, and quadratic models
 
-```python
-import opvious
-import opvious.modeling as om
+## Highlights
 
+## Declarative modeling API
+
++ Extensive static validations
++ Exportable to LaTeX
++ Extensible support for high-level patterns (activation variables, masks, ...)
+
+```python
+import opvious.modeling as om
 
 class BinPacking(om.Model):
   items = om.Dimension()
@@ -35,9 +41,22 @@ class BinPacking(om.Model):
     for b in self.bins:
       bin_weight = om.total(self.weight(i) * self.assigned(i, b) for i in self.items)
       yield bin_weight <= self.bin_max_weight()
+```
 
+
+## Remote solves with real-time progress notifications
+
++ No local solver installation required
++ Seamless data import/export via native support for `pandas`
++ Flexible multi-objective support: weighted sums, epsilon constraints, ...
++ Built-in debugging capabilities: relaxations, fully annotated LP formatting,
+  ...
+
+```python
+import opvious
 
 client = opvious.Client.from_environment()
+
 response = await client.run_solve(
   specification=BinPacking().specification(),
   parameters={
