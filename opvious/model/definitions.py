@@ -139,7 +139,7 @@ _integers = _Interval(literal(-math.inf), literal(math.inf))
 def interval(
     lower_bound: ExpressionLike,
     upper_bound: ExpressionLike,
-    name: Optional[Name] = None
+    name: Optional[Name] = None,
 ) -> Iterable[Quantifier]:
     """A range of values
 

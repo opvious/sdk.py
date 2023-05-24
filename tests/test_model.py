@@ -211,7 +211,9 @@ class BinPacking(om.Model):
             yield self._bin_weight(b) <= self.bin_max_weight()
 
     def _bin_weight(self, b):
-        return om.total(self.weight(i) * self.assignment(i, b)for i in self.items)
+        return om.total(
+            self.weight(i) * self.assignment(i, b) for i in self.items
+        )
 
 
 class InvalidSetCoverModel(om.Model):
