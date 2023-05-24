@@ -183,7 +183,7 @@ class Sudoku(om.Model):
 
 class BinPacking(om.Model):
     items = om.Dimension()
-    bins = om.interval(0, om.size(items), name="B")
+    bins = om.interval(1, om.size(items))
 
     weight = om.Parameter.non_negative(items)
     bin_max_weight = om.Parameter.non_negative()
