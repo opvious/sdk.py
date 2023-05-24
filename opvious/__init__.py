@@ -34,15 +34,8 @@ from .data.tensors import (
     TensorArgument,
     Value,
 )
-from .executors import (
-    Executor,
-    ExecutorError,
-    aiohttp_executor,
-    default_executor,
-    pyodide_executor,
-    urllib_executor,
-)
-from . import model
+from . import executors
+from . import modeling
 from .specifications import (
     FormulationSpecification,
     LocalSpecification,
@@ -60,12 +53,7 @@ __all__ = [
     "Client",
     "ClientSetting",
     # Executors
-    "Executor",
-    "ExecutorError",
-    "aiohttp_executor",
-    "default_executor",
-    "pyodide_executor",
-    "urllib_executor",
+    "executors",
     # Specifications
     "FormulationSpecification",
     "LocalSpecification",
@@ -74,7 +62,7 @@ __all__ = [
     "RemoteSpecification",
     "Specification",
     "load_notebook_models",
-    "model",
+    "modeling",
     # Solves and attempts
     "Attempt",
     "AttemptNotification",

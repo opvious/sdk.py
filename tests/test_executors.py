@@ -1,9 +1,6 @@
 import opvious
+import opvious.executors
 import pytest
-
-
-from opvious.executors.aiohttp import AiohttpExecutor
-from opvious.executors.urllib import UrllibExecutor
 
 
 TOKEN = opvious.ClientSetting.TOKEN.read()
@@ -16,10 +13,10 @@ DOMAIN = opvious.ClientSetting.DOMAIN.read()
 class TestExecutors:
     _authorization = TOKEN if " " in TOKEN else f"Bearer {TOKEN}"
     _executors = [
-        AiohttpExecutor(
+        opvious.executors.aiohttp_executor(
             root_url=f"https://api.{DOMAIN}", authorization=_authorization
         ),
-        UrllibExecutor(
+        opvious.executors.aiohttp_executor(
             root_url=f"https://api.{DOMAIN}", authorization=_authorization
         ),
     ]
@@ -33,14 +30,14 @@ class TestExecutors:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("executor", _executors)
     async def test_execute_missing_argument(self, executor):
-        with pytest.raises(opvious.ExecutorError) as info:
+        with pytest.raises(opvious.executors.ExecutorError) as info:
             await executor.execute_graphql_query("@PaginateFormulations")
         assert info.value.status == 400
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("executor", _executors)
     async def test_execute_not_found(self, executor):
-        with pytest.raises(opvious.ExecutorError) as info:
+        with pytest.raises(opvious.executors.ExecutorError) as info:
             await executor.execute_graphql_query(
                 "@CancelAttempt",
                 {"uuid": "00000000-0000-0000-0000-000000000000"},

@@ -2,7 +2,7 @@ import opvious
 import pytest
 
 
-om = opvious.model
+om = opvious.modeling
 client = opvious.Client.from_environment()
 
 
@@ -235,7 +235,7 @@ class InvalidSetCoverModel(om.Model):
 @pytest.mark.skipif(
     not client.authenticated, reason="No access token detected"
 )
-class TestModel:
+class TestModeling:
     _models = [
         SetCover(),
         LotSizing(),

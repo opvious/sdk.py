@@ -1,3 +1,9 @@
+"""Built-in transformations
+
+This module exports all available :class:`~opvious.Transformation` instances.
+As a convenience it is also exported by the `opvious` module.
+"""
+
 from __future__ import annotations
 
 import dataclasses

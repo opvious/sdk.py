@@ -4,7 +4,7 @@ import types
 from typing import Optional
 import warnings
 
-from ..model import Model
+from ..modeling import Model
 
 
 _logger = logging.getLogger(__name__)
