@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 import types
 from typing import Optional
 import warnings
@@ -20,6 +21,28 @@ def load_notebook_models(
         root: Root path. If set to a file, its parent directory will be used
             (convenient for use with `__file__`).
     """
+    if root:
+        root = os.path.realpath(root)
+        if os.path.isfile(root):
+            root = os.path.dirname(root)
+        path = os.path.join(root, path)
+    ns = types.SimpleNamespace()
+
+    # We run the import logic in a separate, fresh, thread since `importnb`
+    # expects an inactive event loop if the notebook includes async statements.
+    t = threading.Thread(target=_populate_notebook_namespace, args=(path, ns))
+    t.start()
+    t.join()
+
+    return ns
+
+
+def _populate_notebook_namespace(path: str, ns: types.SimpleNamespace) -> None:
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     with warnings.catch_warnings():
         warnings.filterwarnings(
             action="ignore",
@@ -28,14 +51,20 @@ def load_notebook_models(
         )
         import importnb  # type: ignore
 
-    if root:
-        root = os.path.realpath(root)
-        if os.path.isfile(root):
-            root = os.path.dirname(root)
-        path = os.path.join(root, path)
-    nb = importnb.Notebook.load_file(path)
+    class _Notebook(importnb.Notebook):
+        def code(self, raw):
+            # We use a custom loader to transform all top-level awaited
+            # expressions into statements, otherwise their value will show up
+            # in importing notebooks. Note that this isn't fool-proof since we
+            # rely on the `await` keyword being first on the line.
+            lines = [
+                f"_ = {s}" if s.startswith("await ") else s
+                for s in raw.split("\n")
+            ]
+            return super().code("\n".join(lines))
 
-    ns = types.SimpleNamespace()
+    nb = _Notebook.load_file(path)
+
     count = 0
     for attr in dir(nb):
         value = getattr(nb, attr)
@@ -45,5 +74,3 @@ def load_notebook_models(
     if not count:
         raise Exception("No models found")
     _logger.debug("Loaded %s model(s) from %s.", count, path)
-
-    return ns
