@@ -4,7 +4,7 @@ An optimization SDK for solving linear, mixed-integer, and quadratic models
 
 ```python
 import opvious
-import opvious.model as om
+import opvious.modeling as om
 
 
 class BinPacking(om.Model):

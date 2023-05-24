@@ -1,3 +1,5 @@
+"""Modeling components"""
+
 from . import fragments
 from .ast import (
     Expression,

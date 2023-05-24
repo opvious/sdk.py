@@ -3,7 +3,7 @@ Specifications
 
 Opvious enforces a clear separation between a problem's specification (variable 
 types, constraint definitions, etc.) and its data. Specifications can be created 
-via :class:`~.model.Model` instances or directly from their mathematical 
+via :class:`~.modeling.Model` instances or directly from their mathematical 
 representation.
 
 .. contents:: Table of contents

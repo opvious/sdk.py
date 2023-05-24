@@ -1,3 +1,10 @@
+"""Built-in model fragments
+
+This module exports :class:`~opvious.modeling.ModelFragment` instances for
+common use-cases. As a convenience it is also exported by the
+`opvious.modeling` module.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Callable, Iterable, Optional, Union
