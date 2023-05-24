@@ -1,7 +1,7 @@
 .. default-role:: code
 
-Optimization client
-===================
+Overview
+========
 
 The SDK's functionality is available via :class:`.Client` instances, which
 provide a high-level interface to the underlying Opvious API.
@@ -31,8 +31,15 @@ It's also possible to create a client directly from an API token via
   solution.
 
 
-Solving optimization models
-***************************
+Formulating problems
+********************
+
+To solve an optimization problem with Opvious, you'll need to formulate it 
+first. The simplest way to get started 
+
+
+Finding solutions
+*****************
 
 The client exposes two distinct ways of solving optimization problems, described 
 below:
@@ -73,7 +80,7 @@ Attempts are started with the client's :meth:`.Client.start_attempt` method.
    :noindex:
 
 
-Inspecting models
+Inspecting solves
 *****************
 
 .. automethod:: opvious.Client.inspect_solve_instructions

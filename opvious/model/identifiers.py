@@ -14,7 +14,7 @@ from typing import (
     Sequence,
 )
 
-from ...common import Label
+from ..common import Label
 
 
 Name = str

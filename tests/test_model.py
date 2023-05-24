@@ -2,7 +2,7 @@ import opvious
 import pytest
 
 
-om = opvious.modeling
+om = opvious.model
 client = opvious.Client.from_environment()
 
 
@@ -28,6 +28,7 @@ class SetCover(om.Model):
 class LotSizing(om.Model):
     def __init__(self) -> None:
         self.horizon = om.Parameter.natural()
+        self.steps = om.interval(1, self.horizon(), name="T")
 
         self.holding_cost = om.Parameter.non_negative(self.steps, name="c")
         self.setup_cost = om.Parameter.non_negative(self.steps)
@@ -39,11 +40,6 @@ class LotSizing(om.Model):
             upper_bound=om.total(self.demand(t) for t in self.steps),
         )
         self.inventory = om.Variable.non_negative(self.steps)
-
-    @property
-    @om.alias("T")
-    def steps(self) -> om.Quantified[om.Quantifier]:
-        return om.interval(1, self.horizon())
 
     @om.objective()
     def minimize_total_cost(self) -> om.Expression:
@@ -138,6 +134,9 @@ class Sudoku(om.Model):
     _qualifiers = ["row", "column", "value"]
 
     def __init__(self) -> None:
+        self.values = om.interval(1, 9, name="V")
+        self.positions = om.interval(0, 8, name="P")
+
         self.input = om.Parameter.indicator(
             (self.grid, self.values),
             qualifiers=self._qualifiers,
@@ -146,16 +145,6 @@ class Sudoku(om.Model):
             (self.grid, self.values),
             qualifiers=self._qualifiers,
         )
-
-    @property
-    @om.alias("V")
-    def values(self) -> om.Quantified[om.Quantifier]:
-        return om.interval(1, 9)
-
-    @property
-    @om.alias("P")
-    def positions(self) -> om.Quantified[om.Quantifier]:
-        return om.interval(0, 8)
 
     @property
     @om.alias("G")
@@ -192,6 +181,39 @@ class Sudoku(om.Model):
             )
 
 
+class BinPacking(om.Model):
+    items = om.Dimension()
+    bins = om.interval(0, om.size(items), name="B")
+
+    weight = om.Parameter.non_negative(items)
+    bin_max_weight = om.Parameter.non_negative()
+
+    assignment = om.Variable.indicator(items, bins)
+    usage = om.Variable.indicator(bins)
+
+    @om.objective
+    def minimize_bins_used(self):
+        return om.total(self.usage(b) for b in self.bins)
+
+    @om.constraint
+    def each_item_is_assigned_once(self):
+        for i in self.items:
+            yield om.total(self.assignment(i, b) for b in self.bins) == 1
+
+    @om.constraint
+    def bins_with_assignments_are_used(self):
+        for i, b in om.cross(self.items, self.bins):
+            yield self.assignment(i, b) <= self.usage(b)
+
+    @om.constraint
+    def bins_are_below_max_weight(self):
+        for b in self.bins:
+            yield self._bin_weight(b) <= self.bin_max_weight()
+
+    def _bin_weight(self, b):
+        return om.total(self.weight(i) * self.assignment(i, b)for i in self.items)
+
+
 class InvalidSetCoverModel(om.Model):
     sets = om.Dimension()
     vertices = om.Dimension()
@@ -211,12 +233,13 @@ class InvalidSetCoverModel(om.Model):
 @pytest.mark.skipif(
     not client.authenticated, reason="No access token detected"
 )
-class TestModeling:
+class TestModel:
     _models = [
         SetCover(),
         LotSizing(),
         GroupExpenses(),
         Sudoku(),
+        BinPacking(),
     ]
 
     @pytest.mark.asyncio

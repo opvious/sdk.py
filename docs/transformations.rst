@@ -1,7 +1,7 @@
 .. default-role:: code
 
-Model transformations
-=====================
+Transformations
+===============
 
 Transformations allow changing the solved model without updating its 
 specification. Common use-cases include:
@@ -24,7 +24,7 @@ individually or combined (see :ref:`Transformation patterns`).
 Pinning variables
 -----------------
 
-.. autoclass:: opvious.PinVariables
+.. autoclass:: opvious.transformations.PinVariables
    :noindex:
    :members:
    :show-inheritance:
@@ -33,7 +33,7 @@ Pinning variables
 Relaxing constraints
 --------------------
 
-.. autoclass:: opvious.RelaxConstraints
+.. autoclass:: opvious.transformations.RelaxConstraints
    :noindex:
    :members:
    :show-inheritance:
@@ -42,7 +42,7 @@ Relaxing constraints
 Densifying variables
 --------------------
 
-.. autoclass:: opvious.DensifyVariables
+.. autoclass:: opvious.transformations.DensifyVariables
    :noindex:
    :members:
    :show-inheritance:
@@ -54,12 +54,12 @@ Omitting constraints and objectives
 .. warning::
   Transformations in this subsection are still WIP and will be available soon.
 
-.. autoclass:: opvious.OmitConstraints
+.. autoclass:: opvious.transformations.OmitConstraints
    :noindex:
    :members:
    :show-inheritance:
 
-.. autoclass:: opvious.OmitObjectives
+.. autoclass:: opvious.transformations.OmitObjectives
    :noindex:
    :members:
    :show-inheritance:
@@ -71,7 +71,7 @@ Enforcing a minimum objective level
 .. warning::
   Transformations in this subsection are still WIP and will be available soon.
 
-.. autoclass:: opvious.ConstrainObjective
+.. autoclass:: opvious.transformations.ConstrainObjective
    :noindex:
    :members:
    :show-inheritance:
@@ -91,8 +91,8 @@ Detecting infeasibilities
   await client.run_solve(
       # ...
       transformations=[
-          opvious.OmitObjectives(), # Drop existing objectives
-          opvious.RelaxConstraints(), # Relax all constraints
+          opvious.transformations.OmitObjectives(), # Drop existing objectives
+          opvious.transformations.RelaxConstraints(), # Relax all constraints
       ],
       strategy=opvious.SolveStrategy.equally_weighted_sum("MINIMIZE"),
   )
@@ -106,8 +106,8 @@ Solution smoothing
   await client.run_solve(
       # ...
       transformations=[
-          opvious.PinVariables(["production"]),
-          opvious.RelaxConstraints(["production_isPinned"]),
+          opvious.transformations.PinVariables(["production"]),
+          opvious.transformations.RelaxConstraints(["production_isPinned"]),
       ],
       strategy=opvious.SolveStrategy({
           "production_isPinned_minimizeDeficit": 100, # Smoothing factor
@@ -125,11 +125,11 @@ Weighted distance multi-objective optimization
       # ...
       transformations=[
           # Set the target values
-          opvious.ConstrainObjective("foo", min_value=5),
-          opvious.ConstrainObjective("bar", max_value=10),
+          opvious.transformations.ConstrainObjective("foo", min_value=5),
+          opvious.transformations.ConstrainObjective("bar", max_value=10),
           # Replace the original objectives
-          opvious.OmitObjectives(["foo", "bar"]),
-          opvious.RelaxConstraints([
+          opvious.transformations.OmitObjectives(["foo", "bar"]),
+          opvious.transformations.RelaxConstraints([
               "foo_isAtLeastMinimum",
               "bar_isAtMostMaximum",
           ]),

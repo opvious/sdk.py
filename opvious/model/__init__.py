@@ -6,6 +6,7 @@ from .ast import (
     Quantifiable,
     Quantification,
     Quantifier,
+    Space,
     cross,
     literal,
     size,
@@ -25,11 +26,12 @@ from .definitions import (
     objective,
 )
 from .quantified import Quantified
-from .statements import Model, ModelFragment, relabel
+from .statements import Model, ModelFragment, Statement, relabel
 
 __all__ = [
     "Model",
     "ModelFragment",
+    "Statement",
     "relabel",
     # Definitions
     "Constraint",
@@ -55,6 +57,7 @@ __all__ = [
     "Quantification",
     "Quantified",
     "Quantifier",
+    "Space",
     "cross",
     # Fragments
     "fragments",

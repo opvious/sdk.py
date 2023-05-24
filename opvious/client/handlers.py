@@ -9,9 +9,6 @@ from typing import cast, Iterable, Mapping, Optional, Union
 
 from ..common import (
     Json,
-    Setting,
-    default_api_url,
-    default_hub_url,
     format_percent,
     json_dict,
 )
@@ -61,10 +58,13 @@ from ..specifications import (
 )
 from ..transformations import Transformation
 from .common import (
-    feasible_outcome_details,
-    log_progress,
+    ClientSetting,
     OutlineGenerator,
     SolveInputsBuilder,
+    default_api_url,
+    default_hub_url,
+    feasible_outcome_details,
+    log_progress,
 )
 
 
@@ -123,12 +123,15 @@ class Client:
             require_authenticated: Throw if the environment does not include a
                 valid API token.
         """
-        token = Setting.TOKEN.read(env)
+        token = ClientSetting.TOKEN.read(env)
         if not token and require_authenticated:
             raise Exception(
-                f"Missing or empty {Setting.TOKEN.value} environment variable"
+                f"Missing or empty {ClientSetting.TOKEN.value} "
+                "environment variable"
             )
-        return Client.from_token(token=token, domain=Setting.DOMAIN.read(env))
+        return Client.from_token(
+            token=token, domain=ClientSetting.DOMAIN.read(env)
+        )
 
     @property
     def authenticated(self) -> bool:
@@ -251,7 +254,8 @@ class Client:
                 the corresponding parameter's definition.
             dimensions: Dimension items, keyed by dimension label. If omitted,
                 these will be automatically inferred from the parameters.
-            transformations: :ref:`Model transformations`
+            transformations: :ref:`Transformations` to apply to the
+                specification
             strategy: :ref:`Multi-objective strategy <Multi-objective
                 strategies>`
             options: Solve options
@@ -324,7 +328,8 @@ class Client:
                 the corresponding parameter's definition.
             dimensions: Dimension items, keyed by dimension label. If omitted,
                 these will be automatically inferred from the parameters.
-            transformations: :ref:`Model transformations`
+            transformations: :ref:`Transformations` to apply to the
+                specification
             strategy: :ref:`Multi-objective strategy <Multi-objective
                 strategies>`
             options: Solve options
@@ -476,7 +481,7 @@ class Client:
                 the corresponding parameter's definition.
             dimensions: Dimension items, keyed by dimension label. If omitted,
                 these will be automatically inferred from the parameters.
-            transformations: :ref:`Model transformations`
+            transformations: :ref:`Transformations`
             strategy: :ref:`Multi-objective strategy <Multi-objective
                 strategies>`
             options: Solve options

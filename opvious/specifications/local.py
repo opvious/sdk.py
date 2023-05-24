@@ -48,6 +48,23 @@ def local_specification_issue_from_json(data: Json) -> LocalSpecificationIssue:
     )
 
 
+_OUTER_STYLE = " ".join(
+    [
+        "margin-top: 1em;",
+        "margin-bottom: 1em;",
+    ]
+)
+
+
+_SUMMARY_STYLE = " ".join(
+    [
+        "cursor: pointer;",
+        "text-decoration: underline;",
+        "text-decoration-style: dotted;",
+    ]
+)
+
+
 @dataclasses.dataclass(frozen=True)
 class LocalSpecification:
     """
@@ -128,20 +145,11 @@ class LocalSpecification:
                 )
         else:
             issues = {}
-        return "\n---\n".join(
+        contents = "\n---\n".join(
             _source_details(s, issues.get(i) or [], i == 0)
             for i, s in enumerate(self.sources)
         )
-
-
-_SUMMARY_STYLE = " ".join(
-    [
-        "cursor: pointer;",
-        "margin-bottom: 1em;",
-        "text-decoration: underline;",
-        "text-decoration-style: dotted;",
-    ]
-)
+        return f'<div style="{_OUTER_STYLE}">{contents}</div>'
 
 
 def _source_details(
@@ -157,7 +165,9 @@ def _source_details(
             "",
             "<details open>" if start_open else "<details>",
             f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
+            '<div style="margin-top: 1em;">',
             _colorize(source.text, issues),
+            "</div>",
             "</details>",
             "",
         ]

@@ -1,7 +1,7 @@
 import logging
 
-from .client import Client
-from .common import __version__, Setting
+from .client import Client, ClientSetting
+from .common import __version__
 from .data.attempts import Attempt, AttemptNotification
 from .data.outcomes import (
     CancelledOutcome,
@@ -42,6 +42,7 @@ from .executors import (
     pyodide_executor,
     urllib_executor,
 )
+from . import model
 from .specifications import (
     FormulationSpecification,
     LocalSpecification,
@@ -50,25 +51,14 @@ from .specifications import (
     RemoteSpecification,
     Specification,
     load_notebook_models,
-    model as modeling,
 )
-from .transformations import (
-    ConstrainObjective,
-    DensifyVariables,
-    OmitConstraints,
-    OmitObjectives,
-    PinVariables,
-    RelaxConstraints,
-    RelaxationPenalty,
-    Transformation,
-)
+from . import transformations
 
 
 __all__ = [
-    # Configuration
-    "Setting",
     # Client
     "Client",
+    "ClientSetting",
     # Executors
     "Executor",
     "ExecutorError",
@@ -84,7 +74,7 @@ __all__ = [
     "RemoteSpecification",
     "Specification",
     "load_notebook_models",
-    "modeling",
+    "model",
     # Solves and attempts
     "Attempt",
     "AttemptNotification",
@@ -116,14 +106,7 @@ __all__ = [
     "UnexpectedOutcomeError",
     "outcome_status",
     # Transformations
-    "ConstrainObjective",
-    "DensifyVariables",
-    "OmitConstraints",
-    "OmitObjectives",
-    "PinVariables",
-    "RelaxConstraints",
-    "RelaxationPenalty",
-    "Transformation",
+    "transformations",
     # Miscellaneous
     "__version__",
 ]

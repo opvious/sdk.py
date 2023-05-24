@@ -3,18 +3,35 @@
 API reference
 ===============
 
-Core
-****
+Modeling
+********
+
+.. automodule:: opvious.model
+   :members:
+   :show-inheritance:
+
+.. _Fragments reference:
+
+Fragments
+---------
+
+.. automodule:: opvious.model.fragments
+   :members:
+   :show-inheritance:
+
+
+Solving
+*******
 
 .. automodule:: opvious
    :members:
    :show-inheritance:
 
-Modeling
-********
+.. _Transformations reference:
 
-.. automodule:: opvious.modeling
-   :members:
+Transformations
+---------------
 
-.. automodule:: opvious.modeling.patterns
+.. automodule:: opvious.transformations
    :members:
+   :show-inheritance:

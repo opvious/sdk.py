@@ -1,32 +1,53 @@
 Specifications
 ==============
 
-Opvious enforces a clear separation between a model's specification (variable 
-types, constraint definitions, etc.) and data. Specifications are created 
-directly from their mathematical representation in LaTeX, separately from this 
-SDK.
-
-.. note::
-  Refer to the `platform documentation <https://docs.opvious.io>`_ for 
-  information on how to write a specification.
-
-This SDK instead provides utilities for reading specifications from various 
-sources, listed below.
+Opvious enforces a clear separation between a problem's specification (variable 
+types, constraint definitions, etc.) and its data. Specifications can be created 
+via :class:`~.model.Model` instances or directly from their mathematical 
+representation.
 
 .. contents:: Table of contents
    :local:
    :backlinks: none
 
-Local type
-**********
+
+Creating models
+***************
+
+
+Definitions
+-----------
+
+TODO
+
+
+Fragments
+---------
+
+TODO
+
+
+Importing an existing specification
+***********************************
+
+This SDK also provides utilities for loading specifications from various 
+sources, listed below.
+
+.. note::
+  Refer to the `platform documentation <https://docs.opvious.io>`_ for 
+  information on how to write a specification directly.
+
+
+Locally
+-------
 
 .. autoclass:: opvious.LocalSpecification
    :noindex:
    :members:
 
 
-External types
-**************
+From external resources
+-----------------------
 
 .. autoclass:: opvious.FormulationSpecification
    :noindex:
