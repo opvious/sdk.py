@@ -4,46 +4,48 @@ An optimization SDK for solving linear, mixed-integer, and quadratic models
 
 ```python
 import opvious
+import opvious.model as om
+
+
+class BinPacking(om.Model):
+  items = om.Dimension()
+  weight = om.Parameter.non_negative(items)
+  bins = om.interval(1, om.size(items))
+  bin_max_weight = om.Parameter.non_negative()
+
+  assigned = om.Variable.indicator(items, bins)
+  bin_used = om.Variable.indicator(bins)
+
+  @om.objective
+  def minimize_bins_used(self):
+    return om.total(self.bin_used(b) for b in self.bins)
+
+  @om.constraint
+  def each_item_is_assigned_once(self):
+    for i in self.items:
+      yield om.total(self.assigned(i, b) for b in self.bins) == 1
+
+  @om.constraint
+  def bins_with_assignments_are_used(self):
+    for i, b in om.cross(self.items, self.bins):
+      yield self.assigned(i, b) <= self.bin_used(b)
+
+  @om.constraint
+  def bin_weights_are_below_max(self):
+    for b in self.bins:
+      bin_weight = om.total(self.weight(i) * self.assigned(i, b) for i in self.items)
+      yield bin_weight <= self.bin_max_weight()
+
 
 client = opvious.Client.from_environment()
-
-# Solve a portfolio selection optimization model
 response = await client.run_solve(
-    specification=opvious.LocalSpecification.inline(
-        r"""
-        We find an allocation of assets which minimizes risk while satisfying
-        a minimum expected return:
-
-        + A collection of assets: $\S^d_{asset}: A$
-        + Covariances: $\S^p_{covariance}: c \in \mathbb{R}^{A \times A}$
-        + Expected return: $\S^p_{expectedReturn}: m \in \mathbb{R}^A$
-        + Minimum desired return: $\S^p_{desiredReturn}: r \in \mathbb{R}$
-
-        The only output is the allocation per asset
-        $\S^v_{allocation}: \alpha \in [0,1]^A$ chosen to minimize risk:
-        $\S^o_{risk}: \min \sum_{a, b \in A} c_{a,b} \alpha_a \alpha_b$.
-
-        Subject to the following constraints:
-
-        + $\S^c_{atLeastMinimumReturn}: \sum_{a \in A} m_a \alpha_a \geq r$
-        + $\S^c_{totalAllocation}: \sum_{a \in A} \alpha_a = 1$
-        """
-    ),
-    parameters={
-        "covariance": {
-            ("AAPL", "AAPL"): 0.08,
-            # ...
-        },
-        "expectedReturn": {
-            "AAPL": 0.07,
-            # ..
-        },
-        "desiredReturn": 0.05,
-    },
-    assert_feasible=True,
+  specification=BinPacking().specification(),
+  parameters={
+    "weight": {"a": 10.5, "b": 22, "c": 48},
+    "binMaxWeight": 50,
+  },
 )
-
-optimal_allocation = response.outputs.variable("allocation")
+solution = response.outputs.variable("assigned")  # Optimal assignment dataframe
 ```
 
 Take a look at https://opvious.readthedocs.io for the full documentation or
