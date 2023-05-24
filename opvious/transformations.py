@@ -10,8 +10,6 @@ from .data.solves import Target
 
 
 class TransformationContext:
-    """Internal transformation context"""
-
     def __init__(self):
         self._json = []
 
@@ -57,7 +55,7 @@ class PinVariables(Transformation):
 
     .. code-block:: python
 
-        transformations = [opvious.PinVariables("production")]
+        transformations = [opvious.transformations.PinVariables("production")]
         parameters = {
             "production_pin": {"january": 100},
             # ...

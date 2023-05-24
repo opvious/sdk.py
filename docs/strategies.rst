@@ -3,8 +3,8 @@
 Multi-objective strategies
 ==========================
 
-Model specifications can include zero, one, or many objectives. When there is 
-none or just one, no explicit strategy is needed:
+Specifications can include zero, one, or many objectives. When there is none or 
+just one, no explicit strategy is needed:
 
 * Without an objective, the model checks for feasibility
 * With a single objective, the model optimizes this objective

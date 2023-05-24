@@ -16,8 +16,8 @@ from typing import (
 )
 import weakref
 
-from ...common import Label, to_camel_case
-from ..local import LocalSpecification, LocalSpecificationSource
+from ..common import Label, to_camel_case
+from ..specifications.local import LocalSpecification, LocalSpecificationSource
 from .identifiers import (
     DefaultIdentifierFormatter,
     GlobalIdentifier,
@@ -59,7 +59,10 @@ class Definition:
 
 
 class ModelFragment:
-    """Model partial"""
+    """Model partial
+
+    See :ref:`Fragments` for the list of available fragments.
+    """
 
 
 def method_decorator(wrapper: Callable[..., Any]) -> Any:
@@ -95,6 +98,8 @@ class _DecoratedMethod:
 
 @dataclasses.dataclass(frozen=True)
 class Statement:
+    """A rendered definition"""
+
     title: str
     category: DefinitionCategory
     label: Label
@@ -195,6 +200,10 @@ class Model:
         dependencies: Optional list of models upon which this model's
             definitions depend. Dependencies' definitions will be automatically
             added when generating this model's specification.
+        prefix: Optional prefix added to all generated labels in this model
+        title: Optional title used when creating the model's
+            :class:`.LocalSpecification`
+
 
     Toy example for the set cover problem:
 
@@ -218,6 +227,21 @@ class Model:
             @objective
             def minimize_used(self):
                 return total(self.used(s) for s in self.sets)
+
+    Calling its :meth:`~.model.Model.specification` method will return the
+    following equations:
+
+    .. math::
+
+       \\begin{align*}
+         \\S^d_\\mathrm{sets}&: S \\\\
+         \\S^d_\\mathrm{vertices}&: V \\\\
+         \\S^p_\\mathrm{covers}&: c \\in \\{0, 1\\}^{S \\times V} \\\\
+         \\S^v_\\mathrm{used}&: \\psi \\in \\{0, 1\\}^{S} \\\\
+         \\S^c_\\mathrm{allCovered}&:
+            \\forall v \\in V, \\sum_{s \\in S} \\psi_{s} c_{s,v} \\geq 1 \\\\
+         \\S^o_\\mathrm{minimizeUsed}&: \\min \\sum_{s \\in S} \\psi_{s} \\\\
+       \\end{align*}
     """
 
     __dependencies: Optional[Sequence[Model]] = None
@@ -236,17 +260,21 @@ class Model:
 
     @property
     def dependencies(self) -> Sequence[Model]:
+        """The model's list of dependencies"""
         return self.__dependencies or []
 
     @property
     def prefix(self) -> Sequence[str]:
+        """The model's label prefix, or an empty list if unset"""
         return self.__prefix or []
 
     @property
     def title(self) -> str:
+        """The model's title, defaulting to its class' `__qualname__`"""
         return self.__title or self.__class__.__qualname__
 
     def statements(self) -> Iterable[Statement]:
+        """Lists the model's (and any dependencies') statements"""
         visitor = _ModelVisitor()
         visitor.visit(self)
         candidates = visitor.candidates
@@ -282,12 +310,17 @@ class Model:
                 yield s
 
     def definition_counts(self) -> pd.DataFrame:
+        """Returns a dataframe summarizing the number of definitions"""
         df = pd.DataFrame(dataclasses.asdict(s) for s in self.statements())
         grouped: Any = df.groupby(["title", "category"])["text"].count()
         return grouped.unstack(["category"]).fillna(0).astype(int)
 
     def specification(self) -> LocalSpecification:
-        """Generates the model's specification"""
+        """Generates the model's specification
+
+        This specification can be used to interact with :class:`.Client`
+        methods, for example to start a solve.
+        """
         grouped = collections.defaultdict(list)
         for s in self.statements():
             grouped[s.title].append(s.text)

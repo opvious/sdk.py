@@ -89,7 +89,7 @@ class TestClient:
         attempt = await client.start_attempt(
             specification="bounded",
             transformations=[
-                opvious.RelaxConstraints(["greaterThanBound"]),
+                opvious.transformations.RelaxConstraints(["greaterThanBound"]),
             ],
             strategy=opvious.SolveStrategy(
                 target="greaterThanBound_minimizeDeficit"
@@ -105,7 +105,7 @@ class TestClient:
         attempt = await client.start_attempt(
             specification="bounded",
             transformations=[
-                opvious.RelaxConstraints(
+                opvious.transformations.RelaxConstraints(
                     labels=["greaterThanBound"],
                     penalty="MAX_DEVIATION",
                     is_capped=True,
@@ -310,7 +310,7 @@ class TestClient:
             specification=opvious.FormulationSpecification("sudoku"),
             parameters={"hints": [(0, 0, 3), (1, 1, 3)]},
             transformations=[
-                opvious.RelaxConstraints(["hintsObserved"]),
+                opvious.transformations.RelaxConstraints(["hintsObserved"]),
             ],
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import enum
 import json
 import logging
+import os
 from typing import Any, Dict, Optional, cast
 
 from ..common import format_percent, Json, json_dict
@@ -12,6 +14,35 @@ from ..data.tensors import DimensionArgument, Tensor
 from ..executors import Executor, JsonExecutorResult
 from ..specifications import FormulationSpecification
 from ..transformations import Transformation, TransformationContext
+
+
+_DEFAULT_DOMAIN = "beta.opvious.io"
+
+
+class ClientSetting(enum.Enum):
+    """Client configuration environment variables"""
+
+    TOKEN = ("OPVIOUS_TOKEN", "")
+    DOMAIN = ("OPVIOUS_DOMAIN", _DEFAULT_DOMAIN)
+
+    def read(self, env: Optional[dict[str, str]] = None) -> str:
+        """Read the setting's current value or default if missing
+
+        Args:
+            env: Environment, defaults to `os.environ`.
+        """
+        if env is None:
+            env = cast(Any, os.environ)
+        name, default_value = self.value
+        return env.get(name) or default_value
+
+
+def default_api_url(domain: Optional[str] = None) -> str:
+    return f"https://api.{domain or _DEFAULT_DOMAIN}"
+
+
+def default_hub_url(domain: Optional[str] = None) -> str:
+    return f"https://hub.{domain or _DEFAULT_DOMAIN}"
 
 
 def log_progress(logger: logging.Logger, progress: Json) -> None:

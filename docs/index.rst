@@ -35,12 +35,12 @@ First install the SDK, for example using `pip`:
 
 Then generate an API access token in the `Optimization Hub`_ and set it as 
 `OPVIOUS_TOKEN` environment variable. You're now ready to hop on over to the 
-:ref:`Optimization client` section.
+:ref:`Overview` section.
 
 .. note::
   Opvious is currently in closed beta. You will need to join before you can 
   generate an API key. You can sign-up `here <https://www.opvious.io/signup>`_ 
-  or by contacting us at hello@opvious.io.
+  or contact us at hello@opvious.io.
 
 
 Contents
@@ -49,7 +49,7 @@ Contents
 .. toctree::
    :maxdepth: 1
 
-   client
+   overview
    specifications
    transformations
    strategies

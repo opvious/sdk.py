@@ -19,7 +19,7 @@ from typing import (
     overload,
 )
 
-from ...common import Label
+from ..common import Label
 from .ast import (
     Domain,
     Expression,
@@ -137,8 +137,10 @@ _integers = _Interval(literal(-math.inf), literal(math.inf))
 
 
 def interval(
-    lower_bound: ExpressionLike, upper_bound: ExpressionLike
-) -> Quantified[Quantifier]:
+    lower_bound: ExpressionLike,
+    upper_bound: ExpressionLike,
+    name: Optional[Name] = None,
+) -> Iterable[Quantifier]:
     """A range of values
 
     Args:
@@ -149,7 +151,17 @@ def interval(
         lower_bound=to_expression(lower_bound),
         upper_bound=to_expression(upper_bound),
     )
-    return iter(interval)
+
+    class _Fragment(ModelFragment):
+        @property
+        @alias(name)
+        def interval(self):
+            return interval
+
+        def __iter__(self) -> Quantified[Quantifier]:
+            return iter(self.interval)
+
+    return _Fragment()
 
 
 @dataclasses.dataclass(frozen=True)

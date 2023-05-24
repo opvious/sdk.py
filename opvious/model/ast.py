@@ -6,7 +6,7 @@ import itertools
 import math
 from typing import Any, cast, Iterable, Optional, Sequence, TypeVar, Union
 
-from ...common import untuple
+from ..common import untuple
 from .identifiers import (
     AliasIdentifier,
     Identifier,
@@ -453,6 +453,7 @@ class _BinaryPredicate(Predicate):
 Quantifiable = Union[
     Quantification,
     Quantified[Quantifier],
+    Iterable[Union[Quantifier, tuple[Quantifier, ...]]],
     Space,
     Domain,
     tuple["Quantifiable", ...],
