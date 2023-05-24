@@ -291,8 +291,17 @@ class _CardinalityExpression(Expression):
     domain: Domain
 
     def render(self, _precedence=0) -> str:
-        with local_formatting_scope(self.domain.quantifiers):
-            return f"\\lvert \\{{ {self.domain.render()} \\}} \\rvert"
+        qs = self.domain.quantifiers
+        with local_formatting_scope(qs):
+            if len(qs) == 1 and self.domain.mask is None:
+                key = _quantifier_grouping_key(qs[0])
+                if isinstance(key, tuple):
+                    sp = render_identifier(key[0], *key[1])
+                else:
+                    sp = key.render()
+            else:
+                sp = f"\\{{ {self.domain.render()} \\}}"
+            return f"\\lvert {sp} \\rvert"
 
 
 @dataclasses.dataclass(frozen=True)
