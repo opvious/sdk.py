@@ -59,9 +59,11 @@ class Definition:
 
 
 class ModelFragment:
-    """Model partial
+    """Reusable model sub-component
 
-    See :ref:`Fragments` for the list of available fragments.
+    Model fragments are useful to group related definitions together and expose
+    them in a reusable way. See :ref:`Fragments` for the list of available
+    fragments.
     """
 
 
@@ -101,10 +103,19 @@ class Statement:
     """A rendered definition"""
 
     title: str
+    """The title of the model the definition belongs to"""
+
     category: DefinitionCategory
+    """The type of definition this statement contains"""
+
     label: Label
+    """The definition's label"""
+
     name: Optional[Name]
+    """The definition's name, if applicable"""
+
     text: str
+    """The definition's mathematical representation"""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -134,7 +145,12 @@ class _Relabeled(ModelFragment):
 
 
 def relabel(fragment: ModelFragment, **kwargs: Label) -> ModelFragment:
-    """Updates a fragment's definitions' labels"""
+    """Updates a fragment's definitions' labels
+
+    Args:
+        fragment: The fragment containing definitions to relabel
+        kwargs: Dictionary from old label to new label
+    """
     return _Relabeled(fragment, kwargs)
 
 
@@ -203,45 +219,6 @@ class Model:
         prefix: Optional prefix added to all generated labels in this model
         title: Optional title used when creating the model's
             :class:`.LocalSpecification`
-
-
-    Toy example for the set cover problem:
-
-    .. code-block:: python
-
-        class SetCover(Model):
-            sets = Dimension()
-            vertices = Dimension()
-            covers = Parameter.indicator(sets, vertices)
-            used = Variable.indicator(sets)
-
-            @constraint
-            def all_covered(self):
-                for v in self.vertices:
-                    count = total(
-                        self.used(s) * self.covers(s, v)
-                        for s in self.sets
-                    )
-                    yield count >= 1
-
-            @objective
-            def minimize_used(self):
-                return total(self.used(s) for s in self.sets)
-
-    Calling its :meth:`~.model.Model.specification` method will return the
-    following equations:
-
-    .. math::
-
-       \\begin{align*}
-         \\S^d_\\mathrm{sets}&: S \\\\
-         \\S^d_\\mathrm{vertices}&: V \\\\
-         \\S^p_\\mathrm{covers}&: c \\in \\{0, 1\\}^{S \\times V} \\\\
-         \\S^v_\\mathrm{used}&: \\psi \\in \\{0, 1\\}^{S} \\\\
-         \\S^c_\\mathrm{allCovered}&:
-            \\forall v \\in V, \\sum_{s \\in S} \\psi_{s} c_{s,v} \\geq 1 \\\\
-         \\S^o_\\mathrm{minimizeUsed}&: \\min \\sum_{s \\in S} \\psi_{s} \\\\
-       \\end{align*}
     """
 
     __dependencies: Optional[Sequence[Model]] = None

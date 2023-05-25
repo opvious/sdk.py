@@ -148,6 +148,14 @@ class Client:
         specification: LocalSpecification,
         ignore_codes: Optional[Iterable[str]] = None,
     ) -> LocalSpecification:
+        """Validates a specification, annotating it with any issues
+
+        Args:
+            specification: The specification to validate
+            ignore_codes: Optional list of error codes to ignore when detecting
+                issues. This can be used for example to allow unused
+                definitions (`ERR_UNUSED_DEFINITION` code).
+        """
         codes = set(ignore_codes or [])
         async with self._executor.execute(
             result_type=JsonExecutorResult,

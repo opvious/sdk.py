@@ -28,7 +28,7 @@ from .definitions import (
     objective,
 )
 from .quantified import Quantified
-from .statements import Model, ModelFragment, Statement, relabel
+from .statements import Definition, Model, ModelFragment, Statement, relabel
 
 __all__ = [
     "Model",
@@ -37,6 +37,7 @@ __all__ = [
     "relabel",
     # Definitions
     "Constraint",
+    "Definition",
     "Dimension",
     "Image",
     "Objective",
