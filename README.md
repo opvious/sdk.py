@@ -4,7 +4,7 @@ An optimization SDK for solving linear, mixed-integer, and quadratic models
 
 ## Highlights
 
-## Declarative modeling API
+### Declarative modeling API
 
 + Extensive static validations
 + Exportable to LaTeX
@@ -44,7 +44,7 @@ class BinPacking(om.Model):
 ```
 
 
-## Remote solves with real-time progress notifications
+### Remote solves with real-time progress notifications
 
 + No local solver installation required
 + Seamless data import/export via native support for `pandas`
@@ -68,6 +68,6 @@ solution = response.outputs.variable("assigned")  # Optimal assignment dataframe
 ```
 
 Take a look at https://opvious.readthedocs.io for the full documentation or
-[these notebooks][notebooks] to see it in action.
+[these notebooks][notebooks] to see the SDK in action.
 
 [notebooks]: https://github.com/opvious/examples/tree/main/notebooks
