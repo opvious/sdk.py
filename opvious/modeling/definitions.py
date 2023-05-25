@@ -146,6 +146,7 @@ def interval(
     Args:
         lower_bound: The range's inclusive lower bound
         upper_bound: The range's inclusive upper bound
+        name: An optional name to create an alias for this interval
     """
     interval = _Interval(
         lower_bound=to_expression(lower_bound),
@@ -166,10 +167,7 @@ def interval(
 
 @dataclasses.dataclass(frozen=True)
 class Image:
-    """A tensor's set of possible values
-
-    See the methods below various convenience factories.
-    """
+    """A tensor's set of possible values"""
 
     lower_bound: ExpressionLike = -math.inf
     """The image's smallest value (inclusive)"""
@@ -195,10 +193,31 @@ class Image:
         return f"[{lb.render()}, {ub.render()}]"
 
 
-_T = TypeVar("_T", bound="_Tensor")
+_T = TypeVar("_T", bound="Tensor")
 
 
-class _Tensor(Definition):
+class Tensor(Definition):
+    """Base tensor class
+
+    Calling a tensor returns an :class:`~.opvious.modeling.Expression` with any
+    arguments as subscripts. For example:
+
+    .. code:: python
+
+        class ProductModel(Model):
+            products = Dimension()
+            count = Variable.natural(products)
+
+            @property
+            def total_product_count(self):
+                return total(
+                    self.count(p)  # Expression representing the count for `p`
+                    for p in self.products
+                )
+
+    The number of arguments must match the tensor's quantification.
+    """
+
     def __init__(
         self,
         image: Image,
@@ -327,14 +346,56 @@ def _render_label(label: Label, qualifiers: Optional[Sequence[Label]]) -> str:
     return s
 
 
-class Parameter(_Tensor):
-    """An optimization input parameter"""
+class Parameter(Tensor):
+    """An optimization input parameter
+
+    Args:
+        image: Target :class:`~opvious.modeling.Image`
+        quantifiables: Quantification
+        label: Optional label, if unset it will be derived from the parameter's
+            attribute name
+        name: Optional name, if unset it will be derived from the labe
+        qualifiers: Optional list of labels used to name this parameter's
+            quantifiables
+
+    Consider instantiating parameters via one of the various
+    :class:`~opvious.modeling.Tensor` convenience class methods, for example:
+
+    .. code:: python
+
+        p1 = Parameter.continuous()  # Real-valued parameter
+        p2 = Parameter.natural() # # Parameter with values in {0, 1...}
+
+    Each parameter will be expected to have a matching input when solving this
+    model on data.
+    """
 
     category = "PARAMETER"
 
 
-class Variable(_Tensor):
-    """An optimization output variable"""
+class Variable(Tensor):
+    """An optimization output variable
+
+    Args:
+        image: Target :class:`~opvious.modeling.Image`
+        quantifiables: Quantification
+        label: Optional label, if unset it will be derived from the parameter's
+            attribute name
+        name: Optional name, if unset it will be derived from the labe
+        qualifiers: Optional list of labels used to name this parameter's
+            quantifiables
+
+    Similar to parameters, consider instantiating variables via one of the
+    various :class:`~opvious.modeling.Tensor` convenience class methods, for
+    example:
+
+    .. code:: python
+
+        v1 = Variable.unit()  # Variable with value within [0, 1]
+        v2 = Variable.non_negative() # # Variable with value at least 0
+
+    Each variable will have its results available in feasible solve solutions.
+    """
 
     category = "VARIABLE"
 

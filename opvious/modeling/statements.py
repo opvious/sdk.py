@@ -40,7 +40,7 @@ DefinitionCategory = Literal[
 
 
 class Definition:
-    """Internal model definition"""
+    """Base model definition"""
 
     @property
     def category(self) -> DefinitionCategory:
