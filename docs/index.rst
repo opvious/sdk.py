@@ -6,6 +6,12 @@ Opvious SDK
 A Python SDK for solving linear, mixed-integer, and quadratic optimization 
 models
 
+.. note::
+  Opvious is currently in closed beta. You can preview the SDK's functionality 
+  on small problems without registering but you will need an API key to solve 
+  larger instances. You can sign-up to join `here 
+  <https://www.opvious.io/signup>`_ or contact us at hello@opvious.io.
+
 
 Highlights
 ----------
@@ -28,20 +34,13 @@ First install the SDK, for example using `pip`:
 
   $ pip install opvious[aio]
 
-
-.. note::
-  The optional `aio` dependency is recommended for improved performance.
-  It may be omitted for compatibility with `Pyodide`_ environments, for example
-  in `JupyterLite`_ kernels.
+The optional `aio` dependency is recommended for improved performance. It may be 
+omitted for compatibility with `Pyodide`_ environments, for example in 
+`JupyterLite`_ kernels.
 
 Then generate an API access token in the `Optimization Hub`_ and set it as 
 `OPVIOUS_TOKEN` environment variable. You're now ready to hop on over to the 
 :ref:`Overview` section.
-
-.. note::
-  Opvious is currently in closed beta. You will need to join before you can 
-  generate an API key. You can sign-up `here <https://www.opvious.io/signup>`_ 
-  or contact us at hello@opvious.io.
 
 
 Contents
@@ -51,7 +50,7 @@ Contents
    :maxdepth: 1
 
    overview
-   specifications
+   modeling
    transformations
    strategies
    api-reference

@@ -70,7 +70,12 @@ class LocalSpecification:
     """
     A local specification
 
+    Instances are integrated with IPython's `rich display capabilities`_ and
+    will automatically render their LaTeX sources when output in notebooks.
+
     This type of specification cannot be used to start attempts.
+
+    .. _rich display capabilities: https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display  # noqa
     """
 
     sources: Sequence[LocalSpecificationSource]
@@ -80,7 +85,13 @@ class LocalSpecification:
     """Optional description"""
 
     annotation: Optional[LocalSpecificationAnnotation] = None
-    """API-issued annotation"""
+    """API-issued annotation
+
+    This field is typically generated automatically by clients'
+    :meth:`~opvious.Client.annotate_specification` method. When any issues are
+    detected, the specification's pretty-printed representation will highlight
+    any errors.
+    """
 
     @classmethod
     def inline(cls, *texts: str) -> LocalSpecification:

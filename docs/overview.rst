@@ -34,20 +34,111 @@ It's also possible to create a client directly from an API token via
 Formulating problems
 ********************
 
-To solve an optimization problem with Opvious, you'll need to formulate it 
-first. The simplest way to get started 
+To solve an optimization problem with Opvious, you will need to formulate it 
+first. Opvious enforces a clear separation between a problem's *specification* 
+(its abstract definition with variable types, constraints, objectives, etc.) and 
+the data needed to solve it.
+
+Specifications can be created:
+
++ via this SDK's :ref:`declarative modeling API <Modeling>`, which will 
+  automatically generate the problem's mathematical representation;
++ or directly from a problem's mathematical representation in LaTeX, separately 
+  from this SDK.
+
+Model instances
+---------------
+
+.. note::
+  Refer to the :ref:`modeling page <Modeling>` for information on how to create 
+  :class:`~opvious.modeling.Model` instances.
+
+Calling any model's :meth:`~opvious.modeling.Model.specification` method will 
+return its specification:
+
+.. code-block:: python
+
+  import opvious.modeling as om
+
+  class SetCover(Model):
+    """Sample set cover specification"""
+
+    sets = Dimension()
+    vertices = Dimension()
+    covers = Parameter.indicator(sets, vertices)
+    used = Variable.indicator(sets)
+
+    @constraint
+    def all_covered(self):
+      for v in self.vertices:
+        count = total(self.used(s) * self.covers(s, v)for s in self.sets)
+        yield count >= 1
+
+    @objective
+    def minimize_used(self):
+      return total(self.used(s) for s in self.sets)
+
+  model = SetCover()
+  specification = model.specification()
+
+The returned :class:`~opvious.LocalSpecification` instances are integrated with 
+IPython's rich display capabilities and will be pretty-printed within notebooks. 
+For example the above specification will be displayed as:
+
+.. math::
+
+  \begin{align*}
+    \S^d_\mathrm{sets}&: S \\
+    \S^d_\mathrm{vertices}&: V \\
+    \S^p_\mathrm{covers}&: c \in \{0, 1\}^{S \times V} \\
+    \S^v_\mathrm{used}&: \psi \in \{0, 1\}^{S} \\
+    \S^c_\mathrm{allCovered}&:
+      \forall v \in V, \sum_{s \in S} \psi_{s} c_{s,v} \geq 1 \\
+    \S^o_\mathrm{minimizeUsed}&: \min \sum_{s \in S} \psi_{s} \\
+  \end{align*}
+
+We recommend also using the client's 
+:meth:`~opvious.Client.annotate_specification` method to validate specifications 
+and highlight any errors:
+
+.. code-block:: python
+
+   annotated = await client.annotate_specification(specification)
 
 
-Finding solutions
-*****************
+Specifications
+--------------
 
-The client exposes two distinct ways of solving optimization problems, described 
-below:
+.. note::
+  Refer to the `platform documentation <https://docs.opvious.io>`_ for 
+  information on how to write a specification directly. You can also find 
+  various sample sources in our `example repository 
+  <https://github.com/opvious/examples/tree/main/sources>`_.
+
+This SDK provides utilities for loading specifications from various locations, 
+listed below.
+
+.. autoclass:: opvious.LocalSpecification
+   :noindex:
+   :members:
+
+.. autoclass:: opvious.FormulationSpecification
+   :noindex:
+   :members:
+
+.. autoclass:: opvious.RemoteSpecification
+   :noindex:
+   :members:
+
+
+Finding a solution
+******************
+
+Once you have a problem's specification, the client exposes two distinct ways of 
+solving it:
 
 + Direct :ref:`solves <Solves>`, which allow finding solutions in real-time
 + Queued :ref:`attempts <Attempts>`, which support larger data sizes
-
-Both require an existing model :ref:`specification <Specifications>`.
 
 
 Solves
