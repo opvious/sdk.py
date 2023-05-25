@@ -14,9 +14,10 @@ provide a high-level interface to the underlying Opvious API.
 Creating a client
 *****************
 
-The recommended way to create clients is via :meth:`.Client.from_environment`. 
-This will automatically authenticate the client using the `OPVIOUS_TOKEN` 
-environment variable:
+First, make sure you've :ref:`installed the SDK <Getting started>`. Once that's 
+done, the recommended way to create clients is via 
+:meth:`.Client.from_environment`. This will automatically authenticate the 
+client using the `OPVIOUS_TOKEN` environment variable, if available:
 
 .. code-block:: python
 
@@ -34,17 +35,17 @@ It's also possible to create a client directly from an API token via
 Formulating problems
 ********************
 
-To solve an optimization problem with Opvious, you will need to formulate it 
-first. Opvious enforces a clear separation between a problem's *specification* 
-(its abstract definition with variable types, constraints, objectives, etc.) and 
-the data needed to solve it.
+To solve an optimization problem, you will need to formulate it first. Opvious 
+enforces a clear separation between a problem's *specification* (its abstract 
+definition with variable types, constraints, objectives, etc.) and the data 
+needed to solve it.
 
 Specifications can be created:
 
 + via this SDK's :ref:`declarative modeling API <Modeling>`, which will 
   automatically generate the problem's mathematical representation;
-+ or directly from a problem's mathematical representation in LaTeX, separately 
-  from this SDK.
++ or directly from a problem's mathematical representation in LaTeX, written 
+  separately from this SDK.
 
 Model instances
 ---------------

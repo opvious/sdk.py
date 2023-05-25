@@ -7,16 +7,16 @@ A Python SDK for solving linear, mixed-integer, and quadratic optimization
 models
 
 .. note::
-  Opvious is currently in closed beta. You can preview the SDK's functionality 
-  on small problems without registering but you will need an API key to solve 
-  larger instances. You can sign-up to join `here 
-  <https://www.opvious.io/signup>`_ or contact us at hello@opvious.io.
+  Opvious is currently in beta. You can preview the SDK's functionality on small 
+  datasets without registering but you will need an API key to solve larger 
+  instances. You can request to join `here <https://www.opvious.io/signup>`_ or 
+  by contacting us at hello@opvious.io.
 
 
 Highlights
 ----------
 
-+ **Declarative modeling API** which can be exported to LaTeX
++ **Declarative modeling API** exportable to LaTeX
 + **Remote solves** with real-time progress notifications, no local solver 
   installation required
 + Seamless **data import/export** via native support for `pandas`
@@ -34,13 +34,17 @@ First install the SDK, for example using `pip`:
 
   $ pip install opvious[aio]
 
-The optional `aio` dependency is recommended for improved performance. It may be 
-omitted for compatibility with `Pyodide`_ environments, for example in 
-`JupyterLite`_ kernels.
+.. note::
+  The optional `aio` dependency is recommended for improved performance. It may 
+  be omitted for compatibility with `Pyodide`_ environments, for example in 
+  `JupyterLite`_ kernels.
 
-Then generate an API access token in the `Optimization Hub`_ and set it as 
-`OPVIOUS_TOKEN` environment variable. You're now ready to hop on over to the 
-:ref:`Overview` section.
+If you are a beta member (see above), we recommend you generate an API access 
+token in the `Optimization Hub`_ and set it as `OPVIOUS_TOKEN` environment 
+variable. This optional step allows you to optimize larger datasets and 
+increases rate limits.
+
+You are now ready to hop on over to the :ref:`Overview` section!
 
 
 Contents

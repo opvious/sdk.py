@@ -40,7 +40,7 @@ DefinitionCategory = Literal[
 
 
 class Definition:
-    """Internal model definition"""
+    """Base model definition"""
 
     @property
     def category(self) -> DefinitionCategory:
@@ -62,8 +62,8 @@ class ModelFragment:
     """Reusable model sub-component
 
     Model fragments are useful to group related definitions together and expose
-    them in a reusable way. See :ref:`Fragments` for the list of available
-    fragments.
+    them in a reusable way. See :ref:`the API reference
+    <\\`opvious.modeling.fragments\\`>` for the list of available fragments.
     """
 
 
