@@ -92,8 +92,8 @@ class Client:
         Creates a client from an API token
 
         Args:
-            token: API token. You can use an empty token to create an
-                unauthenticated client with limited functionality.
+            token: API token. You can use an empty string as token to create an
+                unauthenticated client.
             domain: API domain. You should only need to set this if you are
                 using a self-hosted cluster. Defaults to the default production
                 endpoint.

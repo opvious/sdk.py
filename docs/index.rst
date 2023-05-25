@@ -39,9 +39,12 @@ First install the SDK, for example using `pip`:
   be omitted for compatibility with `Pyodide`_ environments, for example in 
   `JupyterLite`_ kernels.
 
-Then generate an API access token in the `Optimization Hub`_ and set it as 
-`OPVIOUS_TOKEN` environment variable. You're now ready to hop on over to the 
-:ref:`Overview` section.
+If you are a beta member (see above), we recommend you generate an API access 
+token in the `Optimization Hub`_ and set it as `OPVIOUS_TOKEN` environment 
+variable. This optional step allows you to optimize larger datasets and 
+increases rate limits.
+
+You are now ready to hop on over to the :ref:`Overview` section!
 
 
 Contents
