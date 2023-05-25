@@ -44,9 +44,10 @@ class BinPacking(om.Model):
 ```
 
 
-### Remote solves with real-time progress notifications
+### Transparent remote solves
 
 + No local solver installation required
++ Real-time progress notifications
 + Seamless data import/export via native support for `pandas`
 + Flexible multi-objective support: weighted sums, epsilon constraints, ...
 + Built-in debugging capabilities: relaxations, fully annotated LP formatting,
