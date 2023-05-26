@@ -187,22 +187,17 @@ class BinPacking(om.Model):
     weight = om.Parameter.non_negative(items)
     bin_max_weight = om.Parameter.non_negative()
 
-    assignment = om.Variable.indicator(items, bins)
-    usage = om.Variable.indicator(bins)
+    assigned = om.Variable.indicator(bins, items)
+    used = om.fragments.ActivationIndicator(assigned, projection=1)
 
     @om.objective
     def minimize_bins_used(self):
-        return om.total(self.usage(b) for b in self.bins)
+        return om.total(self.used(b) for b in self.bins)
 
     @om.constraint
     def each_item_is_assigned_once(self):
         for i in self.items:
-            yield om.total(self.assignment(i, b) for b in self.bins) == 1
-
-    @om.constraint
-    def bins_with_assignments_are_used(self):
-        for i, b in om.cross(self.items, self.bins):
-            yield self.assignment(i, b) <= self.usage(b)
+            yield om.total(self.assigned(b, i) for b in self.bins) == 1
 
     @om.constraint
     def bins_are_below_max_weight(self):
@@ -211,7 +206,7 @@ class BinPacking(om.Model):
 
     def _bin_weight(self, b):
         return om.total(
-            self.weight(i) * self.assignment(i, b) for i in self.items
+            self.weight(i) * self.assigned(b, i) for i in self.items
         )
 
 

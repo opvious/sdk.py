@@ -578,7 +578,7 @@ def cross(
         project = (1 << i) & projection
         if not project and not lift:
             continue
-        j0 = len(lifted)
+        j0 = len(projected)
         quants = list(
             Quantifier(declare(iden.named(names_by_index.get(j0 + j))))
             for j, iden in enumerate(_quantifier_identifiers(q))

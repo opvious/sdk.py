@@ -60,7 +60,7 @@ class ActivationIndicator(ModelFragment):
         domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(lift=False):
-            return cross(domains, projection=projection, lift=lift)
+            return cross(*domains, projection=projection, lift=lift)
 
         def tensor_image():
             if not isinstance(tensor, Tensor):
@@ -223,7 +223,7 @@ class Magnitude(ModelFragment):
         domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(lift=False):
-            return cross(domains, projection=projection, lift=lift)
+            return cross(*domains, projection=projection, lift=lift)
 
         class _Fragment(Magnitude):
             value = Variable.non_negative(quantification(), name=name)
