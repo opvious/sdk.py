@@ -551,6 +551,9 @@ def cross(
         quantifiables: One or more quantifiables
         names: Optional names for the generated quantifiers
         projection: Quantifiable selection mask
+        lift: Returns a lifted :class:`~opvious.modeling.Cross` instance.
+            Setting this option will include all masks present in the original
+            quantifiable, even if they are not projected.
 
     This function is the core building block for quantifying values.
     """
