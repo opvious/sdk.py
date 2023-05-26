@@ -2,14 +2,18 @@
 
 from . import fragments
 from .ast import (
+    Cross,
+    Domain,
     Expression,
     ExpressionLike,
     Predicate,
+    Projection,
     Quantifiable,
     Quantification,
     Quantifier,
     Space,
     cross,
+    domain,
     literal,
     size,
     switch,
@@ -22,6 +26,7 @@ from .definitions import (
     Objective,
     Parameter,
     Tensor,
+    TensorLike,
     Variable,
     alias,
     constraint,
@@ -44,6 +49,7 @@ __all__ = [
     "Objective",
     "Parameter",
     "Tensor",
+    "TensorLike",
     "Variable",
     "alias",
     "constraint",
@@ -58,12 +64,16 @@ __all__ = [
     "switch",
     "total",
     # Quantification
+    "Cross",
+    "Domain",
+    "Projection",
     "Quantifiable",
     "Quantification",
     "Quantified",
     "Quantifier",
     "Space",
     "cross",
+    "domain",
     # Fragments
     "fragments",
 ]

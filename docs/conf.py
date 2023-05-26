@@ -35,12 +35,14 @@ autodoc_type_aliases = {
     "KeyItem": "KeyItem",
     "ObjectiveBody": "ObjectiveBody",
     "Outcome": "Outcome",
+    "Projection": "Projection",
     "Quantifiable": "Quantifiable",
     "Quantification": "Quantification",
     "Quantified": "Quantified",
     "Specification": "Specification",
     "Target": "Target",
     "TensorArgument": "TensorArgument",
+    "TensorLike": "TensorLike",
 }
 
 
