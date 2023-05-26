@@ -100,6 +100,14 @@ class Activation(ModelFragment):
     def value(self) -> Variable:
         raise NotImplementedError()
 
+    @property
+    def activates(self) -> Optional[Constraint]:
+        raise NotImplementedError()
+
+    @property
+    def deactivates(self) -> Optional[Constraint]:
+        raise NotImplementedError()
+
     def __call__(self, *subs: ExpressionLike) -> Expression:
         raise NotImplementedError()
 
@@ -132,10 +140,12 @@ class MaskedSubset(ModelFragment):
 
     @property
     def mask(self) -> Parameter:
+        """The parameter controlling the subset's element"""
         raise NotImplementedError()
 
     @property
     def masked(self) -> Quantified:
+        """The masked subset"""
         raise NotImplementedError()
 
     def __iter__(self) -> Iterable[Any]:
@@ -172,10 +182,12 @@ class DerivedVariable(ModelFragment):
 
     @property
     def value(self) -> Variable:
+        """The generated variable"""
         raise NotImplementedError()
 
     @property
     def is_defined(self) -> Constraint:
+        """The constraint ensuring the variable's value"""
         raise NotImplementedError()
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
@@ -197,7 +209,7 @@ def derived_variable(
 
 
 class Magnitude(ModelFragment):
-    """Absolute value envelope"""
+    """Absolute value variable fragment"""
 
     def __new__(
         cls,
@@ -236,6 +248,17 @@ class Magnitude(ModelFragment):
 
     @property
     def value(self) -> Variable:
+        """The magnitude variable"""
+        raise NotImplementedError()
+
+    @property
+    def lower_bounds(self) -> Constraint:
+        """The magnitude's lower bound constraint"""
+        raise NotImplementedError()
+
+    @property
+    def upper_bounds(self) -> Constraint:
+        """The magnitude's upper bound constraint"""
         raise NotImplementedError()
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
