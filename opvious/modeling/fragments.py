@@ -29,7 +29,21 @@ from .statements import method_decorator, ModelFragment
 
 
 class ActivationIndicator(ModelFragment):
-    """Variable activation tracking"""
+    """Variable activation fragment
+
+    Args:
+        tensor: Non-negative tensor-like
+        quantifiables: Tensor quantifiables, can be omitted if the tensor is a
+            variable or parameter
+        upper_bound: Value of the upper bound used in the activation
+            constraint. If `True` the variable's image's upper bound will be
+            used, if `False` no activation constraint will be added.
+        lower_bound: Value of the lower bound used in the deactivation
+            constraint. If `True` the variable's image's lower bound will be
+            used, if `False` no deactivation constraint will be added.
+        name: Name of the generated activation variable
+        projection: Mask used to project the variable's quantification
+    """
 
     def __new__(
         cls,
@@ -40,21 +54,6 @@ class ActivationIndicator(ModelFragment):
         name: Optional[Name] = None,
         projection: Projection = -1,
     ) -> ActivationIndicator:
-        """Returns a variable activation fragment
-
-        Args:
-            tensor: Non-negative tensor-like
-            quantifiables: Tensor quantifiables, can be omitted if the tensor
-                is a variable or parameter
-            upper_bound: Value of the upper bound used in the activation
-                constraint. If `True` the variable's image's upper bound will
-                be used, if `False` no activation constraint will be added.
-            lower_bound: Value of the lower bound used in the deactivation
-                constraint. If `True` the variable's image's lower bound will
-                be used, if `False` no deactivation constraint will be added.
-            name: Name of the generated activation variable
-            projection: Mask used to project the variable's quantification
-        """
         if not quantifiables and isinstance(tensor, Tensor):
             quantifiables = tensor.quantifiables()
         domains = tuple(domain(q) for q in quantifiables)
@@ -98,14 +97,30 @@ class ActivationIndicator(ModelFragment):
 
     @property
     def value(self) -> Variable:
+        """Activation variable value
+
+        As a convenience calling the fragment directly also returns expressions
+        from this variable.
+        """
         raise NotImplementedError()
 
     @property
     def activates(self) -> Optional[Constraint]:
+        """Constraint ensuring that the activation variable activates
+
+        This constraint enforces that the activation variable is set to 1 when
+        at least one the underlying tensor's value is positive.
+        """
         raise NotImplementedError()
 
     @property
     def deactivates(self) -> Optional[Constraint]:
+        """Constraint ensuring that the activation variable deactivates
+
+        This constraint enforces that the activation variable is set to 0 when
+        none of the underlying tensor's values are non-zero. It requires the
+        fragment to have a non-zero lower bound.
+        """
         raise NotImplementedError()
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
@@ -113,7 +128,7 @@ class ActivationIndicator(ModelFragment):
 
 
 class MaskedSubset(ModelFragment):
-    """Quantifiable subset"""
+    """Quantifiable subset fragment"""
 
     def __new__(
         cls,
@@ -140,12 +155,16 @@ class MaskedSubset(ModelFragment):
 
     @property
     def mask(self) -> Parameter:
-        """The parameter controlling the subset's element"""
+        """Parameter controlling the subset's element"""
         raise NotImplementedError()
 
     @property
     def masked(self) -> Quantified:
-        """The masked subset"""
+        """Masked subset
+
+        As a convenience, iterating on the subset directly also yields
+        quantifiers from the masked subset.
+        """
         raise NotImplementedError()
 
     def __iter__(self) -> Iterable[Any]:
@@ -153,7 +172,14 @@ class MaskedSubset(ModelFragment):
 
 
 class DerivedVariable(ModelFragment):
-    """Variable equal to a given equation"""
+    """Variable equal to a given equation
+
+    Args:
+        body: The equation defining the variable's value
+        quantifiables: Variable quantification
+        name: Name of the generated variable
+        image: Generated variable :class:`~opvious.modeling.Image`
+    """
 
     def __new__(
         cls,
@@ -162,8 +188,6 @@ class DerivedVariable(ModelFragment):
         name: Optional[Name] = None,
         image: Image = Image(),
     ) -> DerivedVariable:
-        """Returns a derived variable fragment"""
-
         class _Fragment(DerivedVariable):
             value = Variable(image, quantifiables, name=name)
 
@@ -209,7 +233,15 @@ def derived_variable(
 
 
 class Magnitude(ModelFragment):
-    """Absolute value variable fragment"""
+    """Absolute value variable fragment
+
+    Args:
+        tensor: Non-negative tensor-like
+        quantifiables: Tensor quantifiables, can be omitted if the tensor is a
+            variable or parameter
+        name: Name of the generated magnitude variable
+        projection: Mask used to project the variable's quantification
+    """
 
     def __new__(
         cls,
