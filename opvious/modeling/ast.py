@@ -61,12 +61,20 @@ class Expression:
         return _BinaryExpression("mul", literal(-1), self)
 
     def __add__(self, other: ExpressionLike) -> Expression:
+        if is_literal(self, 0):
+            return to_expression(other)
+        if is_literal(other, 0):
+            return self
         return _BinaryExpression("add", self, to_expression(other))
 
     def __radd__(self, left: ExpressionLike) -> Expression:
         return to_expression(left) + self
 
     def __sub__(self, other: ExpressionLike) -> Expression:
+        if is_literal(self, 0):
+            return -to_expression(other)
+        if is_literal(other, 0):
+            return self
         return _BinaryExpression("sub", self, to_expression(other))
 
     def __rsub__(self, left: ExpressionLike) -> Expression:
@@ -79,6 +87,10 @@ class Expression:
         return to_expression(left) % self
 
     def __mul__(self, other: ExpressionLike) -> Expression:
+        if is_literal(self, 1):
+            return to_expression(other)
+        if is_literal(other, 1):
+            return self
         return _BinaryExpression("mul", self, to_expression(other))
 
     def __rmul__(self, left: ExpressionLike) -> Expression:
@@ -162,7 +174,9 @@ def literal(val: Union[float, int]) -> Expression:
     return _LiteralExpression(val)
 
 
-def is_literal(expr: Expression, val: Union[float, int]) -> bool:
+def is_literal(expr: ExpressionLike, val: Union[float, int]) -> bool:
+    if not isinstance(expr, Expression):
+        return expr == val
     return isinstance(expr, _LiteralExpression) and expr.value == val
 
 

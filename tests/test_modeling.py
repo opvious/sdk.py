@@ -35,7 +35,7 @@ class LotSizing(om.Model):
         self.demand = om.Parameter.non_negative(self.steps)
 
         self.production = om.Variable.non_negative(self.steps)
-        self.production_indicator = om.fragments.Activation(
+        self.production_indicator = om.fragments.ActivationIndicator(
             tensor=self.production,
             upper_bound=om.total(self.demand(t) for t in self.steps),
         )
@@ -73,7 +73,7 @@ class GroupExpenses(om.Model):
             (self.friends, self.friends),
             qualifiers=["sender", "recipient"],
         )
-        self.tranferred_indicator = om.fragments.Activation(
+        self.tranferred_indicator = om.fragments.ActivationIndicator(
             tensor=self.transferred,
             upper_bound=self.overall_cost(),
         )
