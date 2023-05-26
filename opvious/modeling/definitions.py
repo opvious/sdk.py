@@ -12,6 +12,7 @@ from typing import (
     Iterable,
     Literal,
     Optional,
+    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -30,7 +31,6 @@ from .ast import (
     Space,
     Quantifiable,
     QuantifiableReference,
-    Quantification,
     Quantifier,
     QuantifierIdentifier,
     cross,
@@ -193,6 +193,11 @@ class Image:
         return f"[{lb.render()}, {ub.render()}]"
 
 
+class TensorLike(Protocol):
+    def __call__(self, *subscripts: ExpressionLike) -> Expression:
+        raise NotImplementedError()
+
+
 _T = TypeVar("_T", bound="Tensor")
 
 
@@ -232,7 +237,11 @@ class Tensor(Definition):
             name=name,
             is_parameter=self.category == "PARAMETER",
         )
-        self._domain = domain_from_quantifiable(quantifiables)
+        # We do not combine domains here to allow quantification projections in
+        # an alias-agnostic (and simpler) way
+        self._domains = tuple(
+            domain_from_quantifiable(q) for q in quantifiables
+        )
         self._label = label
         self.image = image
         self.qualifiers = qualifiers
@@ -295,9 +304,8 @@ class Tensor(Definition):
     def label(self) -> Optional[Label]:
         return self._label
 
-    @property
-    def quantification(self) -> Quantification:
-        return cross(self._domain)
+    def quantifiables(self) -> tuple[Quantifiable, ...]:
+        return self._domains
 
     def __call__(self, *subscripts: ExpressionLike) -> Expression:
         return ExpressionReference(
@@ -310,7 +318,7 @@ class Tensor(Definition):
         s = f"\\S^{c}_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
         s += f"{self._identifier.format()} \\in "
         s += self.image.render()
-        domain = self._domain
+        domain = domain_from_quantifiable(self._domains)
         if domain.quantifiers:
             with local_formatting_scope(domain.quantifiers):
                 if _is_simple_domain(domain):
@@ -476,11 +484,11 @@ class _Alias(Definition):
                 quantifiers, _ = unquantify(value)
             self._aliased = _Aliased(
                 [expression_space(x) for x in exprs],
-                tuple(_quantifier_identifier(q) for q in quantifiers)
-                if isinstance(quantifiers, tuple)
-                else None
+                None
                 if quantifiers is None
-                else _quantifier_identifier(quantifiers),
+                else _quantifier_identifier(quantifiers)
+                if isinstance(quantifiers, Quantifier)
+                else tuple(_quantifier_identifier(q) for q in quantifiers),
             )
         quantifiers = self._aliased.quantifiers
         if quantifiers is None:

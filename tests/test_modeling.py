@@ -35,8 +35,8 @@ class LotSizing(om.Model):
         self.demand = om.Parameter.non_negative(self.steps)
 
         self.production = om.Variable.non_negative(self.steps)
-        self.production_indicator = om.fragments.ActivationIndicator(
-            variable=self.production,
+        self.production_indicator = om.fragments.Activation(
+            tensor=self.production,
             upper_bound=om.total(self.demand(t) for t in self.steps),
         )
         self.inventory = om.Variable.non_negative(self.steps)
@@ -73,10 +73,9 @@ class GroupExpenses(om.Model):
             (self.friends, self.friends),
             qualifiers=["sender", "recipient"],
         )
-        self.tranferred_indicator = om.fragments.ActivationIndicator(
-            variable=self.transferred,
+        self.tranferred_indicator = om.fragments.Activation(
+            tensor=self.transferred,
             upper_bound=self.overall_cost(),
-            lower_bound=False,
         )
 
     @om.alias("tc")
@@ -409,4 +408,26 @@ class TestModeling:
 
         model = _Model()
         spec = await client.annotate_specification(model.specification())
+        assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_magnitude(self):
+        class _Model(om.Model):
+            points = om.Dimension()
+            offset = om.Variable.continuous(points)
+            magnitude = om.fragments.Magnitude(
+                offset,
+                projection=0,
+                name="\\mu"
+            )
+
+            @om.objective
+            def minimize_magnitude(self) -> om.Expression:
+                return self.magnitude()
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\forall p \in P, \omicron_{p} \geq -1 \mu" in text
+        assert r"\forall p \in P, \omicron_{p} \leq \mu" in text
         assert spec.annotation.issue_count == 0

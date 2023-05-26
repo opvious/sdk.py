@@ -1,6 +1,6 @@
 from importlib import metadata
 import math
-from typing import Any, Union
+from typing import Any, Iterable, Union
 import urllib.parse
 
 
@@ -42,7 +42,9 @@ def to_camel_case(s: str) -> str:
     )
 
 
-def untuple(t: tuple[Any, ...]) -> Any:
+def untuple(t: Iterable[Any]) -> Any:
+    if not isinstance(t, tuple):
+        t = tuple(t)
     return t[0] if len(t) == 1 else t
 
 

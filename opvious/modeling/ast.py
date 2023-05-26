@@ -57,6 +57,9 @@ class Expression:
     operators.
     """
 
+    def __neg__(self) -> Expression:
+        return _BinaryExpression("mul", literal(-1), self)
+
     def __add__(self, other: ExpressionLike) -> Expression:
         return _BinaryExpression("add", self, to_expression(other))
 
@@ -232,7 +235,7 @@ class _BinaryExpression(Expression):
 
 @dataclasses.dataclass(frozen=True)
 class Domain:
-    quantifiers: list[QuantifierIdentifier]
+    quantifiers: tuple[QuantifierIdentifier, ...]
     mask: Optional[Predicate] = None
 
     def render(self) -> str:
@@ -359,10 +362,6 @@ class Quantifier(Expression):
         return self.identifier.format()
 
 
-Quantification = Quantified[tuple[Quantifier, ...]]
-"""Generic quantification result"""
-
-
 def expression_space(expr: Expression) -> Optional[Space]:
     """Returns the underlying scalar quantifiable for an expression if any"""
     if isinstance(expr, Quantifier):
@@ -460,9 +459,8 @@ class _BinaryPredicate(Predicate):
 
 
 Quantifiable = Union[
-    Quantification,
-    Quantified[Quantifier],
-    Iterable[Union[Quantifier, tuple[Quantifier, ...]]],
+    Quantified[Union[Quantifier, Iterable[Quantifier]]],
+    Iterable[Union[Quantifier, Iterable[Quantifier]]],
     Space,
     Domain,
     tuple["Quantifiable", ...],
@@ -486,7 +484,7 @@ def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
             quantifiers.append(declaration)
         else:
             raise TypeError(f"Unexpected declaration: {declaration}")
-    domain = Domain(quantifiers, mask)
+    domain = Domain(tuple(quantifiers), mask)
     return value, domain
 
 
@@ -498,13 +496,13 @@ def domain_from_quantifiable(
 
 
 def _domain_from_quantified(
-    quantified: Quantified[Union[Quantifier, tuple[Quantifier, ...]]]
+    quantified: Quantified[Union[Quantifier, Iterable[Quantifier]]]
 ) -> Domain:
     qs, domain = within_domain(quantified)
-    if isinstance(qs, tuple):
-        idens = [q.identifier for q in qs]
+    if isinstance(qs, Quantifier):
+        idens: tuple[QuantifierIdentifier, ...] = (qs.identifier,)
     else:
-        idens = [qs.identifier]
+        idens = tuple(q.identifier for q in qs)
     if not _isomorphic(idens, domain.quantifiers):
         raise Exception(
             f"Inconsistent quantifiers: {idens} != {domain.quantifiers}"
@@ -518,31 +516,68 @@ def _isomorphic(
     return collections.Counter(qs1) == collections.Counter(qs2)
 
 
+Projection = int
+
+
+@dataclasses.dataclass(frozen=True)
+class Cross:
+    """Cross-product result"""
+
+    _quantifiers: tuple[Quantifier, ...]
+    _lifted: Optional[tuple[Quantifier, ...]]
+
+    @property
+    def lifted(self) -> tuple[Quantifier, ...]:
+        if self._lifted is None:
+            raise Exception("Unlifted cross-product")
+        return self._lifted
+
+    def __iter__(self):
+        return iter(self._quantifiers)
+
+
+Quantification = Quantified[Cross]
+
+
 def cross(
     *quantifiables: Quantifiable,
     names: Optional[Iterable[Name]] = None,
+    projection: Projection = -1,
+    lift=False,
 ) -> Quantification:
     """Generates the cross-product of multiple quantifiables
 
     Args:
         quantifiables: One or more quantifiables
         names: Optional names for the generated quantifiers
+        projection: Quantifiable selection mask
 
     This function is the core building block for quantifying values.
     """
     names_by_index = dict(enumerate(names or []))
-    yield tuple(
-        Quantifier(declare(q.named(names_by_index.get(i))))
-        for i, q in enumerate(_quantifiable_quantifiers(quantifiables))
-    )
+    projected: list[Quantifier] = []
+    lifted: list[Quantifier] = []
+    for i, q in enumerate(quantifiables):
+        project = (1 << i) & projection
+        if not project and not lift:
+            continue
+        j0 = len(lifted)
+        quants = list(
+            Quantifier(declare(iden.named(names_by_index.get(j0 + j))))
+            for j, iden in enumerate(_quantifier_identifiers(q))
+        )
+        lifted.extend(quants)
+        if project:
+            projected.extend(quants)
+    yield Cross(tuple(projected), tuple(lifted))
 
 
-def _quantifiable_quantifiers(
+def _quantifier_identifiers(
     quantifiable: Quantifiable,
 ) -> Iterable[QuantifierIdentifier]:
     if isinstance(quantifiable, tuple):
         for component in quantifiable:
-            yield from _quantifiable_quantifiers(component)
+            yield from _quantifier_identifiers(component)
     elif isinstance(quantifiable, QuantifiableReference):
         qs = quantifiable.quantifiers
         group = QuantifierGroup(
@@ -554,7 +589,7 @@ def _quantifiable_quantifiers(
             yield q.grouped_within(group)
     elif isinstance(quantifiable, Space):
         yield QuantifierIdentifier.base(quantifiable)
-    else:  # Quantification or domain
+    else:  # domain or quantified
         if isinstance(quantifiable, Domain):
             domain = quantifiable
         else:
