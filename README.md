@@ -14,34 +14,34 @@ An optimization SDK for solving linear, mixed-integer, and quadratic models
 import opvious.modeling as om
 
 class BinPacking(om.Model):
-  items = om.Dimension()
-  weight = om.Parameter.non_negative(items)
-  bins = om.interval(1, om.size(items))
-  bin_max_weight = om.Parameter.non_negative()
+  items = om.Dimension()  # All items to bin
+  weight = om.Parameter.non_negative(items)  # Weight per item
+  bins = om.interval(1, om.size(items), name="B")  # Available bins
+  max_weight = om.Parameter.non_negative()  # Maximum weight for each bin
 
-  assigned = om.Variable.indicator(items, bins)
-  bin_used = om.Variable.indicator(bins)
-
-  @om.objective
-  def minimize_bins_used(self):
-    return om.total(self.bin_used(b) for b in self.bins)
+  assigned = om.Variable.indicator(bins, items)  # Bin to item assignment
+  used = om.fragments.ActivationIndicator(assigned, projection=1)  # 1 if a bin is used
 
   @om.constraint
   def each_item_is_assigned_once(self):
     for i in self.items:
-      yield om.total(self.assigned(i, b) for b in self.bins) == 1
-
-  @om.constraint
-  def bins_with_assignments_are_used(self):
-    for i, b in om.cross(self.items, self.bins):
-      yield self.assigned(i, b) <= self.bin_used(b)
+      yield om.total(self.assigned(b, i) for b in self.bins) == 1
 
   @om.constraint
   def bin_weights_are_below_max(self):
     for b in self.bins:
-      bin_weight = om.total(self.weight(i) * self.assigned(i, b) for i in self.items)
-      yield bin_weight <= self.bin_max_weight()
+      bin_weight = om.total(self.weight(i) * self.assigned(b, i) for i in self.items)
+      yield bin_weight <= self.max_weight()
+
+  @om.objective
+  def minimize_bins_used(self):
+    return om.total(self.used(b) for b in self.bins)
 ```
+
+Auto-generated specification:
+
+![Bin package LaTeX
+specification](resources/images/bin-packing-specification.png)
 
 
 ### Transparent remote solves
