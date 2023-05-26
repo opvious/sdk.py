@@ -28,18 +28,18 @@ from .quantified import Quantified
 from .statements import method_decorator, ModelFragment
 
 
-class Activation(ModelFragment):
+class ActivationIndicator(ModelFragment):
     """Variable activation tracking"""
 
     def __new__(
         cls,
         tensor: TensorLike,
         *quantifiables: Quantifiable,
-        upper_bound: Union[ExpressionLike, bool] = False,
+        upper_bound: Union[ExpressionLike, bool] = True,
         lower_bound: Union[ExpressionLike, bool] = False,
         name: Optional[Name] = None,
         projection: Projection = -1,
-    ) -> Activation:
+    ) -> ActivationIndicator:
         """Returns a variable activation fragment
 
         Args:
@@ -60,7 +60,7 @@ class Activation(ModelFragment):
         domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(lift=False):
-            return cross(domains, projection=projection, lift=lift)
+            return cross(*domains, projection=projection, lift=lift)
 
         def tensor_image():
             if not isinstance(tensor, Tensor):
@@ -69,7 +69,7 @@ class Activation(ModelFragment):
                 )
             return tensor.image
 
-        class _Fragment(Activation):
+        class _Fragment(ActivationIndicator):
             value = Variable.indicator(quantification(), name=name)
 
             def __new__(cls) -> _Fragment:
@@ -223,7 +223,7 @@ class Magnitude(ModelFragment):
         domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(lift=False):
-            return cross(domains, projection=projection, lift=lift)
+            return cross(*domains, projection=projection, lift=lift)
 
         class _Fragment(Magnitude):
             value = Variable.non_negative(quantification(), name=name)
