@@ -416,9 +416,7 @@ class TestModeling:
             points = om.Dimension()
             offset = om.Variable.continuous(points)
             magnitude = om.fragments.Magnitude(
-                offset,
-                projection=0,
-                name="\\mu"
+                offset, projection=0, name="\\mu"
             )
 
             @om.objective

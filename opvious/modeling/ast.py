@@ -459,8 +459,7 @@ class _BinaryPredicate(Predicate):
 
 
 Quantifiable = Union[
-    Quantified[Union[Quantifier, Iterable[Quantifier]]],
-    Iterable[Union[Quantifier, Iterable[Quantifier]]],
+    Iterable[Union[Quantifier, Iterable[Quantifier]]],  # Includes quantified
     Space,
     Domain,
     tuple["Quantifiable", ...],
