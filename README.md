@@ -40,8 +40,7 @@ class BinPacking(om.Model):
 
 Auto-generated specification:
 
-![Bin package LaTeX
-specification](resources/images/bin-packing-specification.png | width=400)
+<img alt="Bin package LaTeX specification" src="resources/images/bin-packing-specification.png" width="500px">
 
 
 ### Transparent remote solves
