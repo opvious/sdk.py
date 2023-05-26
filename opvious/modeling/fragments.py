@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Callable, Iterable, Optional, Union
 
 from ..common import untuple
-from .ast import cross, domain_from_quantifiable, Projection, Quantifiable
+from .ast import cross, domain, Projection, Quantifiable
 from .definitions import (
     Constraint,
     Expression,
@@ -57,7 +57,7 @@ class Activation(ModelFragment):
         """
         if not quantifiables and isinstance(tensor, Tensor):
             quantifiables = tensor.quantifiables()
-        domains = tuple(domain_from_quantifiable(q) for q in quantifiables)
+        domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(lift=False):
             return cross(domains, projection=projection, lift=lift)
@@ -208,7 +208,7 @@ class Magnitude(ModelFragment):
     ) -> Magnitude:
         if not quantifiables and isinstance(tensor, Tensor):
             quantifiables = tensor.quantifiables()
-        domains = tuple(domain_from_quantifiable(q) for q in quantifiables)
+        domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(lift=False):
             return cross(domains, projection=projection, lift=lift)

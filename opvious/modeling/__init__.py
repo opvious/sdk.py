@@ -2,6 +2,7 @@
 
 from . import fragments
 from .ast import (
+    Domain,
     Expression,
     ExpressionLike,
     Predicate,
@@ -11,6 +12,7 @@ from .ast import (
     Quantifier,
     Space,
     cross,
+    domain,
     literal,
     size,
     switch,
@@ -61,6 +63,7 @@ __all__ = [
     "switch",
     "total",
     # Quantification
+    "Domain",
     "Projection",
     "Quantifiable",
     "Quantification",
@@ -68,6 +71,7 @@ __all__ = [
     "Quantifier",
     "Space",
     "cross",
+    "domain",
     # Fragments
     "fragments",
 ]

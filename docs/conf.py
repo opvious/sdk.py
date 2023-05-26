@@ -42,6 +42,7 @@ autodoc_type_aliases = {
     "Specification": "Specification",
     "Target": "Target",
     "TensorArgument": "TensorArgument",
+    "TensorLike": "TensorLike",
 }
 
 

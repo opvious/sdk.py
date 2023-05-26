@@ -487,10 +487,11 @@ def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
     return value, domain
 
 
-def domain_from_quantifiable(
+def domain(
     quantifiable: Quantifiable,
     names: Optional[Iterable[Name]] = None,
 ) -> Domain:
+    """Creates a domain from a quantifiable"""
     return _domain_from_quantified(cross(quantifiable, names=names))
 
 
@@ -609,8 +610,7 @@ def total(body: Quantified[Expression]) -> Expression:
 
 def size(quantifiable: Quantifiable) -> Expression:
     """Returns the cardinality of the quantifiable as an expression"""
-    domain = domain_from_quantifiable(quantifiable)
-    return _CardinalityExpression(domain)
+    return _CardinalityExpression(domain(quantifiable))
 
 
 def switch(

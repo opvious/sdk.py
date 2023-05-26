@@ -415,9 +415,14 @@ class TestModeling:
         class _Model(om.Model):
             points = om.Dimension()
             offset = om.Variable.continuous(points)
-            magnitude = om.fragments.Magnitude(
-                offset, projection=0, name="\\mu"
-            )
+
+            def __init__(self) -> None:
+                self.magnitude = om.fragments.Magnitude(
+                    self.double_offset, self.points, projection=0, name="\\mu"
+                )
+
+            def double_offset(self, p) -> om.Expression:
+                return 2 * self.offset(p)
 
             @om.objective
             def minimize_magnitude(self) -> om.Expression:
@@ -426,6 +431,6 @@ class TestModeling:
         model = _Model()
         spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
-        assert r"\forall p \in P, \omicron_{p} \geq -1 \mu" in text
-        assert r"\forall p \in P, \omicron_{p} \leq \mu" in text
+        assert r"\forall p \in P, 2 \omicron_{p} \geq -1 \mu" in text
+        assert r"\forall p \in P, 2 \omicron_{p} \leq \mu" in text
         assert spec.annotation.issue_count == 0

@@ -12,7 +12,6 @@ from typing import (
     Iterable,
     Literal,
     Optional,
-    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -34,7 +33,7 @@ from .ast import (
     Quantifier,
     QuantifierIdentifier,
     cross,
-    domain_from_quantifiable,
+    domain,
     expression_space,
     is_literal,
     render_identifier,
@@ -193,9 +192,7 @@ class Image:
         return f"[{lb.render()}, {ub.render()}]"
 
 
-class TensorLike(Protocol):
-    def __call__(self, *subscripts: ExpressionLike) -> Expression:
-        raise NotImplementedError()
+TensorLike = Callable[..., Expression]
 
 
 _T = TypeVar("_T", bound="Tensor")
@@ -239,9 +236,7 @@ class Tensor(Definition):
         )
         # We do not combine domains here to allow quantification projections in
         # an alias-agnostic (and simpler) way
-        self._domains = tuple(
-            domain_from_quantifiable(q) for q in quantifiables
-        )
+        self._domains = tuple(domain(q) for q in quantifiables)
         self._label = label
         self.image = image
         self.qualifiers = qualifiers
@@ -318,13 +313,13 @@ class Tensor(Definition):
         s = f"\\S^{c}_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
         s += f"{self._identifier.format()} \\in "
         s += self.image.render()
-        domain = domain_from_quantifiable(self._domains)
-        if domain.quantifiers:
-            with local_formatting_scope(domain.quantifiers):
-                if _is_simple_domain(domain):
+        d = domain(self._domains)
+        if d.quantifiers:
+            with local_formatting_scope(d.quantifiers):
+                if _is_simple_domain(d):
                     formatted: list[str] = []
                     for g, qs in itertools.groupby(
-                        domain.quantifiers, key=lambda q: q.outer_group
+                        d.quantifiers, key=lambda q: q.outer_group
                     ):
                         if g is None:
                             formatted.extend(q.space.render() for q in qs)
@@ -332,7 +327,7 @@ class Tensor(Definition):
                             formatted.append(g.alias.format())
                     sup = " \\times ".join(formatted)
                 else:
-                    sup = f"\\{{ {domain.render()} \\}}"
+                    sup = f"\\{{ {d.render()} \\}}"
                 s += f"^{{{sup}}}"
         return s
 
@@ -448,9 +443,7 @@ class _Alias(Definition):
         quantifiable = tuple(
             q or _integers for q in self._aliased.quantifiables
         )
-        outer_domain = domain_from_quantifiable(
-            quantifiable, names=self._quantifier_names
-        )
+        outer_domain = domain(quantifiable, names=self._quantifier_names)
         expressions = [Quantifier(q) for q in outer_domain.quantifiers]
         value = self._aliasable(*expressions)
 
@@ -463,7 +456,7 @@ class _Alias(Definition):
             if self._aliased.quantifiers is None:
                 s += value.render()
             else:
-                inner_domain = domain_from_quantifiable(value)
+                inner_domain = domain(value)
                 with local_formatting_scope(inner_domain.quantifiers):
                     if (
                         len(inner_domain.quantifiers) > 1
@@ -599,10 +592,10 @@ class Constraint(Definition):
         _logger.debug("Rendering constraint %s...", label)
 
         s = f"\\S^c_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
-        predicate, domain = within_domain(self._body())
-        with local_formatting_scope(domain.quantifiers):
-            if domain.quantifiers:
-                s += f"\\forall {domain.render()}, "
+        predicate, d = within_domain(self._body())
+        with local_formatting_scope(d.quantifiers):
+            if d.quantifiers:
+                s += f"\\forall {d.render()}, "
             s += predicate.render()
         return s
 
