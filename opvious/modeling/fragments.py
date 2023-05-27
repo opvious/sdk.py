@@ -83,7 +83,7 @@ class ActivationIndicator(ModelFragment):
                 if bound is True:
                     bound = tensor_image().upper_bound
                 for cp in quantification(lift=True):
-                    yield tensor(*cp.lifted) <= bound * self.value(*cp)
+                    yield bound * self.value(*cp) >= tensor(*cp.lifted)
 
             @constraint(disabled=lower_bound is False)
             def deactivates(self):
@@ -91,9 +91,11 @@ class ActivationIndicator(ModelFragment):
                 if bound is True:
                     bound = tensor_image().lower_bound
                 for cp in quantification(lift=True):
-                    yield tensor(*cp.lifted) >= bound * self.value(*cp)
+                    yield bound * self.value(*cp) <= tensor(*cp.lifted)
 
         return _Fragment()
+
+    default_definition = "value"
 
     @property
     def value(self) -> Variable:
@@ -204,6 +206,8 @@ class DerivedVariable(ModelFragment):
 
         return _Fragment()
 
+    default_definition = "value"
+
     @property
     def value(self) -> Variable:
         """The generated variable"""
@@ -248,6 +252,7 @@ class Magnitude(ModelFragment):
         tensor: TensorLike,
         *quantifiables: Quantifiable,
         name: Optional[Name] = None,
+        image: Image = Image(lower_bound=0),
         projection: Projection = -1,
     ) -> Magnitude:
         if not quantifiables and isinstance(tensor, Tensor):
@@ -258,7 +263,7 @@ class Magnitude(ModelFragment):
             return cross(*domains, projection=projection, lift=lift)
 
         class _Fragment(Magnitude):
-            value = Variable.non_negative(quantification(), name=name)
+            value = Variable(image, quantification(), name=name)
 
             def __new__(cls) -> _Fragment:
                 return ModelFragment.__new__(cls)
@@ -269,14 +274,16 @@ class Magnitude(ModelFragment):
             @constraint
             def lower_bounds(self):
                 for cp in quantification(lift=True):
-                    yield tensor(*cp.lifted) >= -self.value(*cp)
+                    yield -self.value(*cp) <= tensor(*cp.lifted)
 
             @constraint
             def upper_bounds(self):
                 for cp in quantification(lift=True):
-                    yield tensor(*cp.lifted) <= self.value(*cp)
+                    yield self.value(*cp) >= tensor(*cp.lifted)
 
         return _Fragment()
+
+    default_definition = "value"
 
     @property
     def value(self) -> Variable:

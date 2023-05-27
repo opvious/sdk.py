@@ -66,6 +66,10 @@ class ModelFragment:
     <\\`opvious.modeling.fragments\\`>` for the list of available fragments.
     """
 
+    @property
+    def default_definition(self) -> Optional[str]:
+        return None
+
 
 def method_decorator(wrapper: Callable[..., Any]) -> Any:
     def wrap(fn):
@@ -164,11 +168,11 @@ class _ModelVisitor:
         if model_id in self._visited:
             return
         self._visited.add(model_id)
-        self._visit_fragment(model=model, fragment=None, prefix=model.prefix)
+        self._visit_owner(model=model, fragment=None, prefix=model.prefix)
         for dep in model.dependencies:
             self.visit(dep)
 
-    def _visit_fragment(
+    def _visit_owner(
         self,
         model: Model,
         fragment: Optional[ModelFragment],
@@ -191,13 +195,16 @@ class _ModelVisitor:
         for attr, value in attrs.items():
             if attr.startswith("_"):
                 continue
-            path[-1] = attr
+            if fragment and attr == fragment.default_definition:
+                path[-1] = ""
+            else:
+                path[-1] = attr
             if isinstance(value, property):
                 value = value.fget
             if isinstance(value, _DecoratedMethod):
                 value = value.bound_to(owner)
             if isinstance(value, ModelFragment):
-                self._visit_fragment(model, value, path)
+                self._visit_owner(model, value, path)
                 continue
             if not isinstance(value, Definition):
                 continue

@@ -426,6 +426,42 @@ class TestModeling:
         model = _Model()
         spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
-        assert r"\forall p \in P, 2 \omicron_{p} \geq -1 \mu" in text
-        assert r"\forall p \in P, 2 \omicron_{p} \leq \mu" in text
+        assert r"\forall p \in P, {-\mu} \leq 2 \omicron_{p}" in text
+        assert r"\forall p \in P, \mu \geq 2 \omicron_{p}" in text
+        assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_expression_alias(self):
+        class _Base(om.Model):
+            horizon = om.Parameter.natural()
+            doctors = om.Dimension(name="I")
+            days = om.interval(1, horizon(), name="T")
+            shifts = om.interval(1, 3, name="K")
+
+            assigned = om.Variable.indicator(doctors, days, shifts)
+
+            @om.alias("\\beta")
+            def started_shift(self, i, t, k):
+                return self.assigned(i, t, k) - om.switch(
+                    (t > 1, self.assigned(i, t - 1, k)), 0
+                )
+
+            @property
+            def assignment_space(self):
+                return om.cross(self.assigned.quantifiables())
+
+        base = _Base()
+
+        class SwitchOnShiftStart(om.Model):
+            def __init__(self):
+                super().__init__([base])
+                self.switched = om.Variable.indicator(base.doctors, base.days)
+
+            @om.constraint
+            def shift_start_forces_switch(self):
+                for i, t, k in base.assignment_space:
+                    yield self.switched(i, t) >= base.started_shift(i, t, k)
+
+        model = SwitchOnShiftStart()
+        spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
