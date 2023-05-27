@@ -38,7 +38,7 @@ def to_camel_case(s: str) -> str:
     if "_" not in s:
         return s
     return "".join(
-        p.capitalize() if i else p for i, p in enumerate(s.split("_"))
+        p.capitalize() if i else p for i, p in enumerate(s.split("_")) if p
     )
 
 

@@ -21,6 +21,9 @@ class LocalSpecificationSource:
     text: str
     title: str = _DEFAULT_TITLE
 
+    def _repr_markdown_(self) -> str:
+        return _source_details(self, [], True)
+
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecificationAnnotation:
@@ -48,7 +51,7 @@ def local_specification_issue_from_json(data: Json) -> LocalSpecificationIssue:
     )
 
 
-_OUTER_STYLE = " ".join(
+_SPECIFICATION_STYLE = " ".join(
     [
         "margin-top: 1em;",
         "margin-bottom: 1em;",
@@ -92,6 +95,15 @@ class LocalSpecification:
     detected, the specification's pretty-printed representation will highlight
     any errors.
     """
+
+    def source(self, title: Optional[str] = None) -> LocalSpecificationSource:
+        """Returns the first source, optionally matching a given title"""
+        if title is None:
+            return self.sources[0]
+        for source in self.sources:
+            if source.title == title:
+                return source
+        raise Exception(f"Missing source for title {title}")
 
     @classmethod
     def inline(cls, *texts: str) -> LocalSpecification:
@@ -160,7 +172,7 @@ class LocalSpecification:
             _source_details(s, issues.get(i) or [], i == 0)
             for i, s in enumerate(self.sources)
         )
-        return f'<div style="{_OUTER_STYLE}">{contents}</div>'
+        return f'<div style="{_SPECIFICATION_STYLE}">{contents}</div>'
 
 
 def _source_details(

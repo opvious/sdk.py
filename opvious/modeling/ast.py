@@ -229,7 +229,12 @@ class _BinaryExpression(Expression):
         left = self.left_expression.render(left_inner)
         right = self.right_expression.render(right_inner)
         if op == "mul":
-            rendered = f"{left} {right}"
+            if is_literal(self.left_expression, -1):
+                rendered = f"{{-{right}}}"
+            elif is_literal(self.right_expression, -1):
+                rendered = f"{{-{left}}}"
+            else:
+                rendered = f"{left} {right}"
         elif op == "add":
             rendered = f"{left} + {right}"
         elif op == "mod":
@@ -255,9 +260,11 @@ class Domain:
     def render(self) -> str:
         groups = []
         outer = itertools.groupby(self.quantifiers, _quantifier_grouping_key)
-        for key, outer_qs in outer:
-            if isinstance(key, tuple):
-                iden, subs = key
+        for (_id, key), outer_qs in outer:
+            if isinstance(key, Space):
+                names = ", ".join(q.format() for q in outer_qs)
+                groups.append(f"{names} \\in {key.render()}")
+            else:
                 inner = itertools.groupby(outer_qs, lambda q: q.outer_group)
                 components: list[str] = []
                 for g, inner_qs in inner:
@@ -267,11 +274,9 @@ class Domain:
                         f"({joined})" if len(group_names) > 1 else joined
                     )
                 group = ", ".join(components)
-                group += f" \\in {render_identifier(iden, *subs)}"
+                group += " \\in "
+                group += render_identifier(key.alias, *key.subscripts)
                 groups.append(group)
-            else:
-                names = ", ".join(q.format() for q in outer_qs)
-                groups.append(f"{names} \\in {key.render()}")
         rendered = ", ".join(groups)
         if self.mask is not None:
             rendered += f" \\mid {self.mask.render()}"
@@ -280,14 +285,15 @@ class Domain:
 
 def _quantifier_grouping_key(
     q: QuantifierIdentifier,
-) -> Union[Space, tuple[AliasIdentifier, tuple[Expression, ...]]]:
+) -> tuple[int, Union[Space, QuantifierGroup]]:
+    # We add the ID to prevent `__eq__` from being called on equations
     sp = q.space
     if not isinstance(sp, Space):
         raise TypeError(f"Unexpected space: {sp}")
     if not q.groups:
-        return sp
+        return (id(sp), sp)
     g = q.groups[0]
-    return (g.alias, g.subscripts)
+    return (id(g), g)
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
@@ -311,11 +317,11 @@ class _CardinalityExpression(Expression):
         qs = self.domain.quantifiers
         with local_formatting_scope(qs):
             if len(qs) == 1 and self.domain.mask is None:
-                key = _quantifier_grouping_key(qs[0])
-                if isinstance(key, tuple):
-                    sp = render_identifier(key[0], *key[1])
-                else:
+                _id, key = _quantifier_grouping_key(qs[0])
+                if isinstance(key, Space):
                     sp = key.render()
+                else:
+                    sp = render_identifier(key.alias, *key.subscripts)
             else:
                 sp = f"\\{{ {self.domain.render()} \\}}"
             return f"\\lvert {sp} \\rvert"
