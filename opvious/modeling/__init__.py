@@ -6,6 +6,7 @@ from .ast import (
     Domain,
     Expression,
     ExpressionLike,
+    IterableSpace,
     Predicate,
     Projection,
     Quantifiable,
@@ -66,6 +67,7 @@ __all__ = [
     "total",
     # Quantification
     "Cross",
+    "IterableSpace",
     "Domain",
     "Projection",
     "Quantifiable",

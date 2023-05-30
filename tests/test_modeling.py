@@ -124,8 +124,7 @@ class GroupExpenses(om.Model):
     @om.objective
     def minimize_total_transferred(self) -> om.Expression:
         return om.total(
-            self.transferred(s, r)
-            for s, r in self.friends * self.friends
+            self.transferred(s, r) for s, r in self.friends * self.friends
         )
 
 

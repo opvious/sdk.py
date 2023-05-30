@@ -4,7 +4,18 @@ import collections
 import dataclasses
 import itertools
 import math
-from typing import Any, cast, Iterable, Iterator, Mapping, Optional, Protocol, Sequence, TypeVar, Union
+from typing import (
+    Any,
+    cast,
+    Iterable,
+    Iterator,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 from ..common import untuple
 from .identifiers import (
@@ -397,7 +408,9 @@ class Quantifier(Expression):
         return self.identifier.format()
 
 
-_Q = TypeVar("_Q", bound=Union[Quantifier, tuple[Quantifier, ...]], covariant=True)
+_Q = TypeVar(
+    "_Q", bound=Union[Quantifier, tuple[Quantifier, ...]], covariant=True
+)
 
 
 class IterableSpace(Protocol[_Q]):

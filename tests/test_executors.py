@@ -33,7 +33,7 @@ class TestExecutors:
         with pytest.raises(opvious.executors.ExecutorError) as info:
             await executor.execute_graphql_query("@PaginateFormulations")
         assert info.value.status == 200
-        assert _first_exception_code(info.value.data) == 'ERR_INVALID'
+        assert _first_exception_code(info.value.data) == "ERR_INVALID"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("executor", _executors)
@@ -44,8 +44,8 @@ class TestExecutors:
                 {"uuid": "00000000-0000-0000-0000-000000000000"},
             )
         assert info.value.status == 200
-        assert _first_exception_code(info.value.data) == 'ERR_UNKNOWN_ATTEMPT'
+        assert _first_exception_code(info.value.data) == "ERR_UNKNOWN_ATTEMPT"
 
 
 def _first_exception_code(data):
-    return data['errors'][0]['extensions']['exception']['code']
+    return data["errors"][0]["extensions"]["exception"]["code"]
