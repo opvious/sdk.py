@@ -10,6 +10,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    Iterator,
     Literal,
     Optional,
     Sequence,
@@ -25,17 +26,19 @@ from .ast import (
     Expression,
     ExpressionLike,
     ExpressionReference,
-    literal,
+    IterableSpace,
     Predicate,
-    Space,
     Quantifiable,
     QuantifiableReference,
     Quantifier,
     QuantifierIdentifier,
+    ScalarSpace,
+    Space,
     cross,
     domain,
     expression_space,
     is_literal,
+    literal,
     render_identifier,
     to_expression,
     within_domain,
@@ -55,7 +58,7 @@ from .statements import Definition, Model, ModelFragment, method_decorator
 _logger = logging.getLogger(__name__)
 
 
-class Dimension(Definition, Space):
+class Dimension(Definition, ScalarSpace):
     """An abstract collection of values
 
     Args:
@@ -115,7 +118,7 @@ class Dimension(Definition, Space):
 
 
 @dataclasses.dataclass(frozen=True)
-class _Interval(Space):
+class _Interval(ScalarSpace):
     lower_bound: Expression
     upper_bound: Expression
 
@@ -139,7 +142,7 @@ def interval(
     lower_bound: ExpressionLike,
     upper_bound: ExpressionLike,
     name: Optional[Name] = None,
-) -> Iterable[Quantifier]:
+) -> IterableSpace[Quantifier]:
     """A range of values
 
     Args:
@@ -152,13 +155,13 @@ def interval(
         upper_bound=to_expression(upper_bound),
     )
 
-    class _Fragment(ModelFragment):
+    class _Fragment(ModelFragment, Space):
         @property
         @alias(name)
         def interval(self):
             return interval
 
-        def __iter__(self) -> Quantified[Quantifier]:
+        def __iter__(self) -> Iterator[Quantifier]:
             return iter(self.interval)
 
     return _Fragment()
@@ -204,7 +207,7 @@ class Tensor(Definition):
     Calling a tensor returns an :class:`~.opvious.modeling.Expression` with any
     arguments as subscripts. For example:
 
-    .. code:: python
+    .. code-block:: python
 
         class ProductModel(Model):
             products = Dimension()
@@ -364,7 +367,7 @@ class Parameter(Tensor):
     Consider instantiating parameters via one of the various
     :class:`~opvious.modeling.Tensor` convenience class methods, for example:
 
-    .. code:: python
+    .. code-block:: python
 
         p1 = Parameter.continuous()  # Real-valued parameter
         p2 = Parameter.natural() # # Parameter with values in {0, 1...}
@@ -392,7 +395,7 @@ class Variable(Tensor):
     various :class:`~opvious.modeling.Tensor` convenience class methods, for
     example:
 
-    .. code:: python
+    .. code-block:: python
 
         v1 = Variable.unit()  # Variable with value within [0, 1]
         v2 = Variable.non_negative() # # Variable with value at least 0
@@ -408,7 +411,7 @@ _Aliasable = Callable[..., Any]
 
 @dataclasses.dataclass(frozen=True)
 class _Aliased:
-    quantifiables: Sequence[Optional[Space]]
+    quantifiables: Sequence[Optional[ScalarSpace]]
     quantifiers: Union[
         None, QuantifierIdentifier, tuple[QuantifierIdentifier, ...]
     ]

@@ -3,13 +3,13 @@ from __future__ import annotations
 import contextvars
 import dataclasses
 import itertools
-from typing import Any, Generator, Tuple, TypeVar
+from typing import Any, Iterator, Tuple, TypeVar
 
 
 _V = TypeVar("_V")
 
 
-Quantified = Generator[_V, None, None]
+Quantified = Iterator[_V]
 
 
 def _run_quantified(quantified: Quantified[_V]) -> _V:

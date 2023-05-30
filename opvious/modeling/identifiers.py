@@ -58,7 +58,7 @@ class QuantifierGroup:
 
 
 class QuantifierIdentifier(Identifier):
-    space: Any  # Space
+    space: Any  # ScalarSpace
     groups: Sequence[QuantifierGroup]
     name: Optional[Name]
 
