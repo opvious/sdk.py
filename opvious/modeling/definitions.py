@@ -207,7 +207,7 @@ class Tensor(Definition):
     Calling a tensor returns an :class:`~.opvious.modeling.Expression` with any
     arguments as subscripts. For example:
 
-    .. code:: python
+    .. code-block:: python
 
         class ProductModel(Model):
             products = Dimension()
@@ -367,7 +367,7 @@ class Parameter(Tensor):
     Consider instantiating parameters via one of the various
     :class:`~opvious.modeling.Tensor` convenience class methods, for example:
 
-    .. code:: python
+    .. code-block:: python
 
         p1 = Parameter.continuous()  # Real-valued parameter
         p2 = Parameter.natural() # # Parameter with values in {0, 1...}
@@ -395,7 +395,7 @@ class Variable(Tensor):
     various :class:`~opvious.modeling.Tensor` convenience class methods, for
     example:
 
-    .. code:: python
+    .. code-block:: python
 
         v1 = Variable.unit()  # Variable with value within [0, 1]
         v2 = Variable.non_negative() # # Variable with value at least 0

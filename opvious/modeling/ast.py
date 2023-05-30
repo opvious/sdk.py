@@ -360,18 +360,22 @@ class _SwitchExpression(Expression):
 
 
 class Space:
+    """Base quantification
+
+
+    This class provides support for generating cross-products with the `*`
+    operator (see :func:`~opvious.modeling.cross`):
+
+    .. code-block:: python
+
+        space1 * space2 # Equivalent to cross(space1, space2)
+    """
+
     def __mul__(self, other: Quantifiable) -> Quantification:
         return cross(self, other)
 
     def __rmul__(self, left: Quantifiable) -> Quantification:
         return cross(left, self)
-
-
-def _only_element(it: Iterable[Cross]) -> Cross:
-    elems = list(itertools.islice(it, 2))
-    if len(elems) != 1:
-        raise ValueError(f"Unexpected iterable: {elems}")
-    return elems[0]
 
 
 class ScalarSpace(Space):

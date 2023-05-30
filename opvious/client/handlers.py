@@ -271,7 +271,7 @@ class Client:
         The LP formatted output will be fully annotated with matching keys and
         labels:
 
-        .. code::
+        .. code-block::
 
             minimize
               +1 inventory$1 \\ [day=0]
@@ -348,7 +348,7 @@ class Client:
         The returned response exposes both metadata (status, objective value,
         etc.) and solution data (if the solve was feasible):
 
-        .. code:: python
+        .. code-block:: python
 
             response = await client.run_solve(
                 specification=opvious.RemoteSpecification.example(
