@@ -418,6 +418,13 @@ _Q = TypeVar(
 
 
 class IterableSpace(Protocol[_Q]):
+    """Base protocol for spaces which can also be directly iterated on
+
+    It is exposed mostly as a typing convenience for typing model fragments.
+    :class:`~opvious.modeling.Space` is typically used for providing the
+    underlying implementation.
+    """
+
     def __mul__(self, other: Quantifiable) -> Quantification:
         raise NotImplementedError()
 
