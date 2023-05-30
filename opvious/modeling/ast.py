@@ -4,7 +4,7 @@ import collections
 import dataclasses
 import itertools
 import math
-from typing import Any, cast, Iterable, Optional, Sequence, TypeVar, Union
+from typing import Any, cast, Iterable, Iterator, Mapping, Optional, Protocol, Sequence, TypeVar, Union
 
 from ..common import untuple
 from .identifiers import (
@@ -261,7 +261,7 @@ class Domain:
         groups = []
         outer = itertools.groupby(self.quantifiers, _quantifier_grouping_key)
         for (_id, key), outer_qs in outer:
-            if isinstance(key, Space):
+            if isinstance(key, ScalarSpace):
                 names = ", ".join(q.format() for q in outer_qs)
                 groups.append(f"{names} \\in {key.render()}")
             else:
@@ -285,10 +285,10 @@ class Domain:
 
 def _quantifier_grouping_key(
     q: QuantifierIdentifier,
-) -> tuple[int, Union[Space, QuantifierGroup]]:
+) -> tuple[int, Union[ScalarSpace, QuantifierGroup]]:
     # We add the ID to prevent `__eq__` from being called on equations
     sp = q.space
-    if not isinstance(sp, Space):
+    if not isinstance(sp, ScalarSpace):
         raise TypeError(f"Unexpected space: {sp}")
     if not q.groups:
         return (id(sp), sp)
@@ -318,7 +318,7 @@ class _CardinalityExpression(Expression):
         with local_formatting_scope(qs):
             if len(qs) == 1 and self.domain.mask is None:
                 _id, key = _quantifier_grouping_key(qs[0])
-                if isinstance(key, Space):
+                if isinstance(key, ScalarSpace):
                     sp = key.render()
                 else:
                     sp = render_identifier(key.alias, *key.subscripts)
@@ -349,6 +349,21 @@ class _SwitchExpression(Expression):
 
 
 class Space:
+    def __mul__(self, other: Quantifiable) -> Quantification:
+        return cross(self, other)
+
+    def __rmul__(self, left: Quantifiable) -> Quantification:
+        return cross(left, self)
+
+
+def _only_element(it: Iterable[Cross]) -> Cross:
+    elems = list(itertools.islice(it, 2))
+    if len(elems) != 1:
+        raise ValueError(f"Unexpected iterable: {elems}")
+    return elems[0]
+
+
+class ScalarSpace(Space):
     def __iter__(self) -> Quantified[Quantifier]:
         return (untuple(t) for t in cross(self))
 
@@ -357,7 +372,7 @@ class Space:
 
 
 @dataclasses.dataclass(frozen=True)
-class QuantifiableReference(Space):
+class QuantifiableReference(ScalarSpace):
     identifier: AliasIdentifier
     subscripts: tuple[Expression, ...]
     quantifiers: tuple[QuantifierIdentifier, ...]
@@ -382,7 +397,21 @@ class Quantifier(Expression):
         return self.identifier.format()
 
 
-def expression_space(expr: Expression) -> Optional[Space]:
+_Q = TypeVar("_Q", bound=Union[Quantifier, tuple[Quantifier, ...]], covariant=True)
+
+
+class IterableSpace(Protocol[_Q]):
+    def __mul__(self, other: Quantifiable) -> Quantification:
+        raise NotImplementedError()
+
+    def __rmul__(self, other: Quantifiable) -> Quantification:
+        raise NotImplementedError()
+
+    def __iter__(self) -> Iterator[_Q]:
+        raise NotImplementedError()
+
+
+def expression_space(expr: Expression) -> Optional[ScalarSpace]:
     """Returns the underlying scalar quantifiable for an expression if any"""
     if isinstance(expr, Quantifier):
         return expr.identifier.space
@@ -512,7 +541,7 @@ def domain(
     names: Optional[Iterable[Name]] = None,
 ) -> Domain:
     """Creates a domain from a quantifiable"""
-    return _domain_from_quantified(cross(quantifiable, names=names))
+    return _domain_from_quantified(iter(cross(quantifiable, names=names)))
 
 
 def _domain_from_quantified(
@@ -552,11 +581,36 @@ class Cross:
             raise Exception("Unlifted cross-product")
         return self._lifted
 
+    def __getitem__(self, ix) -> Quantifier:
+        return self._quantifiers[ix]
+
     def __iter__(self):
         return iter(self._quantifiers)
 
 
-Quantification = Quantified[Cross]
+@dataclasses.dataclass(frozen=True)
+class Quantification(Space):
+    quantifiables: tuple[Quantifiable, ...]
+    names: Mapping[int, Name]
+    projection: Projection
+    lift: bool
+
+    def __iter__(self) -> Quantified[Cross]:
+        projected: list[Quantifier] = []
+        lifted: list[Quantifier] = []
+        for i, d in enumerate(self.quantifiables):
+            project = (1 << i) & self.projection
+            if not project and not self.lift:
+                continue
+            j0 = len(projected)
+            quants = list(
+                Quantifier(declare(iden.named(self.names.get(j0 + j))))
+                for j, iden in enumerate(_quantifier_identifiers(d))
+            )
+            lifted.extend(quants)
+            if project:
+                projected.extend(quants)
+        yield Cross(tuple(projected), tuple(lifted))
 
 
 def cross(
@@ -571,28 +625,18 @@ def cross(
         quantifiables: One or more quantifiables
         names: Optional names for the generated quantifiers
         projection: Quantifiable selection mask
-        lift: Returns a lifted :class:`~opvious.modeling.Cross` instance.
+        lift: Returns lifted :class:`~opvious.modeling.Cross` instances.
             Setting this option will include all masks present in the original
             quantifiable, even if they are not projected.
 
     This function is the core building block for quantifying values.
     """
-    names_by_index = dict(enumerate(names or []))
-    projected: list[Quantifier] = []
-    lifted: list[Quantifier] = []
-    for i, q in enumerate(quantifiables):
-        project = (1 << i) & projection
-        if not project and not lift:
-            continue
-        j0 = len(projected)
-        quants = list(
-            Quantifier(declare(iden.named(names_by_index.get(j0 + j))))
-            for j, iden in enumerate(_quantifier_identifiers(q))
-        )
-        lifted.extend(quants)
-        if project:
-            projected.extend(quants)
-    yield Cross(tuple(projected), tuple(lifted))
+    return Quantification(
+        quantifiables=quantifiables,
+        names=dict(enumerate(names or [])),
+        projection=projection,
+        lift=lift,
+    )
 
 
 def _quantifier_identifiers(
@@ -610,7 +654,7 @@ def _quantifier_identifiers(
         )
         for q in qs:
             yield q.grouped_within(group)
-    elif isinstance(quantifiable, Space):
+    elif isinstance(quantifiable, ScalarSpace):
         yield QuantifierIdentifier.base(quantifiable)
     else:  # domain or quantified
         if isinstance(quantifiable, Domain):

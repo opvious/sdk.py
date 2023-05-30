@@ -113,7 +113,7 @@ class GroupExpenses(om.Model):
 
     @om.constraint
     def transfer_is_above_floor(self) -> om.Quantified[om.Predicate]:
-        for s, r in om.cross(self.friends, self.friends):
+        for s, r in self.friends * self.friends:
             floor = self.floor() * self.tranferred_indicator(s, r)
             yield self.transferred(s, r) >= floor
 
@@ -125,7 +125,7 @@ class GroupExpenses(om.Model):
     def minimize_total_transferred(self) -> om.Expression:
         return om.total(
             self.transferred(s, r)
-            for s, r in om.cross(self.friends, self.friends)
+            for s, r in self.friends * self.friends
         )
 
 
@@ -137,22 +137,22 @@ class Sudoku(om.Model):
         self.positions = om.interval(0, 8, name="P")
 
         self.input = om.Parameter.indicator(
-            (self.grid, self.values),
+            self.grid * self.values,
             qualifiers=self._qualifiers,
         )
         self.output = om.Variable.indicator(
-            (self.grid, self.values),
+            self.grid * self.values,
             qualifiers=self._qualifiers,
         )
 
     @property
     @om.alias("G")
     def grid(self) -> om.Quantification:
-        return om.cross(self.positions, self.positions)
+        return self.positions * self.positions
 
     @om.constraint(qualifiers=_qualifiers)
     def output_matches_input(self):
-        for i, j, v in om.cross(self.positions, self.positions, self.values):
+        for i, j, v in self.grid * self.values:
             if self.input(i, j, v):
                 yield self.output(i, j, v) >= self.input(i, j, v)
 
@@ -163,17 +163,17 @@ class Sudoku(om.Model):
 
     @om.constraint
     def one_value_per_column(self):
-        for j, v in om.cross(self.positions, self.values):
+        for j, v in self.positions * self.values:
             yield om.total(self.output(i, j, v) == 1 for i in self.positions)
 
     @om.constraint
     def one_value_per_row(self):
-        for i, v in om.cross(self.positions, self.values):
+        for i, v in self.positions * self.values:
             yield om.total(self.output(i, j, v) == 1 for j in self.positions)
 
     @om.constraint
     def one_value_per_box(self):
-        for v, b in om.cross(self.values, self.positions):
+        for v, b in self.values * self.positions:
             yield om.total(
                 self.output(3 * (b // 3) + c // 3, 3 * (b % 3) + c % 3, v) == 1
                 for c in self.positions
@@ -242,6 +242,8 @@ class TestModeling:
     @pytest.mark.parametrize("model", _models)
     async def test_specification(self, model):
         spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        print(text)
         assert spec.annotation.issue_count == 0
 
     @pytest.mark.asyncio
