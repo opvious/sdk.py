@@ -6,7 +6,6 @@ import itertools
 import math
 from typing import (
     Any,
-    cast,
     Iterable,
     Iterator,
     Mapping,
@@ -15,6 +14,8 @@ from typing import (
     Sequence,
     TypeVar,
     Union,
+    cast,
+    overload,
 )
 
 from ..common import untuple
@@ -413,7 +414,7 @@ class Quantifier(Expression):
 
 
 _Q = TypeVar(
-    "_Q", bound=Union[Quantifier, tuple[Quantifier, ...]], covariant=True
+    "_Q", bound=Union[Quantifier, Sequence[Quantifier]], covariant=True
 )
 
 
@@ -532,7 +533,7 @@ class _BinaryPredicate(Predicate):
 
 
 Quantifiable = Union[
-    Iterable[Union[Quantifier, Iterable[Quantifier]]],  # Includes quantified
+    Iterable[Union[Quantifier, Sequence[Quantifier]]],  # Includes quantified
     Space,
     Domain,
     tuple["Quantifiable", ...],
@@ -593,7 +594,7 @@ Projection = int
 
 
 @dataclasses.dataclass(frozen=True)
-class Cross:
+class Cross(Sequence[Quantifier]):
     """Cross-product result"""
 
     _quantifiers: tuple[Quantifier, ...]
@@ -605,30 +606,48 @@ class Cross:
             raise Exception("Unlifted cross-product")
         return self._lifted
 
-    def __getitem__(self, ix) -> Quantifier:
-        return self._quantifiers[ix]
+    def __len__(self) -> int:
+        return len(self._quantifiers)
+
+    @overload
+    def __getitem__(self, ix: int) -> Quantifier:
+        ...
+
+    @overload
+    def __getitem__(self, sl: slice) -> Sequence[Quantifier]:
+        ...
+
+    def __getitem__(self, arg: Any) -> Any:
+        return self._quantifiers[arg]
 
     def __iter__(self):
         return iter(self._quantifiers)
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(
+    frozen=True,
+    eq=False,
+)
 class Quantification(Space):
-    quantifiables: tuple[Quantifiable, ...]
-    names: Mapping[int, Name]
-    projection: Projection
-    lift: bool
+    """Cross-product quantification"""
+
+    _quantifiables: tuple[Quantifiable, ...]
+    _names: Mapping[int, Name]
+    _projection: Projection
+    _lift: bool
+
+    __hash__: Any = None
 
     def __iter__(self) -> Quantified[Cross]:
         projected: list[Quantifier] = []
         lifted: list[Quantifier] = []
-        for i, d in enumerate(self.quantifiables):
-            project = (1 << i) & self.projection
-            if not project and not self.lift:
+        for i, d in enumerate(self._quantifiables):
+            project = (1 << i) & self._projection
+            if not project and not self._lift:
                 continue
             j0 = len(projected)
             quants = list(
-                Quantifier(declare(iden.named(self.names.get(j0 + j))))
+                Quantifier(declare(iden.named(self._names.get(j0 + j))))
                 for j, iden in enumerate(_quantifier_identifiers(d))
             )
             lifted.extend(quants)
@@ -656,10 +675,10 @@ def cross(
     This function is the core building block for quantifying values.
     """
     return Quantification(
-        quantifiables=quantifiables,
-        names=dict(enumerate(names or [])),
-        projection=projection,
-        lift=lift,
+        _quantifiables=quantifiables,
+        _names=dict(enumerate(names or [])),
+        _projection=projection,
+        _lift=lift,
     )
 
 

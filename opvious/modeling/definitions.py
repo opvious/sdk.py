@@ -241,7 +241,7 @@ class Tensor(Definition):
         # an alias-agnostic (and simpler) way
         self._domains = tuple(domain(q) for q in quantifiables)
         self._label = label
-        self.image = image
+        self._image = image
         self.qualifiers = qualifiers
 
     @classmethod
@@ -302,8 +302,23 @@ class Tensor(Definition):
     def label(self) -> Optional[Label]:
         return self._label
 
+    @property
+    def image(self) -> Image:
+        """The tensor's values' image"""
+        return self._image
+
     def quantifiables(self) -> tuple[Quantifiable, ...]:
+        """The quantifiables generating the tensor's space
+
+        This is typically useful to support projections in model fragments. For
+        most use cases consider using the simpler
+        :meth:`~opvious.modeling.Tensor.space` method.
+        """
         return self._domains
+
+    def space(self) -> IterableSpace[Sequence[Quantifier]]:
+        """Returns the tensor's underlying space"""
+        return cross(self._domains)
 
     def __call__(self, *subscripts: ExpressionLike) -> Expression:
         return ExpressionReference(

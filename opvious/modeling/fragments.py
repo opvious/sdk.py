@@ -7,7 +7,7 @@ common use-cases. As a convenience it is also exported by the
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Union, cast
 
 from ..common import untuple
 from .ast import cross, domain, Projection, Quantifiable
@@ -198,7 +198,7 @@ class DerivedVariable(ModelFragment):
 
             @constraint
             def is_defined(self) -> Quantified:
-                for t in cross(self.value.quantifiables()):
+                for t in self.value.space():
                     yield self.value(*t) == body(*t)
 
             def __call__(self, *subs: ExpressionLike) -> Expression:
@@ -241,8 +241,10 @@ class Magnitude(ModelFragment):
 
     Args:
         tensor: Non-negative tensor-like
-        quantifiables: Tensor quantifiables, can be omitted if the tensor is a
-            variable or parameter
+        quantifiables: Tensor quantifiables. Can be omitted if `tensor` is a
+            variable or parameter.
+        image: Tensor image. Defaults to `tensor`'s if it is a variable or
+            parameter, else non-negative reals.
         name: Name of the generated magnitude variable
         projection: Mask used to project the variable's quantification
     """
@@ -252,18 +254,23 @@ class Magnitude(ModelFragment):
         tensor: TensorLike,
         *quantifiables: Quantifiable,
         name: Optional[Name] = None,
-        image: Image = Image(lower_bound=0),
+        image: Optional[Image] = None,
         projection: Projection = -1,
     ) -> Magnitude:
-        if not quantifiables and isinstance(tensor, Tensor):
-            quantifiables = tensor.quantifiables()
+        if isinstance(tensor, Tensor):
+            if not quantifiables:
+                quantifiables = tensor.quantifiables()
+            if not image:
+                image = tensor.image
         domains = tuple(domain(q) for q in quantifiables)
+        if image is None:
+            image = Image(lower_bound=0)
 
         def quantification(lift=False):
             return cross(*domains, projection=projection, lift=lift)
 
         class _Fragment(Magnitude):
-            value = Variable(image, quantification(), name=name)
+            value = Variable(cast(Any, image), quantification(), name=name)
 
             def __new__(cls) -> _Fragment:
                 return ModelFragment.__new__(cls)
