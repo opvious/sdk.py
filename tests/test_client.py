@@ -361,3 +361,23 @@ class TestClient:
             ),
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_relaxes_all_constraints(self):
+        response = await client.run_solve(
+            specification=opvious.FormulationSpecification("group-expenses"),
+            parameters={
+                "paid": {
+                    ("t1", "ann"): 10,
+                },
+                "share": {
+                    ("t1", "ann"): 1,
+                },
+                "floor": 10,
+            },
+            transformations=[
+                opvious.transformations.RelaxConstraints(),
+            ],
+            strategy=opvious.SolveStrategy.equally_weighted_sum(),
+        )
+        assert isinstance(response.outcome, opvious.FeasibleOutcome)
