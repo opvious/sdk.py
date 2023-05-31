@@ -28,8 +28,118 @@ from .quantified import Quantified
 from .statements import method_decorator, ModelFragment
 
 
-class ActivationIndicator(ModelFragment):
-    """Variable activation fragment
+class MaskedSubspace(ModelFragment):
+    """Masked subspace fragment"""
+
+    def __new__(
+        cls,
+        *quantifiables: Quantifiable,
+        alias_name: Optional[Name] = None,
+    ) -> MaskedSubspace:
+        class _Fragment(MaskedSubspace):
+            mask = Parameter.indicator(quantifiables)
+
+            def __new__(cls) -> _Fragment:
+                return ModelFragment.__new__(cls)
+
+            @property
+            @alias(alias_name)
+            def masked(self) -> Quantified:
+                for t in cross(quantifiables):
+                    if self.mask(*t):
+                        yield untuple(t)
+
+            def __iter__(self):
+                return (untuple(t) for t in cross(self.masked))
+
+        return _Fragment()
+
+    @property
+    def mask(self) -> Parameter:
+        """Parameter controlling the subset's element"""
+        raise NotImplementedError()
+
+    @property
+    def masked(self) -> Quantified:
+        """Masked subset
+
+        As a convenience, iterating on the subset directly also yields
+        quantifiers from the masked subset.
+        """
+        raise NotImplementedError()
+
+    def __iter__(self) -> Iterable[Any]:
+        raise NotImplementedError()
+
+
+MaskedSubset = MaskedSubspace  # Deprecated alias
+
+
+class DerivedVariable(ModelFragment):
+    """Variable equal to a given equation
+
+    Args:
+        body: The equation defining the variable's value
+        quantifiables: Variable quantification
+        name: Name of the generated variable
+        image: Generated variable :class:`~opvious.modeling.Image`
+    """
+
+    def __new__(
+        cls,
+        body: Callable[..., Any],
+        *quantifiables: Quantifiable,
+        name: Optional[Name] = None,
+        image: Image = Image(),
+    ) -> DerivedVariable:
+        class _Fragment(DerivedVariable):
+            value = Variable(image, quantifiables, name=name)
+
+            def __new__(cls) -> _Fragment:
+                return ModelFragment.__new__(cls)
+
+            @constraint
+            def is_defined(self) -> Quantified:
+                for t in self.value.space():
+                    yield self.value(*t) == body(*t)
+
+            def __call__(self, *subs: ExpressionLike) -> Expression:
+                return self.value(*subs)
+
+        return _Fragment()
+
+    default_definition = "value"
+
+    @property
+    def value(self) -> Variable:
+        """The generated variable"""
+        raise NotImplementedError()
+
+    @property
+    def is_defined(self) -> Constraint:
+        """The constraint ensuring the variable's value"""
+        raise NotImplementedError()
+
+    def __call__(self, *subs: ExpressionLike) -> Expression:
+        raise NotImplementedError()
+
+
+def derived_variable(
+    *quantifiables: Quantifiable,
+    name: Optional[Name] = None,
+    image: Image = Image(),
+) -> Callable[[TensorLike], DerivedVariable]:
+    """Transforms a method into a :class:`DerivedVariable` fragment"""
+
+    @method_decorator
+    def wrapper(fn):
+        return DerivedVariable(fn, quantifiables, name=name, image=image)
+
+    return wrapper
+
+
+class ActivationVariable(ModelFragment):
+    """Indicator variable activation fragment
 
     Args:
         tensor: Non-negative tensor-like
@@ -53,7 +163,7 @@ class ActivationIndicator(ModelFragment):
         lower_bound: Union[ExpressionLike, bool] = False,
         name: Optional[Name] = None,
         projection: Projection = -1,
-    ) -> ActivationIndicator:
+    ) -> ActivationVariable:
         if not quantifiables and isinstance(tensor, Tensor):
             quantifiables = tensor.quantifiables()
         domains = tuple(domain(q) for q in quantifiables)
@@ -68,7 +178,7 @@ class ActivationIndicator(ModelFragment):
                 )
             return tensor.image
 
-        class _Fragment(ActivationIndicator):
+        class _Fragment(ActivationVariable):
             value = Variable.indicator(quantification(), name=name)
 
             def __new__(cls) -> _Fragment:
@@ -129,114 +239,10 @@ class ActivationIndicator(ModelFragment):
         raise NotImplementedError()
 
 
-class MaskedSubset(ModelFragment):
-    """Quantifiable subset fragment"""
-
-    def __new__(
-        cls,
-        *quantifiables: Quantifiable,
-        alias_name: Optional[Name] = None,
-    ) -> MaskedSubset:
-        class _Fragment(MaskedSubset):
-            mask = Parameter.indicator(quantifiables)
-
-            def __new__(cls) -> _Fragment:
-                return ModelFragment.__new__(cls)
-
-            @property
-            @alias(alias_name)
-            def masked(self) -> Quantified:
-                for t in cross(quantifiables):
-                    if self.mask(*t):
-                        yield untuple(t)
-
-            def __iter__(self):
-                return (untuple(t) for t in cross(self.masked))
-
-        return _Fragment()
-
-    @property
-    def mask(self) -> Parameter:
-        """Parameter controlling the subset's element"""
-        raise NotImplementedError()
-
-    @property
-    def masked(self) -> Quantified:
-        """Masked subset
-
-        As a convenience, iterating on the subset directly also yields
-        quantifiers from the masked subset.
-        """
-        raise NotImplementedError()
-
-    def __iter__(self) -> Iterable[Any]:
-        raise NotImplementedError()
+ActivationIndicator = ActivationVariable  # Deprecated alias
 
 
-class DerivedVariable(ModelFragment):
-    """Variable equal to a given equation
-
-    Args:
-        body: The equation defining the variable's value
-        quantifiables: Variable quantification
-        name: Name of the generated variable
-        image: Generated variable :class:`~opvious.modeling.Image`
-    """
-
-    def __new__(
-        cls,
-        body: Callable[..., Any],
-        *quantifiables: Quantifiable,
-        name: Optional[Name] = None,
-        image: Image = Image(),
-    ) -> DerivedVariable:
-        class _Fragment(DerivedVariable):
-            value = Variable(image, quantifiables, name=name)
-
-            def __new__(cls) -> _Fragment:
-                return ModelFragment.__new__(cls)
-
-            @constraint
-            def is_defined(self) -> Quantified:
-                for t in self.value.space():
-                    yield self.value(*t) == body(*t)
-
-            def __call__(self, *subs: ExpressionLike) -> Expression:
-                return self.value(*subs)
-
-        return _Fragment()
-
-    default_definition = "value"
-
-    @property
-    def value(self) -> Variable:
-        """The generated variable"""
-        raise NotImplementedError()
-
-    @property
-    def is_defined(self) -> Constraint:
-        """The constraint ensuring the variable's value"""
-        raise NotImplementedError()
-
-    def __call__(self, *subs: ExpressionLike) -> Expression:
-        raise NotImplementedError()
-
-
-def derived_variable(
-    *quantifiables: Quantifiable,
-    name: Optional[Name] = None,
-    image: Image = Image(),
-) -> Callable[[Callable[..., Expression]], DerivedVariable]:
-    """Transforms a method into a derived variable"""
-
-    @method_decorator
-    def wrapper(fn):
-        return DerivedVariable(fn, quantifiables, name=name, image=image)
-
-    return wrapper
-
-
-class Magnitude(ModelFragment):
+class MagnitudeVariable(ModelFragment):
     """Absolute value variable fragment
 
     Args:
@@ -247,6 +253,8 @@ class Magnitude(ModelFragment):
             parameter, else non-negative reals.
         name: Name of the generated magnitude variable
         projection: Mask used to project the variable's quantification
+
+    See also :func:`magnitude_variable` for a decorator equivalent.
     """
 
     def __new__(
@@ -256,7 +264,7 @@ class Magnitude(ModelFragment):
         name: Optional[Name] = None,
         image: Optional[Image] = None,
         projection: Projection = -1,
-    ) -> Magnitude:
+    ) -> MagnitudeVariable:
         if isinstance(tensor, Tensor):
             if not quantifiables:
                 quantifiables = tensor.quantifiables()
@@ -269,7 +277,7 @@ class Magnitude(ModelFragment):
         def quantification(lift=False):
             return cross(*domains, projection=projection, lift=lift)
 
-        class _Fragment(Magnitude):
+        class _Fragment(MagnitudeVariable):
             value = Variable(cast(Any, image), quantification(), name=name)
 
             def __new__(cls) -> _Fragment:
@@ -309,3 +317,31 @@ class Magnitude(ModelFragment):
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
         raise NotImplementedError()
+
+
+def magnitude_variable(
+    *quantifiables: Quantifiable,
+    name: Optional[Name] = None,
+    image: Optional[Image] = None,
+    projection: Projection = -1,
+) -> Callable[[TensorLike], MagnitudeVariable]:
+    """Transforms a method into a :class:`MagnitudeVariable` fragment
+
+    Note that this method may alter the underlying method's call signature if a
+    projection is specified.
+    """
+
+    @method_decorator
+    def wrapper(fn):
+        return MagnitudeVariable(
+            fn,
+            *quantifiables,
+            name=name,
+            image=image,
+            projection=projection,
+        )
+
+    return wrapper
+
+
+Magnitude = MagnitudeVariable  # Deprecated alias

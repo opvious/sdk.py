@@ -280,7 +280,7 @@ class TestModeling:
     async def test_masked_subset(self):
         class _Model(om.Model):
             days = om.Dimension()
-            holidays = om.fragments.MaskedSubset(days, alias_name="H")
+            holidays = om.fragments.MaskedSubspace(days, alias_name="H")
             target = om.Variable.discrete(holidays)
 
             @om.constraint
@@ -410,12 +410,8 @@ class TestModeling:
             points = om.Dimension()
             offset = om.Variable.continuous(points)
 
-            def __init__(self) -> None:
-                self.magnitude = om.fragments.Magnitude(
-                    self.double_offset, self.points, projection=0, name="\\mu"
-                )
-
-            def double_offset(self, p) -> om.Expression:
+            @om.fragments.magnitude_variable(points, projection=0, name="\\mu")
+            def magnitude(self, p) -> om.Expression:
                 return 2 * self.offset(p)
 
             @om.objective
