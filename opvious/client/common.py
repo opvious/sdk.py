@@ -168,21 +168,24 @@ class OutlineGenerator:
         self._transformations.append(tf)
 
     async def generate(self) -> tuple[Outline, Json]:
+        pristine_outline = outline_from_json(self._pristine_outline_data)
         if not self._transformations:
-            return outline_from_json(self._pristine_outline_data), []
-
+            return pristine_outline, []
         executor = self._executor
         pristine_outline_data = self._pristine_outline_data
 
         class Context(TransformationContext):
             async def fetch_outline(self) -> Outline:
+                transformations = self.get_json()
+                if not transformations:
+                    return pristine_outline
                 async with executor.execute(
                     result_type=JsonExecutorResult,
                     url="/outlines/transform",
                     method="POST",
                     json_data=json_dict(
                         outline=pristine_outline_data,
-                        transformations=self.get_json(),
+                        transformations=transformations,
                     ),
                 ) as res:
                     data = res.json_data()
