@@ -339,8 +339,7 @@ class Client:
             async for line in res.lines():
                 if line.startswith("\\"):
                     _logger.debug(line[2:].strip())
-                else:
-                    lines.append(line)
+                lines.append(line)
             return "".join(lines)
 
     async def run_solve(
