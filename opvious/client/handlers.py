@@ -298,6 +298,7 @@ class Client:
             parameters=parameters,
             dimensions=dimensions,
             transformations=transformations,
+            strategy=strategy,
             options=options,
         )
         async with self._executor.execute(
