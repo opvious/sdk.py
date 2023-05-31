@@ -383,11 +383,11 @@ class TestClient:
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_save_specification(self):
+    async def test_register_specification(self):
         ns = opvious.load_notebook_models(
             "notebooks/set-cover.ipynb", root=__file__
         )
-        spec = await client.save_specification(
+        spec = await client.register_specification(
             ns.model.specification(), formulation_name="set-cover-notebook"
         )
         assert isinstance(spec, opvious.FormulationSpecification)
