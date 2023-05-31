@@ -227,7 +227,7 @@ def derived_variable(
     name: Optional[Name] = None,
     image: Image = Image(),
 ) -> Callable[[Callable[..., Expression]], DerivedVariable]:
-    """Transforms a method into a derived variable"""
+    """Transforms a method into a :class:`DerivedVariable` fragment"""
 
     @method_decorator
     def wrapper(fn):
@@ -236,7 +236,7 @@ def derived_variable(
     return wrapper
 
 
-class Magnitude(ModelFragment):
+class MagnitudeVariable(ModelFragment):
     """Absolute value variable fragment
 
     Args:
@@ -247,6 +247,8 @@ class Magnitude(ModelFragment):
             parameter, else non-negative reals.
         name: Name of the generated magnitude variable
         projection: Mask used to project the variable's quantification
+
+    See also :func:`magnitude_variable` for a decorator equivalent.
     """
 
     def __new__(
@@ -256,7 +258,7 @@ class Magnitude(ModelFragment):
         name: Optional[Name] = None,
         image: Optional[Image] = None,
         projection: Projection = -1,
-    ) -> Magnitude:
+    ) -> MagnitudeVariable:
         if isinstance(tensor, Tensor):
             if not quantifiables:
                 quantifiables = tensor.quantifiables()
@@ -269,7 +271,7 @@ class Magnitude(ModelFragment):
         def quantification(lift=False):
             return cross(*domains, projection=projection, lift=lift)
 
-        class _Fragment(Magnitude):
+        class _Fragment(MagnitudeVariable):
             value = Variable(cast(Any, image), quantification(), name=name)
 
             def __new__(cls) -> _Fragment:
@@ -309,3 +311,31 @@ class Magnitude(ModelFragment):
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
         raise NotImplementedError()
+
+
+def magnitude_variable(
+    *quantifiables: Quantifiable,
+    name: Optional[Name] = None,
+    image: Optional[Image] = None,
+    projection: Projection = -1,
+) -> Callable[[Callable[..., Expression]], MagnitudeVariable]:
+    """Transforms a method into a :class:`MagnitudeVariable` fragment
+
+    Note that this method may alter the underlying method's call signature if a
+    projection is specified.
+    """
+
+    @method_decorator
+    def wrapper(fn):
+        return MagnitudeVariable(
+            fn,
+            *quantifiables,
+            name=name,
+            image=image,
+            projection=projection,
+        )
+
+    return wrapper
+
+
+Magnitude = MagnitudeVariable  # Deprecated alias

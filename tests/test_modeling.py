@@ -410,12 +410,12 @@ class TestModeling:
             points = om.Dimension()
             offset = om.Variable.continuous(points)
 
-            def __init__(self) -> None:
-                self.magnitude = om.fragments.Magnitude(
-                    self.double_offset, self.points, projection=0, name="\\mu"
-                )
-
-            def double_offset(self, p) -> om.Expression:
+            @om.fragments.magnitude_variable(
+                self.points,
+                projection=0,
+                name="\\mu"
+            )
+            def magnitude(self, p) -> om.Expression:
                 return 2 * self.offset(p)
 
             @om.objective
