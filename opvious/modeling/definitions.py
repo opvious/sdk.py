@@ -303,7 +303,17 @@ class Tensor(Definition):
         return self._label
 
     def quantifiables(self) -> tuple[Quantifiable, ...]:
+        """The quantifiables generating the tensor's space
+
+        This is typically useful to support projections in model fragments. For
+        most use cases consider using the simpler
+        :meth:`~opvious.modeling.Tensor.space` method.
+        """
         return self._domains
+
+    def space(self) -> IterableSpace[Sequence[Quantifier]]:
+        """Returns the tensor's underlying space"""
+        return cross(self._domains)
 
     def __call__(self, *subscripts: ExpressionLike) -> Expression:
         return ExpressionReference(
