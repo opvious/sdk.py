@@ -411,9 +411,7 @@ class TestModeling:
             offset = om.Variable.continuous(points)
 
             @om.fragments.magnitude_variable(
-                self.points,
-                projection=0,
-                name="\\mu"
+                self.points, projection=0, name="\\mu"
             )
             def magnitude(self, p) -> om.Expression:
                 return 2 * self.offset(p)

@@ -226,7 +226,7 @@ def derived_variable(
     *quantifiables: Quantifiable,
     name: Optional[Name] = None,
     image: Image = Image(),
-) -> Callable[[Callable[..., Expression]], DerivedVariable]:
+) -> Callable[[TensorLike], DerivedVariable]:
     """Transforms a method into a :class:`DerivedVariable` fragment"""
 
     @method_decorator
@@ -318,7 +318,7 @@ def magnitude_variable(
     name: Optional[Name] = None,
     image: Optional[Image] = None,
     projection: Projection = -1,
-) -> Callable[[Callable[..., Expression]], MagnitudeVariable]:
+) -> Callable[[TensorLike], MagnitudeVariable]:
     """Transforms a method into a :class:`MagnitudeVariable` fragment
 
     Note that this method may alter the underlying method's call signature if a
