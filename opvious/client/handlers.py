@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import json
 import humanize
 import logging
-from typing import cast, Iterable, Mapping, Optional, Union
+from typing import cast, Iterable, Mapping, Optional, Sequence, Union
 
 from ..common import (
     Json,
@@ -173,11 +173,39 @@ class Client:
             ]
         return specification.annotated(issues)
 
-    async def save_specification(
+    async def register_specification(
         self,
-        _specification: LocalSpecification,
-    ) -> None:
-        raise NotImplementedError()
+        specification: LocalSpecification,
+        formulation_name: str,
+        tag_names: Optional[Sequence[str]] = None,
+    ) -> FormulationSpecification:
+        """Saves a local specification within a remote formulation
+
+        Args:
+            specification: The specification to save
+            formulation_name: The name of the formulation to register the
+                specification in
+            tag_names: Optional list of tags to assign to this specification.
+                The first one, if any, will be used in the returned
+                specification.
+
+        The returned formulation can be used to start attempts for example.
+        """
+        await self._executor.execute_graphql_query(
+            query="@RegisterSpecification",
+            variables=json_dict(
+                input=json_dict(
+                    description=specification.description,
+                    formulation_name=formulation_name,
+                    sources=[s.text for s in specification.sources],
+                    tag_names=tag_names,
+                ),
+            ),
+        )
+        return FormulationSpecification(
+            formulation_name=formulation_name,
+            tag_name=tag_names[0] if tag_names else None,
+        )
 
     async def _prepare_solve(
         self,

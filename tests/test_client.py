@@ -381,3 +381,18 @@ class TestClient:
             strategy=opvious.SolveStrategy.equally_weighted_sum(),
         )
         assert isinstance(response.outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_save_specification(self):
+        ns = opvious.load_notebook_models(
+            "notebooks/set-cover.ipynb", root=__file__
+        )
+        spec = await client.save_specification(
+            ns.model.specification(), formulation_name="set-cover-notebook"
+        )
+        assert isinstance(spec, opvious.FormulationSpecification)
+        res = await client.run_solve(
+            specification=spec,
+            parameters={"covers": [("s", "v")]},
+        )
+        assert isinstance(res.outcome, opvious.FeasibleOutcome)
