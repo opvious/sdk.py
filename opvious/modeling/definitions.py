@@ -241,7 +241,7 @@ class Tensor(Definition):
         # an alias-agnostic (and simpler) way
         self._domains = tuple(domain(q) for q in quantifiables)
         self._label = label
-        self.image = image
+        self._image = image
         self.qualifiers = qualifiers
 
     @classmethod
@@ -301,6 +301,11 @@ class Tensor(Definition):
     @property
     def label(self) -> Optional[Label]:
         return self._label
+
+    @property
+    def image(self) -> Image:
+        """The tensor's values' image"""
+        return self._image
 
     def quantifiables(self) -> tuple[Quantifiable, ...]:
         """The quantifiables generating the tensor's space

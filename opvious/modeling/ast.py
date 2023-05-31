@@ -610,10 +610,12 @@ class Cross(Sequence[Quantifier]):
         return len(self._quantifiers)
 
     @overload
-    def __getitem__(self, ix: int) -> Quantifier: ...
+    def __getitem__(self, ix: int) -> Quantifier:
+        ...
 
     @overload
-    def __getitem__(self, sl: slice) -> Sequence[Quantifier]: ...
+    def __getitem__(self, sl: slice) -> Sequence[Quantifier]:
+        ...
 
     def __getitem__(self, arg: Any) -> Any:
         return self._quantifiers[arg]
@@ -622,7 +624,10 @@ class Cross(Sequence[Quantifier]):
         return iter(self._quantifiers)
 
 
-@dataclasses.dataclass(frozen=True, eq=False, )
+@dataclasses.dataclass(
+    frozen=True,
+    eq=False,
+)
 class Quantification(Space):
     """Cross-product quantification"""
 
