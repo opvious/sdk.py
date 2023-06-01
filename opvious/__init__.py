@@ -4,6 +4,7 @@ from .client import Client, ClientSetting
 from .common import __version__
 from .data.attempts import Attempt, AttemptNotification
 from .data.outcomes import (
+    AbortedOutcome,
     CancelledOutcome,
     FailedOutcome,
     FeasibleOutcome,
@@ -85,6 +86,7 @@ __all__ = [
     "TensorArgument",
     "Value",
     # Outcomes
+    "AbortedOutcome",
     "CancelledOutcome",
     "FailedOutcome",
     "FeasibleOutcome",

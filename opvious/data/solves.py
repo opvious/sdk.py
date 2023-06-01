@@ -7,11 +7,12 @@ from typing import Any, cast, Mapping, Optional, Union
 
 from ..common import decode_extended_float, Json, json_dict
 from .outcomes import (
+    AbortedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    UnboundedOutcome,
     Outcome,
     SolveStatus,
+    UnboundedOutcome,
 )
 from .outlines import Label, ObjectiveSense, Outline
 
@@ -196,6 +197,8 @@ def solve_response_from_json(
         outcome = cast(Outcome, InfeasibleOutcome())
     elif status == "UNBOUNDED":
         outcome = UnboundedOutcome()
+    elif status == "ABORTED":
+        outcome = AbortedOutcome()
     else:
         outcome = FeasibleOutcome(
             is_optimal=status == "OPTIMAL",

@@ -81,7 +81,13 @@ class UnboundedOutcome:
     """No bounded optimal solution exists"""
 
 
+@dataclasses.dataclass(frozen=True)
+class AbortedOutcome:
+    """No feasible solution was found"""
+
+
 Outcome = Union[
+    AbortedOutcome,
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
