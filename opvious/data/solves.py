@@ -157,7 +157,7 @@ def _labeled_dataframe(
     return df.set_index("label")
 
 
-def _timedelta(ms: int) -> pd.Timedelta:
+def _timedelta(ms: int) -> int:
     return ms
 
 

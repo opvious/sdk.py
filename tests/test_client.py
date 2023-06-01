@@ -333,7 +333,6 @@ class TestClient:
         )
         print(summary.constraints)
         assert len(summary.parameters) == 1
-        assert False
 
     @pytest.mark.asyncio
     async def test_solve_sudoku_from_url(self):
