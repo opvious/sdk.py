@@ -55,7 +55,6 @@ def solve_summary_from_json(data: Json) -> SolveSummary:
     return SolveSummary(
         column_count=column_count,
         row_count=row_count,
-        weight_count=weight_count,
         dimensions=_labeled_dataframe(
             (
                 {"label": c["label"], "item_count": c["itemCount"]}
