@@ -29,9 +29,6 @@ class SolveSummary:
     row_count: int
     """Total number of constraint rows"""
 
-    weight_count: int
-    """Total number of non-zero constraint weights"""
-
     dimensions: pd.DataFrame = dataclasses.field(repr=False)
     """Dimension summary statistics"""
 
@@ -47,22 +44,14 @@ class SolveSummary:
     objectives: pd.DataFrame = dataclasses.field(repr=False)
     """Objective summary statistics"""
 
-    @property
-    def density(self) -> float:
-        """Fraction of non-zero weights in the constraint matrix"""
-        denom = self.column_count * self.row_count
-        return self.weight_count / denom if denom > 0 else 1
-
 
 def solve_summary_from_json(data: Json) -> SolveSummary:
     column_count = 0
     for item in data["variables"]:
         column_count += item["columnCount"]
     row_count = 0
-    weight_count = 0
     for item in data["constraints"]:
         row_count += item["rowCount"]
-        weight_count += item["weightProfile"]["count"]
     return SolveSummary(
         column_count=column_count,
         row_count=row_count,
