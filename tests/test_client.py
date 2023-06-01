@@ -326,6 +326,15 @@ class TestClient:
         assert "decisions" in instructions
 
     @pytest.mark.asyncio
+    async def test_inspect_solve_summary(self):
+        summary = await client.inspect_solve_summary(
+            specification=opvious.FormulationSpecification("sudoku"),
+            parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
+        )
+        print(summary.constraints)
+        assert len(summary.parameters) == 1
+
+    @pytest.mark.asyncio
     async def test_solve_sudoku_from_url(self):
         response = await client.run_solve(
             specification=opvious.RemoteSpecification.example("sudoku"),
