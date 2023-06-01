@@ -46,15 +46,9 @@ class SolveSummary:
 
 
 def solve_summary_from_json(data: Json) -> SolveSummary:
-    column_count = 0
-    for item in data["variables"]:
-        column_count += item["columnCount"]
-    row_count = 0
-    for item in data["constraints"]:
-        row_count += item["rowCount"]
     return SolveSummary(
-        column_count=column_count,
-        row_count=row_count,
+        column_count=sum(v["columnCount"] for v in data["variables"]),
+        row_count=sum(c["rowCount"] for c in data["constraints"]),
         dimensions=_labeled_dataframe(
             (
                 {"label": c["label"], "item_count": c["itemCount"]}
