@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import math
+import numpy as np
 import pandas as pd
-from typing import Any, cast, Mapping, Optional, Union
+from typing import Any, cast, Mapping, Optional, Sequence, Union
 
 from ..common import decode_extended_float, Json, json_dict
 from .outcomes import (
@@ -19,16 +21,31 @@ from .outlines import Label, ObjectiveSense, Outline
 
 @dataclasses.dataclass(frozen=True)
 class SolveSummary:
-    """Solve summary statistics"""
+    """Reified problem summary statistics"""
 
     column_count: int
-    """Total number of variable columns in the reified problem"""
+    """Total number of variable columns"""
 
     row_count: int
-    """Total number of constraint rows in the reified problem"""
+    """Total number of constraint rows"""
 
     weight_count: int
-    """Total number of non-zero weights in the reified problem"""
+    """Total number of non-zero constraint weights"""
+
+    dimensions: pd.DataFrame = dataclasses.field(repr=False)
+    """Dimension summary statistics"""
+
+    parameters: pd.DataFrame = dataclasses.field(repr=False)
+    """Parameter summary statistics"""
+
+    variables: pd.DataFrame = dataclasses.field(repr=False)
+    """Variable summary statistics"""
+
+    constraints: pd.DataFrame = dataclasses.field(repr=False)
+    """Constraint summary statistics"""
+
+    objectives: pd.DataFrame = dataclasses.field(repr=False)
+    """Objective summary statistics"""
 
     @property
     def density(self) -> float:
@@ -37,7 +54,7 @@ class SolveSummary:
         return self.weight_count / denom if denom > 0 else 1
 
 
-def solve_summary_from_json(data) -> SolveSummary:
+def solve_summary_from_json(data: Json) -> SolveSummary:
     column_count = 0
     for item in data["variables"]:
         column_count += item["columnCount"]
@@ -50,7 +67,107 @@ def solve_summary_from_json(data) -> SolveSummary:
         column_count=column_count,
         row_count=row_count,
         weight_count=weight_count,
+        dimensions=_labeled_dataframe(
+            (
+                {"label": c["label"], "item_count": c["itemCount"]}
+                for c in data["dimensions"]
+            )
+        ),
+        parameters=_labeled_dataframe(
+            (
+                {
+                    "label": c["label"],
+                    **_value_profile("entry", c["entryProfile"]),
+                    f"entry_{_MULTIPLICITY_SUFFIX}": c["domainMultiplicity"],
+                }
+                for c in data["parameters"]
+            ),
+            multiplicities=["entry"],
+        ),
+        variables=_labeled_dataframe(
+            (
+                {
+                    "label": c["label"],
+                    "column_count": c["columnCount"],
+                    f"column_{_MULTIPLICITY_SUFFIX}": c["domainMultiplicity"],
+                }
+                for c in data["variables"]
+            ),
+            multiplicities=["column"],
+        ),
+        constraints=_labeled_dataframe(
+            (
+                {
+                    "label": c["label"],
+                    "row_count": c["rowCount"],
+                    f"row_{_MULTIPLICITY_SUFFIX}": c["domainMultiplicity"],
+                    f"row_{_SPARSITY}": math.nan,
+                    "column_count": c["columnCount"],
+                    f"column_{_MULTIPLICITY_SUFFIX}": c[
+                        "coefficientMultiplicity"
+                    ],
+                    f"column_{_SPARSITY}": math.nan,
+                    **_value_profile("weight", c["weightProfile"]),
+                    f"weight_{_MULTIPLICITY_SUFFIX}": int(
+                        c["domainMultiplicity"]
+                    )
+                    * int(c["coefficientMultiplicity"]),
+                    f"weight_{_SPARSITY}": math.nan,
+                    "reify_ms": _timedelta(c["reifiedInMillis"]),
+                }
+                for c in data["constraints"]
+            ),
+            multiplicities=["row", "column", "weight"],
+        ),
+        objectives=_labeled_dataframe(
+            (
+                {
+                    "label": c["label"],
+                    **_value_profile("weight", c["weightProfile"]),
+                    f"weight_{_MULTIPLICITY_SUFFIX}": c[
+                        "coefficientMultiplicity"
+                    ],
+                    f"weight_{_SPARSITY}": math.nan,
+                    "reify_ms": _timedelta(c["reifiedInMillis"]),
+                }
+                for c in data["objectives"]
+            ),
+            multiplicities=["weight"],
+        ),
     )
+
+
+_MULTIPLICITY_SUFFIX = "mult"
+
+
+_SPARSITY = "sprs"
+
+
+def _labeled_dataframe(
+    gen: Any, multiplicities: Optional[Sequence[str]] = None
+) -> pd.DataFrame:
+    df = pd.DataFrame(gen)
+    if not len(df):
+        return df
+    for k in multiplicities or []:
+        m = f"{k}_{_MULTIPLICITY_SUFFIX}"
+        se = pd.to_numeric(df[m])
+        del df[m]
+        df[f"{k}_{_SPARSITY}"] = -np.log(df[f"{k}_count"] / se) + 0
+    return df.set_index("label")
+
+
+def _timedelta(ms: int) -> pd.Timedelta:
+    return ms
+
+
+_value_profile_keys = ["count", "min", "max", "mean", "stddev"]
+
+
+def _value_profile(prefix: str, profile: Json) -> Mapping[str, float]:
+    return {
+        f"{prefix}_{k}": profile.get(k, math.nan) for k in _value_profile_keys
+    }
 
 
 def _entry_index(entries, bindings):
