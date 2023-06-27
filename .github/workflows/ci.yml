@@ -43,7 +43,7 @@ jobs:
         run: poetry run pytest
         env:
           OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
-          OPVIOUS_DOMAIN: alpha.opvious.io
+          OPVIOUS_ENDPOINT: https://api.alpha.opvious.io
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.1.0
         id: check-version

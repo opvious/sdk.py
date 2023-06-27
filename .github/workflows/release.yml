@@ -42,7 +42,6 @@ jobs:
         run: poetry run pytest
         env:
           OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_BETA_TOKEN }}
-          OPVIOUS_DOMAIN: beta.opvious.io
       - name: Publish
         run: poetry publish --build
         env:
