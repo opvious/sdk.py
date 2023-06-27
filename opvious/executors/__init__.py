@@ -78,5 +78,5 @@ def authorization_header(token: str) -> str:
         return token
     if ":" in token:
         value = base64.b64encode(token.encode("utf8")).decode("utf8")
-        return "Basic {value}"
+        return f"Basic {value}"
     return f"Bearer {token}"
