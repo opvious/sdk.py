@@ -1,3 +1,4 @@
+import base64
 import sys
 from typing import Optional
 
@@ -12,6 +13,7 @@ from .common import (
 
 
 __all__ = [
+    "authorization_header",
     "aiohttp_executor",
     "default_executor",
     "pyodide_executor",
@@ -68,3 +70,13 @@ def default_executor(
         return aiohttp_executor(root_url=root_url, authorization=authorization)
     except ImportError:
         return urllib_executor(root_url=root_url, authorization=authorization)
+
+
+def authorization_header(token: str) -> str:
+    """Generates a suitable authorization header from a token"""
+    if " " in token:
+        return token
+    if ":" in token:
+        value = base64.b64encode(token.encode("utf8")).decode("utf8")
+        return f"Basic {value}"
+    return f"Bearer {token}"

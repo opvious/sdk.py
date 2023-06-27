@@ -16,14 +16,14 @@ from ..specifications import FormulationSpecification
 from ..transformations import Transformation, TransformationContext
 
 
-_DEFAULT_DOMAIN = "beta.opvious.io"
+DEFAULT_ENDPOINT = "https://api.beta.opvious.io"
 
 
 class ClientSetting(enum.Enum):
     """Client configuration environment variables"""
 
     TOKEN = ("OPVIOUS_TOKEN", "")
-    DOMAIN = ("OPVIOUS_DOMAIN", _DEFAULT_DOMAIN)
+    ENDPOINT = ("OPVIOUS_ENDPOINT", DEFAULT_ENDPOINT)
 
     def read(self, env: Optional[dict[str, str]] = None) -> str:
         """Read the setting's current value or default if missing
@@ -35,14 +35,6 @@ class ClientSetting(enum.Enum):
             env = cast(Any, os.environ)
         name, default_value = self.value
         return env.get(name) or default_value
-
-
-def default_api_url(domain: Optional[str] = None) -> str:
-    return f"https://api.{domain or _DEFAULT_DOMAIN}"
-
-
-def default_hub_url(domain: Optional[str] = None) -> str:
-    return f"https://hub.{domain or _DEFAULT_DOMAIN}"
 
 
 def log_progress(logger: logging.Logger, progress: Json) -> None:

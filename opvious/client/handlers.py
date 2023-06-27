@@ -44,6 +44,7 @@ from ..data.solves import (
 )
 from ..data.tensors import DimensionArgument, TensorArgument
 from ..executors import (
+    authorization_header,
     default_executor,
     Executor,
     JsonExecutorResult,
@@ -60,10 +61,9 @@ from ..specifications import (
 from ..transformations import Transformation
 from .common import (
     ClientSetting,
+    DEFAULT_ENDPOINT,
     OutlineGenerator,
     SolveInputsBuilder,
-    default_api_url,
-    default_hub_url,
     feasible_outcome_details,
     log_progress,
 )
@@ -75,42 +75,41 @@ _logger = logging.getLogger(__name__)
 class Client:
     """Opvious API client"""
 
-    def __init__(self, executor: Executor, api_url: str, hub_url: str):
+    def __init__(self, executor: Executor, endpoint: str):
         self._executor = executor
-        self._api_url = api_url
-        self._hub_url = hub_url
+        self._endpoint = endpoint
 
     def __repr__(self) -> str:
         fields = [
             f"executor_class={self._executor.__class__.__name__}",
-            f"api_url={json.dumps(self._api_url)}",
+            f"endpoint={json.dumps(self._endpoint)}",
         ]
         return f"<opvious.Client {' '.join(fields)}>"
 
     @classmethod
-    def from_token(cls, token: str, domain: Optional[str] = None) -> Client:
+    def from_token(cls, token: str, endpoint: Optional[str] = None) -> Client:
         """
         Creates a client from an API token
 
         Args:
             token: API token. You can use an empty string as token to create an
                 unauthenticated client.
-            domain: API domain. You should only need to set this if you are
+            endpoint: API endpoint. You should only need to set this if you are
                 using a self-hosted cluster. Defaults to the default production
                 endpoint.
         """
         token = token.strip()
         authorization = None
         if token:
-            authorization = token if " " in token else f"Bearer {token}"
-        api_url = default_api_url(domain)
+            authorization = authorization_header(token)
+        if not endpoint:
+            endpoint = DEFAULT_ENDPOINT
         return Client(
             executor=default_executor(
-                root_url=api_url,
+                root_url=endpoint,
                 authorization=authorization,
             ),
-            api_url=api_url,
-            hub_url=default_hub_url(domain),
+            endpoint=endpoint,
         )
 
     @classmethod
@@ -131,7 +130,7 @@ class Client:
                 "environment variable"
             )
         return Client.from_token(
-            token=token, domain=ClientSetting.DOMAIN.read(env)
+            token=token, endpoint=ClientSetting.ENDPOINT.read(env)
         )
 
     @property
@@ -535,9 +534,6 @@ class Client:
 
         return response
 
-    def _attempt_url(self, uuid) -> str:
-        return self._hub_url + "/attempts/" + uuid
-
     async def start_attempt(
         self,
         specification: Union[str, FormulationSpecification],
@@ -622,7 +618,6 @@ class Client:
             uuid=uuid,
             started_at=datetime.now(timezone.utc),
             outline=outline,
-            url=self._attempt_url(uuid),
         )
 
     async def load_attempt(self, uuid: str) -> Optional[Attempt]:
@@ -641,7 +636,6 @@ class Client:
         return attempt_from_graphql(
             data=attempt,
             outline=outline_from_json(attempt["outline"]),
-            url=self._attempt_url(uuid),
         )
 
     async def cancel_attempt(self, uuid: str) -> bool:
