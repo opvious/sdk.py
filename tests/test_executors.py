@@ -11,7 +11,7 @@ ENDPOINT = opvious.ClientSetting.ENDPOINT.read()
 
 @pytest.mark.skipif(not TOKEN, reason="No access token detected")
 class TestExecutors:
-    _authorization = authorization_header(TOKEN)
+    _authorization = opvious.executors.authorization_header(TOKEN)
     _executors = [
         opvious.executors.aiohttp_executor(
             root_url=ENDPOINT, authorization=_authorization
