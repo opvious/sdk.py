@@ -6,18 +6,18 @@ import pytest
 TOKEN = opvious.ClientSetting.TOKEN.read()
 
 
-DOMAIN = opvious.ClientSetting.DOMAIN.read()
+ENDPOINT = opvious.ClientSetting.ENDPOINT.read()
 
 
 @pytest.mark.skipif(not TOKEN, reason="No access token detected")
 class TestExecutors:
-    _authorization = TOKEN if " " in TOKEN else f"Bearer {TOKEN}"
+    _authorization = authorization_header(TOKEN)
     _executors = [
         opvious.executors.aiohttp_executor(
-            root_url=f"https://api.{DOMAIN}", authorization=_authorization
+            root_url=ENDPOINT, authorization=_authorization
         ),
         opvious.executors.aiohttp_executor(
-            root_url=f"https://api.{DOMAIN}", authorization=_authorization
+            root_url=ENDPOINT, authorization=_authorization
         ),
     ]
 

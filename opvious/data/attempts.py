@@ -25,16 +25,12 @@ class Attempt:
     outline: Outline = dataclasses.field(repr=False)
     """The specification outline corresponding to this attempt"""
 
-    url: str = dataclasses.field(repr=False)
-    """The optimimization hub URL for this attempt"""
 
-
-def attempt_from_graphql(data: Any, outline: Outline, url: str) -> Attempt:
+def attempt_from_graphql(data: Any, outline: Outline) -> Attempt:
     return Attempt(
         uuid=data["uuid"],
         started_at=datetime.fromisoformat(data["startedAt"]),
         outline=outline,
-        url=url,
     )
 
 
