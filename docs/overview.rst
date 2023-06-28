@@ -21,12 +21,16 @@ variable, if available:
 
 .. code-block:: python
 
-  client = opvious.Client.default()
+  client = opvious.Client.default()  # Using environment defaults
+  client = opvious.Client.default(token="...")  # Using an explicit token
 
-.. note::
-  By default all clients connect to the Opvious production cloud. Reach out to 
-  us at support@opvious.io if you are interested in a different hosting 
-  solution.
+By default clients connect to the Opvious cloud API, you can pass in an explicit
+`endpoint` argument to use a different one. For example when using a self-hosted 
+`API server <https://hub.docker.com/r/opvious/api-server>`_:
+
+.. code-block:: python
+
+  client = opvious.Client.default(endpoint="http://localhost:8080")
 
 
 Formulating problems
