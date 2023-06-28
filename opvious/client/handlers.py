@@ -87,21 +87,27 @@ class Client:
         return f"<opvious.Client {' '.join(fields)}>"
 
     @classmethod
-    def from_token(cls, token: str, endpoint: Optional[str] = None) -> Client:
+    def default(
+        cls,
+        token: Union[str, bool, None] = None,
+        endpoint: Optional[str] = None,
+    ) -> Client:
         """
-        Creates a client from an API token
+        Creates a client using the best executor for the environment
 
         Args:
-            token: API token. You can use an empty string as token to create an
-                unauthenticated client.
-            endpoint: API endpoint. You should only need to set this if you are
-                using a self-hosted cluster. Defaults to the default production
-                endpoint.
+            token: API token. If absent or `True`, defaults to the
+                `$OPVIOUS_TOKEN` environment variable. If `False`, no
+                authentication will be set.
+            endpoint: API endpoint. If absent, defaults to the
+                `$OPVIOUS_ENDPOINT` environment variable, falling back to the
+                Cloud production endpoint if neither is present.
         """
-        token = token.strip()
         authorization = None
+        if token is True or (not token and token is not False):
+            token = ClientSetting.TOKEN.read()
         if token:
-            authorization = authorization_header(token)
+            authorization = authorization_header(token.strip())
         if not endpoint:
             endpoint = DEFAULT_ENDPOINT
         return Client(
@@ -123,14 +129,15 @@ class Client:
             require_authenticated: Throw if the environment does not include a
                 valid API token.
         """
-        token = ClientSetting.TOKEN.read(env)
+        token = ClientSetting.TOKEN.read(env).strip()
         if not token and require_authenticated:
             raise Exception(
                 f"Missing or empty {ClientSetting.TOKEN.value} "
                 "environment variable"
             )
-        return Client.from_token(
-            token=token, endpoint=ClientSetting.ENDPOINT.read(env)
+        return Client.default(
+            token=token,
+            endpoint=ClientSetting.ENDPOINT.read(env),
         )
 
     @property
