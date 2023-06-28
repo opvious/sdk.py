@@ -135,10 +135,8 @@ def _labeled_dataframe(
         m = f"{k}_{_MULTIPLICITY_SUFFIX}"
         se = pd.to_numeric(df[m])
         del df[m]
-        count = df[f"{k}_count"]
-        df[f"{k}_{_SPARSITY}"] = (
-            -np.log(count / se) + 0 if count > 0 else math.nan
-        )
+        with np.errstate(divide='ignore'):
+            df[f"{k}_{_SPARSITY}"] = -np.log(df[f"{k}_count"] / se) + 0
     return df.set_index("label")
 
 
