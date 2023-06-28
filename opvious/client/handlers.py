@@ -75,14 +75,13 @@ _logger = logging.getLogger(__name__)
 class Client:
     """Opvious API client"""
 
-    def __init__(self, executor: Executor, endpoint: str):
+    def __init__(self, executor: Executor):
         self._executor = executor
-        self._endpoint = endpoint
 
     def __repr__(self) -> str:
         fields = [
             f"executor_class={self._executor.__class__.__name__}",
-            f"endpoint={json.dumps(self._endpoint)}",
+            f"endpoint={json.dumps(self._executor.endpoint)}",
         ]
         return f"<opvious.Client {' '.join(fields)}>"
 
@@ -93,7 +92,7 @@ class Client:
         endpoint: Optional[str] = None,
     ) -> Client:
         """
-        Creates a client using the best :class:`Executor` for the environment
+        Creates a client using the best :class:`.Executor` for the environment
 
         Args:
             token: API token. If absent or `True`, defaults to the
@@ -115,7 +114,6 @@ class Client:
                 endpoint=endpoint,
                 authorization=authorization,
             ),
-            endpoint=endpoint,
         )
 
     @classmethod
@@ -138,14 +136,14 @@ class Client:
         )
 
     @property
-    def authenticated(self) -> bool:
-        """Returns true if the client was created with a non-empty API token"""
-        return self._executor.authenticated
-
-    @property
     def executor(self) -> Executor:
         """Returns the client's underlying executor"""
         return self._executor
+
+    @property
+    def authenticated(self) -> bool:
+        """Returns true if the client was created with a non-empty API token"""
+        return self._executor.authenticated
 
     async def annotate_specification(
         self,

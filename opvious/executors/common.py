@@ -227,12 +227,17 @@ class Executor:
         supports_streaming=False,
     ):
         self._variant = variant
-        self.endpoint = endpoint
+        self._endpoint = endpoint
         self._root_headers = _default_headers(variant)
         if authorization:
             self._root_headers[AUTHORIZATION_HEADER] = authorization
         self.supports_streaming = supports_streaming
         _logger.debug("Instantiated %s executor. [url=%s]", variant, endpoint)
+
+    @property
+    def endpoint(self) -> str:
+        """The executor's root endpoint, used for all relative URLs"""
+        return self._endpoint
 
     @property
     def authenticated(self):
