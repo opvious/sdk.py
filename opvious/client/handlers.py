@@ -75,73 +75,75 @@ _logger = logging.getLogger(__name__)
 class Client:
     """Opvious API client"""
 
-    def __init__(self, executor: Executor, endpoint: str):
+    def __init__(self, executor: Executor):
         self._executor = executor
-        self._endpoint = endpoint
 
     def __repr__(self) -> str:
         fields = [
             f"executor_class={self._executor.__class__.__name__}",
-            f"endpoint={json.dumps(self._endpoint)}",
+            f"endpoint={json.dumps(self._executor.endpoint)}",
         ]
         return f"<opvious.Client {' '.join(fields)}>"
 
     @classmethod
-    def from_token(cls, token: str, endpoint: Optional[str] = None) -> Client:
+    def default(
+        cls,
+        token: Union[str, bool, None] = None,
+        endpoint: Optional[str] = None,
+    ) -> Client:
         """
-        Creates a client from an API token
+        Creates a client using the best :class:`.Executor` for the environment
 
         Args:
-            token: API token. You can use an empty string as token to create an
-                unauthenticated client.
-            endpoint: API endpoint. You should only need to set this if you are
-                using a self-hosted cluster. Defaults to the default production
-                endpoint.
+            token: API token. If absent or `True`, defaults to the
+                `$OPVIOUS_TOKEN` environment variable. If `False`, no
+                authentication will be set.
+            endpoint: API endpoint. If absent, defaults to the
+                `$OPVIOUS_ENDPOINT` environment variable, falling back to the
+                Cloud production endpoint if neither is present.
         """
-        token = token.strip()
         authorization = None
+        if token is True or (not token and token is not False):
+            token = ClientSetting.TOKEN.read()
         if token:
-            authorization = authorization_header(token)
+            authorization = authorization_header(token.strip())
         if not endpoint:
             endpoint = DEFAULT_ENDPOINT
         return Client(
             executor=default_executor(
-                root_url=endpoint,
+                endpoint=endpoint,
                 authorization=authorization,
             ),
-            endpoint=endpoint,
         )
+
+    @classmethod
+    def from_token(cls, token: str, endpoint: Optional[str] = None) -> Client:
+        return Client.default(token=token, endpoint=endpoint)
 
     @classmethod
     def from_environment(
         cls, env: Optional[dict[str, str]] = None, require_authenticated=False
     ) -> Client:
-        """Creates a client from environment variables
-
-        Args:
-            env: Environment, defaults to `os.environ`.
-            require_authenticated: Throw if the environment does not include a
-                valid API token.
-        """
-        token = ClientSetting.TOKEN.read(env)
+        token = ClientSetting.TOKEN.read(env).strip()
         if not token and require_authenticated:
             raise Exception(
                 f"Missing or empty {ClientSetting.TOKEN.value} "
                 "environment variable"
             )
-        return Client.from_token(
-            token=token, endpoint=ClientSetting.ENDPOINT.read(env)
+        return Client.default(
+            token=token,
+            endpoint=ClientSetting.ENDPOINT.read(env),
         )
-
-    @property
-    def authenticated(self) -> bool:
-        """Returns true if the client was created with a non-empty API token"""
-        return self._executor.authenticated
 
     @property
     def executor(self) -> Executor:
         """Returns the client's underlying executor"""
         return self._executor
+
+    @property
+    def authenticated(self) -> bool:
+        """Returns true if the client was created with a non-empty API token"""
+        return self._executor.authenticated
 
     async def annotate_specification(
         self,
