@@ -14,10 +14,10 @@ class TestExecutors:
     _authorization = opvious.executors.authorization_header(TOKEN)
     _executors = [
         opvious.executors.aiohttp_executor(
-            root_url=ENDPOINT, authorization=_authorization
+            endpoint=ENDPOINT, authorization=_authorization
         ),
         opvious.executors.aiohttp_executor(
-            root_url=ENDPOINT, authorization=_authorization
+            endpoint=ENDPOINT, authorization=_authorization
         ),
     ]
 

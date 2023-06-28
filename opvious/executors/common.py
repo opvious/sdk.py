@@ -222,17 +222,17 @@ class Executor:
     def __init__(
         self,
         variant: str,
-        root_url: str,
+        endpoint: str,
         authorization: Optional[str] = None,
         supports_streaming=False,
     ):
         self._variant = variant
-        self._root_url = root_url
+        self.endpoint = endpoint
         self._root_headers = _default_headers(variant)
         if authorization:
             self._root_headers[AUTHORIZATION_HEADER] = authorization
         self.supports_streaming = supports_streaming
-        _logger.debug("Instantiated %s executor. [url=%s]", variant, root_url)
+        _logger.debug("Instantiated %s executor. [url=%s]", variant, endpoint)
 
     @property
     def authenticated(self):
@@ -254,8 +254,8 @@ class Executor:
         json_data: Optional[Any] = None,
     ) -> AsyncIterator[ExpectedExecutorResult]:
         """Send a request"""
-        full_url = urllib.parse.urljoin(self._root_url, url)
-        if full_url.startswith(self._root_url):
+        full_url = urllib.parse.urljoin(self.endpoint, url)
+        if full_url.startswith(self.endpoint):
             all_headers = self._root_headers.copy()
         else:
             all_headers = {}

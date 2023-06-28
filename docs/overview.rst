@@ -15,16 +15,13 @@ Creating a client
 *****************
 
 First, make sure you've :ref:`installed the SDK <Getting started>`. Once that's 
-done, the recommended way to create clients is via 
-:meth:`.Client.from_environment`. This will automatically authenticate the 
-client using the `OPVIOUS_TOKEN` environment variable, if available:
+done, the recommended way to create clients is via :meth:`.Client.default`. This 
+will automatically authenticate the client using the `OPVIOUS_TOKEN` environment 
+variable, if available:
 
 .. code-block:: python
 
-  client = opvious.Client.from_environment()
-
-It's also possible to create a client directly from an API token via 
-:meth:`.Client.from_token`.
+  client = opvious.Client.default()
 
 .. note::
   By default all clients connect to the Opvious production cloud. Reach out to 

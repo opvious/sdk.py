@@ -93,7 +93,7 @@ class Client:
         endpoint: Optional[str] = None,
     ) -> Client:
         """
-        Creates a client using the best executor for the environment
+        Creates a client using the best :class:`Executor` for the environment
 
         Args:
             token: API token. If absent or `True`, defaults to the
@@ -112,23 +112,20 @@ class Client:
             endpoint = DEFAULT_ENDPOINT
         return Client(
             executor=default_executor(
-                root_url=endpoint,
+                endpoint=endpoint,
                 authorization=authorization,
             ),
             endpoint=endpoint,
         )
 
     @classmethod
+    def from_token(cls, token: str, endpoint: Optional[str] = None) -> Client:
+        return Client.default(token=token, endpoint=endpoint)
+
+    @classmethod
     def from_environment(
         cls, env: Optional[dict[str, str]] = None, require_authenticated=False
     ) -> Client:
-        """Creates a client from environment variables
-
-        Args:
-            env: Environment, defaults to `os.environ`.
-            require_authenticated: Throw if the environment does not include a
-                valid API token.
-        """
         token = ClientSetting.TOKEN.read(env).strip()
         if not token and require_authenticated:
             raise Exception(
