@@ -659,7 +659,7 @@ class Quantification(Space):
 def lift(
     projected: tuple[Quantifier, ...],
     unprojected: tuple[Quantifier, ...],
-    projection: Projection
+    projection: Projection,
 ) -> tuple[Quantifier, ...]:
     """Combines quantifiers to reconstruct an underlying quantification"""
     quants: list[Quantifier] = []
