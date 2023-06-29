@@ -20,7 +20,7 @@ class BinPacking(om.Model):
   max_weight = om.Parameter.non_negative()  # Maximum weight for each bin
 
   assigned = om.Variable.indicator(bins, items)  # Bin to item assignment
-  used = om.fragments.ActivationIndicator(assigned, projection=1)  # 1 if a bin is used
+  used = om.fragments.ActivationVariable(assigned, projection=1)  # 1 if a bin is used
 
   @om.constraint
   def each_item_is_assigned_once(self):
@@ -57,7 +57,7 @@ Auto-generated specification:
 ```python
 import opvious
 
-client = opvious.Client.from_environment()
+client = opvious.Client.default()
 
 response = await client.run_solve(
   specification=BinPacking().specification(),
