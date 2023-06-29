@@ -460,3 +460,23 @@ class TestModeling:
         model = SwitchOnShiftStart()
         spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_activation_variable_lower_bound(self):
+        class _Model(om.Model):
+            products = om.Dimension()
+            locations = om.Dimension()
+            sizes = om.Dimension()
+            allocation = om.Variable.natural(locations, products, sizes)
+            size_allocated = om.fragments.ActivationVariable(
+                allocation,
+                projection=0b101,
+                upper_bound=False,
+                lower_bound=1,
+            )
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\sum_{p \in P} \alpha_{l,p,s}" in text
+        assert spec.annotation.issue_count == 0
