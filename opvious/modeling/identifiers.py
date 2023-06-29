@@ -241,13 +241,13 @@ class DefaultIdentifierFormatter(IdentifierFormatter):
     def _format_dimension(self, label: Label, env: Environment) -> Name:
         i = _last_capital_index(label)
         if i is None:
-            return label[0].upper()
+            return _first_available(label[0].upper(), env)
         return f"{label[i]}^\\mathrm{{{label[:i]}}}" if i > 0 else label[i]
 
     def _format_parameter(self, label: Label, env: Environment) -> Name:
         i = _last_capital_index(label)
         if not i:
-            return label[0].lower()
+            return _first_available(label[0].lower(), env)
         return f"{label[i].lower()}^\\mathrm{{{label[:i]}}}"
 
     def _format_variable(self, label: Label, env: Environment) -> Name:
@@ -255,7 +255,7 @@ class DefaultIdentifierFormatter(IdentifierFormatter):
         r = label[i or 0].lower()
         g = _greek_letters.get(r, r)
         if not i:
-            return g
+            return _first_available(g, env)
         return f"{g}^\\mathrm{{{label[:i]}}}"
 
     def format_quantifier(
