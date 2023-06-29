@@ -656,6 +656,24 @@ class Quantification(Space):
         yield Cross(tuple(projected), tuple(lifted))
 
 
+def lift(
+    projected: tuple[Quantifier, ...],
+    unprojected: tuple[Quantifier, ...],
+    projection: Projection,
+) -> tuple[Quantifier, ...]:
+    """Combines quantifiers to reconstruct an underlying quantification"""
+    quants: list[Quantifier] = []
+    i = j = 0
+    for k in range(len(projected) + len(unprojected)):
+        if (1 << k) & projection:
+            quants.append(projected[i])
+            i += 1
+        else:
+            quants.append(unprojected[j])
+            j += 1
+    return tuple(quants)
+
+
 def cross(
     *quantifiables: Quantifiable,
     names: Optional[Iterable[Name]] = None,

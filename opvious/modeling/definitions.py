@@ -629,7 +629,7 @@ def constraint(
     label: Optional[Label] = None,
     qualifiers: Optional[Sequence[Label]] = None,
     disabled=False,
-) -> Callable[[ConstraintMethod], Constraint]:
+) -> Callable[[ConstraintMethod], Optional[Constraint]]:
     ...
 
 
@@ -648,6 +648,7 @@ def constraint(
         qualifiers: Optional list of labels used to qualify the constraint's
             quantifiers. This is useful to override the name of the colums in
             solution dataframes.
+        disabled: Disable the constraint
 
     The decorated method should accept only a `self` argument and return a
     quantified :class:`.Predicate`.
@@ -746,7 +747,10 @@ def objective(method: ObjectiveMethod) -> Objective:
 
 @overload
 def objective(
-    *, sense: Optional[ObjectiveSense] = None, label: Optional[Label] = None
+    *,
+    sense: Optional[ObjectiveSense] = None,
+    label: Optional[Label] = None,
+    disabled=False,
 ) -> Callable[[ObjectiveMethod], Objective]:
     ...
 
@@ -766,6 +770,7 @@ def objective(
             will be inferred.
         label: Objective label override. By default the label is derived from
             the method's name.
+        disabled: Disable the objective
 
     The decorated method should accept only a `self` argument and return an
     :class:`.Expression`, which will become the objective's optimization

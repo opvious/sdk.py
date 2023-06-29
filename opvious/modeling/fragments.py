@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Callable, Iterable, Optional, Union, cast
 
 from ..common import untuple
-from .ast import cross, domain, Projection, Quantifiable
+from .ast import cross, domain, lift, Projection, Quantifiable, total
 from .definitions import (
     Constraint,
     Expression,
@@ -168,7 +168,7 @@ class ActivationVariable(ModelFragment):
             quantifiables = tensor.quantifiables()
         domains = tuple(domain(q) for q in quantifiables)
 
-        def quantification(lift=False):
+        def quantification(lift=False, projection=projection):
             return cross(*domains, projection=projection, lift=lift)
 
         def tensor_image():
@@ -200,8 +200,15 @@ class ActivationVariable(ModelFragment):
                 bound = lower_bound
                 if bound is True:
                     bound = tensor_image().lower_bound
-                for cp in quantification(lift=True):
-                    yield bound * self.value(*cp) <= tensor(*cp.lifted)
+                for cp in quantification():
+                    if projection >= 0:
+                        term = total(
+                            tensor(*lift(cp, ep, projection))
+                            for ep in quantification(projection=~projection)
+                        )
+                    else:
+                        term = tensor(*cp)
+                    yield bound * self.value(*cp) <= term
 
         return _Fragment()
 
