@@ -260,6 +260,8 @@ class MagnitudeVariable(ModelFragment):
             parameter, else non-negative reals.
         name: Name of the generated magnitude variable
         projection: Mask used to project the variable's quantification
+        lower_bound: Disable the lower bound
+        upper_bound: Disable the upper bound
 
     See also :func:`magnitude_variable` for a decorator equivalent.
     """
@@ -271,12 +273,18 @@ class MagnitudeVariable(ModelFragment):
         name: Optional[Name] = None,
         image: Optional[Image] = None,
         projection: Projection = -1,
+        lower_bound=True,
+        upper_bound=True,
     ) -> MagnitudeVariable:
         if isinstance(tensor, Tensor):
             if not quantifiables:
                 quantifiables = tensor.quantifiables()
             if not image:
                 image = tensor.image
+            if lower_bound and tensor.image.lower_bound == 0:
+                lower = False
+            if upper_bound and tensor.image.upper_bound == 0:
+                upper = False
         domains = tuple(domain(q) for q in quantifiables)
         if image is None:
             image = Image(lower_bound=0)
@@ -293,12 +301,12 @@ class MagnitudeVariable(ModelFragment):
             def __call__(self, *subs: ExpressionLike) -> Expression:
                 return self.value(*subs)
 
-            @constraint
+            @constraint(disabled=not lower_bound)
             def lower_bounds(self):
                 for cp in quantification(lift=True):
                     yield -self.value(*cp) <= tensor(*cp.lifted)
 
-            @constraint
+            @constraint(disabled=not upper_bound)
             def upper_bounds(self):
                 for cp in quantification(lift=True):
                     yield self.value(*cp) >= tensor(*cp.lifted)
@@ -313,12 +321,12 @@ class MagnitudeVariable(ModelFragment):
         raise NotImplementedError()
 
     @property
-    def lower_bounds(self) -> Constraint:
+    def lower_bounds(self) -> Optional[Constraint]:
         """The magnitude's lower bound constraint"""
         raise NotImplementedError()
 
     @property
-    def upper_bounds(self) -> Constraint:
+    def upper_bounds(self) -> Optional[Constraint]:
         """The magnitude's upper bound constraint"""
         raise NotImplementedError()
 
@@ -331,6 +339,8 @@ def magnitude_variable(
     name: Optional[Name] = None,
     image: Optional[Image] = None,
     projection: Projection = -1,
+    lower_bound=True,
+    upper_bound=True,
 ) -> Callable[[TensorLike], MagnitudeVariable]:
     """Transforms a method into a :class:`MagnitudeVariable` fragment
 
@@ -346,6 +356,8 @@ def magnitude_variable(
             name=name,
             image=image,
             projection=projection,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
         )
 
     return wrapper

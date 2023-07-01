@@ -72,6 +72,9 @@ class Expression:
     def __neg__(self) -> Expression:
         return _BinaryExpression("mul", literal(-1), self)
 
+    def __abs__(self) -> Expression:
+        return _UnaryExpression("abs", self)
+
     def __add__(self, other: ExpressionLike) -> Expression:
         if is_literal(self, 0):
             return to_expression(other)
@@ -216,6 +219,8 @@ class _UnaryExpression(Expression):
 
     def render(self, _precedence=0) -> str:
         op = self.operator
+        if op == "abs":
+            return f"\\lvert {self.expression.render()} \\rvert"
         return f"\\left\\l{op} {self.expression.render()} \\right\\r{op}"
 
 
@@ -336,7 +341,7 @@ class _CardinalityExpression(Expression):
                     sp = render_identifier(key.alias, *key.subscripts)
             else:
                 sp = f"\\{{ {self.domain.render()} \\}}"
-            return f"\\lvert {sp} \\rvert"
+            return f"\\# {sp}"
 
 
 @dataclasses.dataclass(frozen=True)
