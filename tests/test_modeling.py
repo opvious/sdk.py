@@ -480,3 +480,56 @@ class TestModeling:
         text = spec.sources[0].text
         assert r"\sum_{p \in P} \alpha_{l,p,s}" in text
         assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_magnitude_variable_projection(self):
+        class _Model(om.Model):
+            members = om.Dimension()
+            max_transfer = om.Parameter.non_negative()
+            transfer = om.Variable.non_negative(
+                members, members, upper_bound=max_transfer()
+            )
+            is_transferring = om.fragments.ActivationVariable(transfer)
+
+            @om.fragments.magnitude_variable(
+                members, projection=0, lower_bound=False
+            )
+            def max_transfer_count(self, s):
+                return om.total(
+                    self.is_transferring(s, r) for r in self.members
+                )
+
+            @om.objective
+            def minimize_max_transfer_count(self):
+                return self.max_transfer_count()
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert "UpperBounds" in text
+        assert "LowerBounds" not in text
+        assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_abs(self):
+        class _Model(om.Model):
+            members = om.Dimension()
+            payment = om.Parameter.continuous(members)
+
+            def __init__(self):
+                super().__init__()
+                self.transfer = om.Variable.non_negative(
+                    upper_bound=om.total(
+                        abs(self.payment(m)) for m in self.members
+                    )
+                )
+
+            @om.objective
+            def minimize_transfer(self):
+                return self.transfer()
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\lvert p_{m} \rvert" in text
+        assert spec.annotation.issue_count == 0
