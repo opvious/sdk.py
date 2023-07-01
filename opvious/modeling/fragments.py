@@ -282,9 +282,9 @@ class MagnitudeVariable(ModelFragment):
             if not image:
                 image = tensor.image
             if lower_bound and tensor.image.lower_bound == 0:
-                lower = False
+                lower_bound = False
             if upper_bound and tensor.image.upper_bound == 0:
-                upper = False
+                upper_bound = False
         domains = tuple(domain(q) for q in quantifiables)
         if image is None:
             image = Image(lower_bound=0)
