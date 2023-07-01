@@ -531,5 +531,5 @@ class TestModeling:
         model = _Model()
         spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
-        print(text)
+        assert r"\lvert p_{m} \rvert" in text
         assert spec.annotation.issue_count == 0
