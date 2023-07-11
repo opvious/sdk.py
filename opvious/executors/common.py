@@ -37,23 +37,23 @@ class ExecutorError(Exception):
 
     status: int
     trace: Optional[str]
-    data: Optional[Any]
+    reason: Optional[str]
 
     def __init__(
         self,
         status: int,
         trace: Optional[str] = None,
-        data: Optional[Any] = None,
+        reason: Optional[Any] = None,
     ) -> None:
         message = f"Request failed with status {status}"
         if trace:
             message += f" ({trace})"
-        if data:
-            message += f": {data}"
+        if reason:
+            message += f": {reason}"
         super().__init__(message)
         self.status = status
         self.trace = trace
-        self.data = data
+        self.reason = reason
 
 
 def unexpected_response_error(
@@ -103,7 +103,7 @@ class ExecutorResult:
     def _assert_status(self, status: int, text: Optional[str] = None) -> None:
         if self.status == status:
             return
-        raise ExecutorError(status=self.status, trace=self.trace, data=text)
+        raise ExecutorError(status=self.status, trace=self.trace, reason=text)
 
     @classmethod
     def is_eligible(cls, ctype: Optional[str]) -> bool:
@@ -296,12 +296,14 @@ class Executor:
             body=body,
         ) as result:
             if not isinstance(result, result_type):
-                if isinstance(self, PlainTextExecutorResult):
-                    text = await self.text()
+                if isinstance(result, PlainTextExecutorResult):
+                    reason = await result.text()
+                elif isinstance(result, JsonExecutorResult):
+                    reason = result.text
                 else:
-                    text = None
+                    reason = None
                 raise ExecutorError(
-                    status=result.status, trace=result.trace, data=text
+                    status=result.status, trace=result.trace, reason=reason
                 )
             yield result
 
@@ -320,7 +322,9 @@ class Executor:
             data = result.json_data()
         if data.get("errors"):
             raise ExecutorError(
-                status=result.status, trace=result.trace, data=data
+                status=result.status,
+                trace=result.trace,
+                reason=json.dumps(data),
             )
         return data["data"]
 
