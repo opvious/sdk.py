@@ -81,7 +81,10 @@ class SolveInputsBuilder:
             raise Exception(f"Duplicate parameter: {label}")
         try:
             tensor = Tensor.from_argument(
-                arg, len(outline.bindings), outline.is_indicator
+                arg,
+                rank=len(outline.bindings),
+                is_indicator=outline.is_indicator,
+                is_pin=outline.derivation_kind == "pinnedVariable",
             )
         except Exception as exc:
             raise ValueError(f"Invalid  parameter: {label}") from exc

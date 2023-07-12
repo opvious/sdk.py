@@ -496,8 +496,11 @@ class Client:
                         _logger.debug("Downloaded outputs.")
                         response_json = data
                     elif kind == "error":
-                        message = data["error"]["message"]
-                        raise Exception(f"Solve failed: {message}")
+                        message = "Solve failed"
+                        if res.trace:
+                            message += f" ({res.trace})"
+                        message += f": {data['error']['message']}"
+                        raise Exception(message)
                     else:
                         raise Exception(
                             f"Unexpected response: {json.dumps(data)}"

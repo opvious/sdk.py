@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import math
 import pandas as pd
 from typing import Any, Iterable, Mapping, Tuple, Union
 
@@ -49,7 +50,11 @@ class Tensor:
 
     @classmethod
     def from_argument(
-        cls, arg: TensorArgument, rank: int, is_indicator: bool = False
+        cls,
+        arg: TensorArgument,
+        rank: int,
+        is_indicator: bool = False,
+        is_pin: bool = False,
     ):
         """Creates a tensor from a variety of argument values
 
@@ -90,7 +95,7 @@ class Tensor:
             default_value = arg
         else:
             data = arg
-            default_value = 0
+            default_value = -math.inf if is_pin else 0
         if (
             is_indicator
             and isinstance(data, pd.Series)

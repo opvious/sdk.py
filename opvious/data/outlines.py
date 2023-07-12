@@ -93,6 +93,9 @@ class TensorOutline:
     bindings: list[SourceBinding]
     """Key bindings"""
 
+    derivation_kind: Optional[str]
+    """Derived tensor kind if applicable"""
+
     @property
     def is_indicator(self) -> bool:
         """Whether the tensor is guaranteed to contain only 0s and 1s"""
@@ -107,12 +110,14 @@ def _tensor_from_json(data: Json) -> TensorOutline:
     img = data["image"]
     lb = decode_extended_float(img["lowerBound"])
     ub = decode_extended_float(img["upperBound"])
+    dv = data.get("derivation")
     return TensorOutline(
         label=data["label"],
         lower_bound=lb if is_value(lb) else None,
         upper_bound=ub if is_value(ub) else None,
         is_integral=img["isIntegral"],
         bindings=[_source_binding_from_json(b) for b in data["bindings"]],
+        derivation_kind=dv["kind"] if dv else None,
     )
 
 
