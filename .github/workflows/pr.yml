@@ -8,17 +8,43 @@ on:
 jobs:
   test:
     name: Test
-    timeout-minutes: 3
+    timeout-minutes: 4
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_DB: default_db
+          POSTGRES_USER: default_user
+          POSTGRES_PASSWORD: default_pass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+      server:
+        image: opvious/api-server
+        env:
+          DB_URL: postgres://default_user:default_pass@postgres/default_db
+          OPVIOUS_API_IMAGE_EULA: accepted
+          REDIS_URL: redis://redis
+          STATIC_TOKENS: test@opvious.io=testing
+        ports:
+          - 8080:8080
     steps:
       - name: Check out
         uses: actions/checkout@v2
-      - name: Register formulations
-        uses: opvious/register-specification-action@beta
-        with:
-          token: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
-          domain: alpha.opvious.io
-          sources: tests/sources/*.md
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -36,8 +62,20 @@ jobs:
           poetry run black . --check
           poetry run flake8
           poetry run mypy .
+      - name: Register specifications
+        shell: bash
+        run: |
+          for p in tests/notebooks/*; do
+            poetry run python -m opvious register-notebook "$p"
+          done
+          for p in tests/sources/*; do
+            poetry run python -m opvious register-sources "$p"
+          done
+        env:
+          OPVIOUS_ENDPOINT: http://localhost:8080
+          OPVIOUS_TOKEN: static:testing
       - name: Test
         run: poetry run pytest
         env:
-          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_ALPHA_TOKEN }}
-          OPVIOUS_ENDPOINT: https://api.alpha.opvious.io
+          OPVIOUS_ENDPOINT: http://localhost:8080
+          OPVIOUS_TOKEN: static:testing

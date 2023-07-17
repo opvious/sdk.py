@@ -61,7 +61,6 @@ from ..specifications import (
 from ..transformations import Transformation
 from .common import (
     ClientSetting,
-    DEFAULT_ENDPOINT,
     OutlineGenerator,
     SolveInputsBuilder,
     feasible_outcome_details,
@@ -108,7 +107,7 @@ class Client:
         if token:
             authorization = authorization_header(token.strip())
         if not endpoint:
-            endpoint = DEFAULT_ENDPOINT
+            endpoint = ClientSetting.ENDPOINT.read()
         return Client(
             executor=default_executor(
                 endpoint=endpoint,
