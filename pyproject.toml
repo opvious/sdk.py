@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "opvious"
-version = "0.16.2rc1"
+version = "0.16.3rc1"
 description = "Opvious Python SDK"
 authors = ["Opvious Engineering <oss@opvious.io>"]
 readme = "README.md"
@@ -15,6 +15,7 @@ packages = [{include = "opvious"}]
 aiohttp = {version = "^3.8", optional = true}
 backoff = "^2.2"
 Brotli = {version = "^1.0.9", optional = true}
+docopt = "^0.6.2"
 humanize = "^4.4.0"
 importnb = "^2023.1.7"
 numpy = ">=1.21"
@@ -28,6 +29,7 @@ mypy = "^1.2.0"
 pytest = "~7.1.2"
 pytest-asyncio = "^0.20.2"
 pandas-stubs = "^1.5.3.230321"
+types-docopt = "^0.6.11.3"
 
 [tool.poetry.extras]
 aio = ["aiohttp", "Brotli"]
