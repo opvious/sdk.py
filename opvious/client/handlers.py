@@ -108,7 +108,7 @@ class Client:
         if token:
             authorization = authorization_header(token.strip())
         if not endpoint:
-            endpoint = DEFAULT_ENDPOINT
+            endpoint = ClientSetting.ENDPOINT.read()
         return Client(
             executor=default_executor(
                 endpoint=endpoint,
