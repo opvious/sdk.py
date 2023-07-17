@@ -61,7 +61,6 @@ from ..specifications import (
 from ..transformations import Transformation
 from .common import (
     ClientSetting,
-    DEFAULT_ENDPOINT,
     OutlineGenerator,
     SolveInputsBuilder,
     feasible_outcome_details,
