@@ -426,7 +426,7 @@ _Aliasable = Callable[..., Any]
 
 @dataclasses.dataclass(frozen=True)
 class _Aliased:
-    quantifiables: Sequence[Optional[ScalarSpace]]
+    quantifiable: Quantifiable
     quantifiers: Union[
         None, QuantifierIdentifier, tuple[QuantifierIdentifier, ...]
     ]
@@ -439,6 +439,7 @@ class _Alias(Definition):
     def __init__(
         self,
         aliasable: _Aliasable,
+        quantifiable: tuple[Quantifiable],
         name: Name,
         quantifier_names: Optional[Iterable[Name]] = None,
     ):
@@ -447,6 +448,7 @@ class _Alias(Definition):
         self._quantifier_names = quantifier_names
         self._aliasable = aliasable
         self._aliased: Optional[_Aliased] = None
+        self._quantifiable = quantifiable
 
     @property
     def identifier(self) -> Optional[GlobalIdentifier]:
@@ -458,10 +460,9 @@ class _Alias(Definition):
             return None  # Not used
 
         _logger.debug("Rendering alias named %s...", self._identifier.name)
-        quantifiable = tuple(
-            q or _integers for q in self._aliased.quantifiables
+        outer_domain = domain(
+            self._aliased.quantifiable, names=self._quantifier_names
         )
-        outer_domain = domain(quantifiable, names=self._quantifier_names)
         expressions = [Quantifier(q) for q in outer_domain.quantifiers]
         value = self._aliasable(*expressions)
 
@@ -494,7 +495,8 @@ class _Alias(Definition):
             else:
                 quantifiers, _ = unquantify(value)
             self._aliased = _Aliased(
-                [expression_space(x) for x in exprs],
+                self._quantifiable
+                or tuple(expression_space(x) or _integers for x in exprs),
                 None
                 if quantifiers is None
                 else _quantifier_identifier(quantifiers)
@@ -531,12 +533,16 @@ _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
 
 
 def alias(
-    name: Optional[Name], quantifier_names: Optional[Iterable[Name]] = None
+    name: Optional[Name],
+    *quantifiables: Quantifiable,
+    quantifier_names: Optional[Iterable[Name]] = None,
 ) -> Callable[[_F], _F]:  # TODO: Tighten argument type
     """Decorator promoting a :class:`.Model` method to a named alias
 
     Args:
         name: The alias' name. If `None`, no alias will be added.
+        quantifiables: The alias' quantification. If empty, it will be inferred
+            from the alias' calls.
         quantifier_names: Optional names to use for the alias' quantifiers
 
     The method can return a (potentially quantified) expression or a
@@ -563,7 +569,12 @@ def alias(
     def wrapper(fn):
         if name is None:
             return fn
-        return _Alias(fn, name=name, quantifier_names=quantifier_names)
+        return _Alias(
+            fn,
+            quantifiable=quantifiables,
+            name=name,
+            quantifier_names=quantifier_names,
+        )
 
     return wrapper
 
