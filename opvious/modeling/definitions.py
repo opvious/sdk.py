@@ -41,6 +41,7 @@ from .ast import (
     literal,
     render_identifier,
     to_expression,
+    total,
     within_domain,
 )
 from .identifiers import (
@@ -323,6 +324,18 @@ class Tensor(Definition):
     def __call__(self, *subscripts: ExpressionLike) -> Expression:
         return ExpressionReference(
             self._identifier, tuple(to_expression(s) for s in subscripts)
+        )
+
+    def total(self, absolute=False) -> Expression:
+        """The tensor's total summed value
+
+        Args:
+            abs: Sum the absolute value of the tensor's terms instead of its
+                raw values.
+        """
+        return total(
+            abs(self(*q)) if absolute else self(*q)
+            for q in self.space()
         )
 
     def render_statement(self, label: Label) -> Optional[str]:
