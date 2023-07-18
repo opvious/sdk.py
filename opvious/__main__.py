@@ -79,13 +79,15 @@ class _SpecificationHandler:
         sn = load_notebook_models(path)
         if model is None:
             models = list(sn.__dict__.keys())
-            if len(models) != 1:
+            if not self._dry_run and len(models) != 1:
                 raise Exception(f"Notebook has 0 or 2+ models ({models})")
-            model = models[0]
-        obj = getattr(sn, model)
-        if name is None:
-            name = _default_name(path)
-        await self._handle(obj.specification(), name)
+        else:
+            models = [model]
+        for model in models:
+            obj = getattr(sn, model)
+            if name is None:
+                name = _default_name(path)
+            await self._handle(obj.specification(), name)
 
     async def handle_sources(
         self, glob: str, name: Optional[str] = None
