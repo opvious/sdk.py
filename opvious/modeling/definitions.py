@@ -334,8 +334,7 @@ class Tensor(Definition):
                 raw values.
         """
         return total(
-            abs(self(*q)) if absolute else self(*q)
-            for q in self.space()
+            abs(self(*q)) if absolute else self(*q) for q in self.space()
         )
 
     def render_statement(self, label: Label) -> Optional[str]:

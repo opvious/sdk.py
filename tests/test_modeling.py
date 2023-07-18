@@ -35,8 +35,7 @@ class LotSizing(om.Model):
         self.demand = om.Parameter.non_negative(self.steps)
 
         self.production = om.Variable.non_negative(
-            self.steps,
-            upper_bound=self.demand.total(absolute=True)
+            self.steps, upper_bound=self.demand.total(absolute=True)
         )
         self.production_indicator = om.fragments.ActivationIndicator(
             tensor=self.production,

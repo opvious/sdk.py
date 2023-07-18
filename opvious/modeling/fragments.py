@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Callable, Iterable, Optional, Union, cast
 
 from ..common import untuple
-from .ast import cross, domain, lift, Projection, Quantifier, Quantifiable, total
+from .ast import cross, domain, lift, Projection, Quantifiable, total
 from .definitions import (
     Constraint,
     Expression,
