@@ -541,8 +541,8 @@ def alias(
 
     Args:
         name: The alias' name. If `None`, no alias will be added.
-        quantifiables: The alias' quantification. If empty, it will be inferred
-            from the alias' calls.
+        quantifiables: The alias' quantification. If omitted, it will be
+            inferred from the alias' calls.
         quantifier_names: Optional names to use for the alias' quantifiers
 
     The method can return a (potentially quantified) expression or a
