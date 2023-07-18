@@ -228,7 +228,7 @@ _binary_operator_precedences = {
     "mul": (4, 4, 4),
     "add": (1, 1, 1),
     "mod": (3, 3, 3),
-    "sub": (1, 2, 2),
+    "sub": (1, 2, 1),
     "div": (0, 0, 5),
     "pow": (0, 0, 5),
 }

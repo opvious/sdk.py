@@ -559,3 +559,21 @@ class TestModeling:
         text = spec.sources[0].text
         assert r"\sum_{x \in \{ d \ldots d + 6 \}}" in text
         assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_sub_precedence(self):
+        class _Model(om.Model):
+            actual = om.Variable.indicator()
+
+            def opposite(self):
+                return 1 - self.actual()
+
+            @om.objective
+            def minimize(self):
+                return self.actual() - self.opposite()
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\alpha - \left(1 - \alpha\right)" in text
+        assert spec.annotation.issue_count == 0
