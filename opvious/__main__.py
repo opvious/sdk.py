@@ -1,5 +1,7 @@
 import asyncio
+import dataclasses
 import docopt
+import json
 import os.path
 import sys
 from typing import Any, Mapping, Optional
@@ -18,58 +20,78 @@ underlying client can be configured using the `OPVIOUS_ENDPOINT` and
 (https://www.npmjs.com/package/opvious-cli) for additional operations.
 
 Usage:
-    {_COMMAND} register-notebook PATH [MODEL] [-n NAME] [-t TAGS]
-    {_COMMAND} register-sources GLOB [-n NAME] [-t TAGS]
+    {_COMMAND} register-notebook PATH [MODEL] [-dn NAME] [-t TAGS]
+    {_COMMAND} register-sources GLOB [-dn NAME] [-t TAGS]
     {_COMMAND} (-h | --help)
     {_COMMAND} --version
 
 Options:
+    -d, --dry-run       Validate the specification but do not store it on the
+                        server.
     -n, --name NAME     Formulation name. By default this name is inferred
                         from the file's name, omitting the extension.
-    -t, --tags TAGS     Comma-separated list of tags
+    -t, --tags TAGS     Comma-separated list of tags. By default only the
+                        `latest` tag is added.
     --version           Show SDK version
     -h, --help          Show this message
 """
 
 
-async def _register_notebook(
-    client: Client,
-    path: str,
-    model: Optional[str] = None,
-    name: Optional[str] = None,
-    tags: Optional[str] = None,
-) -> None:
-    sn = load_notebook_models(path)
-    if model is None:
-        models = list(sn.__dict__.keys())
-        if len(models) != 1:
-            raise Exception(f"Notebook has 0 or 2+ models ({models})")
-        model = models[0]
-    obj = getattr(sn, model)
-    if name is None:
-        name = _default_name(path)
-    await client.register_specification(
-        obj.specification(),
-        formulation_name=name,
-        tag_names=tags.split() if tags else None,
-    )
-    print(f"Registered `{model}` as formulation `{name}`.")
+class _SpecificationHandler:
+    def __init__(
+        self, client: Client, tags: Optional[str] = None, dry_run=False
+    ) -> None:
+        self._client = client
+        self._tags = tags.split() if tags else None
+        self._dry_run = dry_run
 
+    async def _handle(self, spec: LocalSpecification, name: str) -> None:
+        if self._dry_run:
+            annotated = await self._client.annotate_specification(spec)
+            ann = annotated.annotation
+            assert ann is not None
+            if ann.issue_count > 0:
+                raise Exception(
+                    f"{ann.issue_count} issue(s) in specification: "
+                    + json.dumps([
+                        dataclasses.asdict(i)
+                        for issues in ann.issues.values()
+                        for i in issues
+                    ])
+                )
+            print("Specification is valid")
+        else:
+            await self._client.register_specification(
+                spec,
+                formulation_name=name,
+                tag_names=self._tags,
+            )
+            print(f"Registered specification in formulation {name}")
 
-async def _register_sources(
-    client: Client,
-    glob: str,
-    name: Optional[str] = None,
-    tags: Optional[str] = None,
-) -> None:
-    if name is None:
-        name = _default_name(glob)
-    await client.register_specification(
-        LocalSpecification.globs(glob),
-        formulation_name=name,
-        tag_names=tags.split() if tags else None,
-    )
-    print(f"Registered sources as formulation `{name}`.")
+    async def handle_notebook(
+        self,
+        path: str,
+        model: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> None:
+        sn = load_notebook_models(path)
+        if model is None:
+            models = list(sn.__dict__.keys())
+            if len(models) != 1:
+                raise Exception(f"Notebook has 0 or 2+ models ({models})")
+            model = models[0]
+        obj = getattr(sn, model)
+        if name is None:
+            name = _default_name(path)
+        await self._handle(obj.specification(), name)
+
+    async def handle_sources(
+        self, glob: str, name: Optional[str] = None
+    ) -> None:
+        if name is None:
+            name = _default_name(glob)
+        spec = LocalSpecification.globs(glob)
+        await self._handle(spec, name)
 
 
 def _default_name(path: str) -> str:
@@ -77,19 +99,17 @@ def _default_name(path: str) -> str:
 
 
 async def _run(args: Mapping[str, Any]) -> None:
-    client = Client.default()
+    handler = _SpecificationHandler(
+        Client.default(), args["--tags"], args["--dry-run"]
+    )
     if args["register-notebook"]:
-        await _register_notebook(
-            client,
+        await handler.handle_notebook(
             args["PATH"],
             model=args["MODEL"],
             name=args["--name"],
-            tags=args["--tags"],
         )
     elif args["register-sources"]:
-        await _register_sources(
-            client, args["GLOB"], name=args["--name"], tags=args["--tags"]
-        )
+        await handler.handle_sources(args["GLOB"], name=args["--name"])
     else:
         raise Exception("Unexpected command")
 
