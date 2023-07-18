@@ -11,12 +11,6 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v2
-      - name: Register formulations
-        uses: opvious/register-specification-action@beta
-        with:
-          token: ${{ secrets.OPVIOUS_BETA_TOKEN }}
-          domain: beta.opvious.io
-          sources: tests/sources/*.md
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -38,6 +32,10 @@ jobs:
           poetry run black . --check
           poetry run flake8
           poetry run mypy .
+      - name: Register specifications
+        run: ./scripts/specifications.sh register
+        env:
+          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_BETA_TOKEN }}
       - name: Test
         run: poetry run pytest
         env:

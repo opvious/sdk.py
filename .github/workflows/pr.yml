@@ -42,6 +42,9 @@ jobs:
           STATIC_TOKENS: test@opvious.io=testing
         ports:
           - 8080:8080
+    env:
+      OPVIOUS_ENDPOINT: http://localhost:8080
+      OPVIOUS_TOKEN: static:testing
     steps:
       - name: Check out
         uses: actions/checkout@v2
@@ -63,19 +66,6 @@ jobs:
           poetry run flake8
           poetry run mypy .
       - name: Register specifications
-        shell: bash
-        run: |
-          for p in tests/notebooks/*; do
-            poetry run python -m opvious register-notebook "$p"
-          done
-          for p in tests/sources/*; do
-            poetry run python -m opvious register-sources "$p"
-          done
-        env:
-          OPVIOUS_ENDPOINT: http://localhost:8080
-          OPVIOUS_TOKEN: static:testing
+        run: ./scripts/specifications.sh register
       - name: Test
         run: poetry run pytest
-        env:
-          OPVIOUS_ENDPOINT: http://localhost:8080
-          OPVIOUS_TOKEN: static:testing
