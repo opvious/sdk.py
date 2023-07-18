@@ -30,11 +30,28 @@ def load_notebook_models(
 
     # We run the import logic in a separate, fresh, thread since `importnb`
     # expects an inactive event loop if the notebook includes async statements.
-    t = threading.Thread(target=_populate_notebook_namespace, args=(path, ns))
+    t = _ImportThread(target=_populate_notebook_namespace, args=(path, ns))
     t.start()
     t.join()
 
     return ns
+
+
+class _ImportThread(threading.Thread):
+    """Thread which rethrows any import exception"""
+
+    _exception = None
+
+    def run(self):
+        try:
+            super().run()
+        except Exception as e:
+            self._exception = e
+
+    def join(self):
+        super().join()
+        if self._exception:
+            raise Exception("Notebook import failed") from self._exception
 
 
 def _populate_notebook_namespace(path: str, ns: types.SimpleNamespace) -> None:
