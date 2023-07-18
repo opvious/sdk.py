@@ -73,21 +73,21 @@ class _SpecificationHandler:
     async def handle_notebook(
         self,
         path: str,
-        model: Optional[str] = None,
+        model_name: Optional[str] = None,
         name: Optional[str] = None,
     ) -> None:
         sn = load_notebook_models(path)
-        if model is None:
-            models = list(sn.__dict__.keys())
-            if not self._dry_run and len(models) != 1:
-                raise Exception(f"Notebook has 0 or 2+ models ({models})")
+        if model_name is None:
+            model_names = list(sn.__dict__.keys())
+            if not self._dry_run and len(model_names) != 1:
+                raise Exception(f"Notebook has 0 or 2+ models ({model_names})")
         else:
-            models = [model]
-        for model in models:
-            obj = getattr(sn, model)
-            if name is None:
-                name = _default_name(path)
-            await self._handle(obj.specification(), name)
+            model_names = [model_name]
+        if name is None:
+            name = _default_name(path)
+        for model_name in model_names:
+            model = getattr(sn, model_name)
+            await self._handle(model.specification(), name)
 
     async def handle_sources(
         self, glob: str, name: Optional[str] = None
@@ -109,7 +109,7 @@ async def _run(args: Mapping[str, Any]) -> None:
     if args["register-notebook"]:
         await handler.handle_notebook(
             args["PATH"],
-            model=args["MODEL"],
+            model_name=args["MODEL"],
             name=args["--name"],
         )
     elif args["register-sources"]:
