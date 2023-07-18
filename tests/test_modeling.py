@@ -34,10 +34,11 @@ class LotSizing(om.Model):
         self.setup_cost = om.Parameter.non_negative(self.steps)
         self.demand = om.Parameter.non_negative(self.steps)
 
-        self.production = om.Variable.non_negative(self.steps)
+        self.production = om.Variable.non_negative(
+            self.steps, upper_bound=self.demand.total(absolute=True)
+        )
         self.production_indicator = om.fragments.ActivationIndicator(
             tensor=self.production,
-            upper_bound=om.total(self.demand(t) for t in self.steps),
         )
         self.inventory = om.Variable.non_negative(self.steps)
 

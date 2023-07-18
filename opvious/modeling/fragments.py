@@ -159,8 +159,8 @@ class ActivationVariable(ModelFragment):
         cls,
         tensor: TensorLike,
         *quantifiables: Quantifiable,
-        upper_bound: Union[ExpressionLike, bool] = True,
-        lower_bound: Union[ExpressionLike, bool] = False,
+        upper_bound: Union[ExpressionLike, TensorLike, bool] = True,
+        lower_bound: Union[ExpressionLike, TensorLike, bool] = False,
         name: Optional[Name] = None,
         projection: Projection = -1,
     ) -> ActivationVariable:
@@ -190,16 +190,16 @@ class ActivationVariable(ModelFragment):
             @constraint(disabled=upper_bound is False)
             def activates(self):
                 bound = upper_bound
-                if bound is True:
-                    bound = tensor_image().upper_bound
                 for cp in quantification(lift=True):
+                    if callable(bound):
+                        bound = bound(*cp.lifted)
+                    elif bound is True:
+                        bound = tensor_image().upper_bound
                     yield bound * self.value(*cp) >= tensor(*cp.lifted)
 
             @constraint(disabled=lower_bound is False)
             def deactivates(self):
                 bound = lower_bound
-                if bound is True:
-                    bound = tensor_image().lower_bound
                 for cp in quantification():
                     if projection >= 0:
                         term = total(
@@ -208,6 +208,10 @@ class ActivationVariable(ModelFragment):
                         )
                     else:
                         term = tensor(*cp)
+                    if callable(bound):
+                        bound = bound(*cp)
+                    elif bound is True:
+                        bound = tensor_image().lower_bound
                     yield bound * self.value(*cp) <= term
 
         return _Fragment()
