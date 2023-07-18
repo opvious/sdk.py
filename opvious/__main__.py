@@ -53,11 +53,13 @@ class _SpecificationHandler:
             if ann.issue_count > 0:
                 raise Exception(
                     f"{ann.issue_count} issue(s) in specification: "
-                    + json.dumps([
-                        dataclasses.asdict(i)
-                        for issues in ann.issues.values()
-                        for i in issues
-                    ])
+                    + json.dumps(
+                        [
+                            dataclasses.asdict(i)
+                            for issues in ann.issues.values()
+                            for i in issues
+                        ]
+                    )
                 )
             print("Specification is valid")
         else:
