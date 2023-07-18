@@ -533,3 +533,29 @@ class TestModeling:
         text = spec.sources[0].text
         assert r"\lvert p_{m} \rvert" in text
         assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_alias_explicit_quantifiable(self):
+        class _Model(om.Model):
+            horizon = om.Parameter.natural()
+            days = om.interval(1, horizon(), name="D")
+            shifts = om.Dimension()
+            schedule = om.Variable.indicator(days, shifts)
+
+            @om.alias(r"\lambda", days)
+            def unscheduled(self, d):
+                return 1 - om.total(self.schedule(d, s) for s in self.shifts)
+
+            @om.constraint
+            def at_most_five_shifts_per_week(self):
+                for d in self.days:
+                    if d < self.horizon() - 5:
+                        yield om.total(
+                            self.unscheduled(f) for f in om.interval(d, d + 6)
+                        ) >= 2
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\sum_{x \in \{ d \ldots d + 6 \}}" in text
+        assert spec.annotation.issue_count == 0
