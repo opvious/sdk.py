@@ -330,8 +330,8 @@ class Tensor(Definition):
         """The tensor's total summed value
 
         Args:
-            abs: Sum the absolute value of the tensor's terms instead of its
-                raw values.
+            absolute: Sum the absolute value of the tensor's terms instead of
+                its raw values
         """
         return total(
             abs(self(*q)) if absolute else self(*q) for q in self.space()
