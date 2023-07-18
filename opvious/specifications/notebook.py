@@ -53,6 +53,10 @@ def _populate_notebook_namespace(path: str, ns: types.SimpleNamespace) -> None:
 
     class _Notebook(importnb.Notebook):
         def code(self, raw):
+            # We skip magic cells (this is done manually since the default
+            # `no_magic` option only skips cells starting with 2 %).
+            if raw.startswith("%"):
+                return "# " + raw
             # We use a custom loader to transform all top-level awaited
             # expressions into statements, otherwise their value will show up
             # in importing notebooks. Note that this isn't fool-proof since we
