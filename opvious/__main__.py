@@ -20,16 +20,17 @@ underlying client can be configured using the `OPVIOUS_ENDPOINT` and
 (https://www.npmjs.com/package/opvious-cli) for additional operations.
 
 Usage:
-    {_COMMAND} register-notebook PATH [MODEL] [-den NAME] [-t TAGS]
+    {_COMMAND} register-notebook PATH [MODEL]
+        [-dn NAME] [-t TAGS] [--allow-empty]
     {_COMMAND} register-sources GLOB [-dn NAME] [-t TAGS]
     {_COMMAND} (-h | --help)
     {_COMMAND} --version
 
 Options:
+    --allow-empty       Do not throw an error if no models were found in a
+                        notebook
     -d, --dry-run       Validate the specification but do not store it on the
                         server
-    -e, --allow-empty   Do not throw an error if no models were found in a
-                        notebook
     -n, --name NAME     Formulation name. By default this name is inferred
                         from the file's name, omitting the extension
     -t, --tags TAGS     Comma-separated list of tags. By default only the
