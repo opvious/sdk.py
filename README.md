@@ -1,6 +1,7 @@
 # Opvious Python SDK  [![CI](https://github.com/opvious/sdk.py/actions/workflows/ci.yml/badge.svg)](https://github.com/opvious/sdk.py/actions/workflows/ci.yml) [![Pypi badge](https://badge.fury.io/py/opvious.svg)](https://pypi.python.org/pypi/opvious/)
 
-An optimization SDK for solving linear, mixed-integer, and quadratic models
+An SDK for solving linear, mixed-integer, and quadratic optimization models via
+the [Opvious](https://www.opvious.io) API.
 
 ## Highlights
 
@@ -66,7 +67,7 @@ solution = await client.solve(
       "weight": {"a": 10.5, "b": 22, "c": 48},
       "binMaxWeight": 50,
     },
-  )
+  ),
 )
 assignments = solution.outputs.variable("assigned") # Optimal values
 ```
