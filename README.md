@@ -35,7 +35,7 @@ class BinPacking(om.Model):
 
   @om.objective
   def minimize_bins_used(self):
-    return self.used.total()
+    return om.total(self.used(b) for b in self.bins)
 ```
 
 Auto-generated specification:
