@@ -1,6 +1,6 @@
 import logging
 
-from .client import Client, ClientSetting
+from .client import Client, ClientSetting, Problem
 from .common import __version__
 from .data.attempts import Attempt, AttemptNotification
 from .data.outcomes import (
@@ -18,10 +18,10 @@ from .data.outcomes import (
 from .data.outlines import Label, Outline
 from .data.solves import (
     EpsilonConstraint,
+    Solution,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
-    SolveResponse,
     SolveSummary,
     SolveStrategy,
     Target,
@@ -73,10 +73,11 @@ __all__ = [
     "KeyItem",
     "Label",
     "Outline",
+    "Problem",
+    "Solution",
     "SolveInputs",
     "SolveOptions",
     "SolveOutputs",
-    "SolveResponse",
     "SolveStatus",
     "SolveStrategy",
     "SolveSummary",

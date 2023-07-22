@@ -268,29 +268,34 @@ def _outputs_from_json(data, outline) -> SolveOutputs:
 
 
 @dataclasses.dataclass(frozen=True)
-class SolveResponse:
+class Solution:
     """Solver response"""
 
     status: SolveStatus
     """Status string"""
 
-    summary: SolveSummary
-    """Solve summary statistics"""
-
     outcome: Outcome
     """Solution metadata"""
+
+    summary: SolveSummary
+    """Solve summary statistics"""
 
     outputs: Optional[SolveOutputs] = dataclasses.field(
         default=None, repr=False
     )
-    """Solution data, present iff a solution was found"""
+    """Solution data, present iff the solution is feasible"""
+
+    @property
+    def feasible(self) -> bool:
+        """Returns true iff the solution's outcome is feasible"""
+        return isinstance(self.outcome, FeasibleOutcome)
 
 
-def solve_response_from_json(
+def solution_from_json(
     outline: Outline,
     response_json: Any,
     summary: Optional[SolveSummary] = None,
-) -> SolveResponse:
+) -> Solution:
     outcome_json = response_json["outcome"]
     status = outcome_json["status"]
     if status == "INFEASIBLE":
@@ -301,7 +306,7 @@ def solve_response_from_json(
         outcome = AbortedOutcome()
     else:
         outcome = FeasibleOutcome(
-            is_optimal=status == "OPTIMAL",
+            optimal=status == "OPTIMAL",
             objective_value=outcome_json.get("objectiveValue"),
             relative_gap=outcome_json.get("relativeGap"),
         )
@@ -311,7 +316,7 @@ def solve_response_from_json(
             data=response_json["outputs"],
             outline=outline,
         )
-    return SolveResponse(
+    return Solution(
         status=status,
         outcome=outcome,
         summary=summary or solve_summary_from_json(response_json["summary"]),

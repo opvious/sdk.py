@@ -53,7 +53,7 @@ def failed_outcome_from_graphql(data: Any) -> FailedOutcome:
 class FeasibleOutcome:
     """A solution was found"""
 
-    is_optimal: bool
+    optimal: bool
     """Whether this solution was optimal (within gap thresholds)"""
 
     objective_value: Optional[Value]
@@ -65,7 +65,7 @@ class FeasibleOutcome:
 
 def feasible_outcome_from_graphql(data: Any) -> FeasibleOutcome:
     return FeasibleOutcome(
-        is_optimal=data["isOptimal"],
+        optimal=data["isOptimal"],
         objective_value=data.get("objectiveValue"),
         relative_gap=data.get("relativeGap"),
     )
@@ -102,7 +102,7 @@ def outcome_status(outcome: Outcome) -> SolveStatus:
     if isinstance(outcome, FailedOutcome):
         return "ERRORED"
     if isinstance(outcome, FeasibleOutcome):
-        return "OPTIMAL" if outcome.is_optimal else "FEASIBLE"
+        return "OPTIMAL" if outcome.optimal else "FEASIBLE"
     if isinstance(outcome, InfeasibleOutcome):
         return "INFEASIBLE"
     if isinstance(outcome, UnboundedOutcome):

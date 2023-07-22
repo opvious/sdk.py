@@ -1,6 +1,7 @@
 # Opvious Python SDK  [![CI](https://github.com/opvious/sdk.py/actions/workflows/ci.yml/badge.svg)](https://github.com/opvious/sdk.py/actions/workflows/ci.yml) [![Pypi badge](https://badge.fury.io/py/opvious.svg)](https://pypi.python.org/pypi/opvious/)
 
-An optimization SDK for solving linear, mixed-integer, and quadratic models
+An SDK for solving linear, mixed-integer, and quadratic optimization models via
+the [Opvious](https://www.opvious.io) API.
 
 ## Highlights
 
@@ -18,7 +19,6 @@ class BinPacking(om.Model):
   weight = om.Parameter.non_negative(items)  # Weight per item
   bins = om.interval(1, om.size(items), name="B")  # Available bins
   max_weight = om.Parameter.non_negative()  # Maximum weight for each bin
-
   assigned = om.Variable.indicator(bins, items)  # Bin to item assignment
   used = om.fragments.ActivationVariable(assigned, projection=1)  # 1 if a bin is used
 
@@ -35,7 +35,7 @@ class BinPacking(om.Model):
 
   @om.objective
   def minimize_bins_used(self):
-    return om.total(self.used(b) for b in self.bins)
+    return self.used.total()
 ```
 
 Auto-generated specification:
@@ -59,14 +59,16 @@ import opvious
 
 client = opvious.Client.default()
 
-response = await client.run_solve(
-  specification=BinPacking().specification(),
-  parameters={
-    "weight": {"a": 10.5, "b": 22, "c": 48},
-    "binMaxWeight": 50,
-  },
+solution = await client.solve(
+  opvious.Problem(
+    specification=BinPacking().specification(),
+    parameters={
+      "weight": {"a": 10.5, "b": 22, "c": 48},
+      "binMaxWeight": 50,
+    },
+  ),
 )
-solution = response.outputs.variable("assigned")  # Optimal assignment dataframe
+assignments = solution.outputs.variable("assigned") # Optimal values
 ```
 
 Take a look at https://opvious.readthedocs.io for the full documentation or
