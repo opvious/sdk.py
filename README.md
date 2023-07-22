@@ -19,7 +19,6 @@ class BinPacking(om.Model):
   weight = om.Parameter.non_negative(items)  # Weight per item
   bins = om.interval(1, om.size(items), name="B")  # Available bins
   max_weight = om.Parameter.non_negative()  # Maximum weight for each bin
-
   assigned = om.Variable.indicator(bins, items)  # Bin to item assignment
   used = om.fragments.ActivationVariable(assigned, projection=1)  # 1 if a bin is used
 
@@ -36,7 +35,7 @@ class BinPacking(om.Model):
 
   @om.objective
   def minimize_bins_used(self):
-    return om.total(self.used(b) for b in self.bins)
+    return self.used.total()
 ```
 
 Auto-generated specification:
