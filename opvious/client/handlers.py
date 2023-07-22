@@ -494,9 +494,9 @@ class Client:
         + retrieve outputs via :meth:`Client.fetch_attempt_outputs` (after
           successful completion).
 
-        As a convenience, :meth:`Client.wait_for_outcome` allows polling an
-        attempt until until it completes, backing off exponentially between
-        each poll:
+        As a convenience, :meth:`Client.wait_for_attempt_outcome` allows
+        polling an attempt until until it completes, backing off exponentially
+        between each poll:
 
         .. code-block:: python
 
@@ -509,7 +509,7 @@ class Client:
             )
 
             # Wait for the attempt to complete
-            await client.wait_for_outcome(
+            await client.wait_for_attempt_outcome(
                 attempt,
                 assert_feasible=True  # Throw if not feasible
             )
@@ -631,7 +631,7 @@ class Client:
             return None
         return ret
 
-    async def wait_for_outcome(
+    async def wait_for_attempt_outcome(
         self,
         attempt: Attempt,
         assert_feasible=False,

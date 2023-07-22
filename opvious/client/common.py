@@ -205,6 +205,8 @@ def feasible_outcome_details(outcome: FeasibleOutcome) -> Optional[str]:
 
 @dataclasses.dataclass(frozen=True)
 class Problem:
+    """An optimization problem instance"""
+
     specification: Specification
     """:ref:`Model specification <Specifications>`"""
 

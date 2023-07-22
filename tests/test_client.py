@@ -17,7 +17,7 @@ class TestClient:
                 parameters={"bound": 0.1},
             )
         )
-        outcome = await client.wait_for_outcome(attempt, assert_feasible=True)
+        outcome = await client.wait_for_attempt_outcome(attempt, assert_feasible=True)
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.optimal
         assert outcome.objective_value == 2
@@ -30,7 +30,7 @@ class TestClient:
                 parameters={"bound": 3},
             )
         )
-        outcome = await client.wait_for_outcome(attempt)
+        outcome = await client.wait_for_attempt_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
@@ -40,7 +40,7 @@ class TestClient:
                 specification=opvious.FormulationSpecification("unbounded")
             )
         )
-        outcome = await client.wait_for_outcome(attempt)
+        outcome = await client.wait_for_attempt_outcome(attempt)
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
@@ -72,7 +72,7 @@ class TestClient:
                 },
             ),
         )
-        outcome = await client.wait_for_outcome(attempt)
+        outcome = await client.wait_for_attempt_outcome(attempt)
         assert outcome.optimal
         assert outcome.objective_value == 33
 
@@ -111,7 +111,7 @@ class TestClient:
                 parameters={"bound": 3},
             ),
         )
-        outcome = await client.wait_for_outcome(attempt)
+        outcome = await client.wait_for_attempt_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.objective_value == 2
 
@@ -136,7 +136,7 @@ class TestClient:
                 },
             ),
         )
-        outcome = await client.wait_for_outcome(attempt)
+        outcome = await client.wait_for_attempt_outcome(attempt)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
@@ -147,7 +147,7 @@ class TestClient:
                 parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
             ),
         )
-        outcome = await client.wait_for_outcome(attempt)
+        outcome = await client.wait_for_attempt_outcome(attempt)
         assert isinstance(outcome, opvious.FeasibleOutcome)
         output_data = await client.fetch_attempt_outputs(attempt)
         decisions = output_data.variable("decisions")

@@ -68,7 +68,7 @@ solution = await client.solve(
     },
   )
 )
-assignments = solution.variable("assigned")  # Optimal assignment dataframe
+assignments = solution.outputs.variable("assigned") # Optimal values
 ```
 
 Take a look at https://opvious.readthedocs.io for the full documentation or
