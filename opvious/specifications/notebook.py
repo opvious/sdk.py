@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 
 
 def load_notebook_models(
-    path: str, root: Optional[str] = None
+    path: str, root: Optional[str] = None, allow_empty=False
 ) -> types.SimpleNamespace:
     """Loads all models from a notebook
 
@@ -20,6 +20,7 @@ def load_notebook_models(
         path: Path to the notebook, relative to `root` if present otherwise CWD
         root: Root path. If set to a file, its parent directory will be used
             (convenient for use with `__file__`).
+        allow_empty: Do not throw an error if no models were found
     """
     if root:
         root = os.path.realpath(root)
@@ -34,6 +35,8 @@ def load_notebook_models(
     t.start()
     t.join()
 
+    if not ns.__dict__ and not allow_empty:
+        raise Exception(f"No models found in {path}")
     return ns
 
 
@@ -92,6 +95,4 @@ def _populate_notebook_namespace(path: str, ns: types.SimpleNamespace) -> None:
         if isinstance(value, Model):
             count += 1
             setattr(ns, attr, value)
-    if not count:
-        raise Exception("No models found")
     _logger.debug("Loaded %s model(s) from %s.", count, path)

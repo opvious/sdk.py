@@ -20,18 +20,20 @@ underlying client can be configured using the `OPVIOUS_ENDPOINT` and
 (https://www.npmjs.com/package/opvious-cli) for additional operations.
 
 Usage:
-    {_COMMAND} register-notebook PATH [MODEL] [-dn NAME] [-t TAGS]
+    {_COMMAND} register-notebook PATH [MODEL] [-den NAME] [-t TAGS]
     {_COMMAND} register-sources GLOB [-dn NAME] [-t TAGS]
     {_COMMAND} (-h | --help)
     {_COMMAND} --version
 
 Options:
     -d, --dry-run       Validate the specification but do not store it on the
-                        server.
+                        server
+    -e, --allow-empty   Do not throw an error if no models were found in a
+                        notebook
     -n, --name NAME     Formulation name. By default this name is inferred
-                        from the file's name, omitting the extension.
+                        from the file's name, omitting the extension
     -t, --tags TAGS     Comma-separated list of tags. By default only the
-                        `latest` tag is added.
+                        `latest` tag is added
     --version           Show SDK version
     -h, --help          Show this message
 """
@@ -73,10 +75,11 @@ class _SpecificationHandler:
     async def handle_notebook(
         self,
         path: str,
-        model_name: Optional[str] = None,
-        name: Optional[str] = None,
+        model_name: Optional[str],
+        name: Optional[str],
+        allow_empty: bool,
     ) -> None:
-        sn = load_notebook_models(path)
+        sn = load_notebook_models(path, allow_empty=allow_empty)
         if model_name is None:
             model_names = list(sn.__dict__.keys())
             if not self._dry_run and len(model_names) != 1:
@@ -89,9 +92,7 @@ class _SpecificationHandler:
             model = getattr(sn, model_name)
             await self._handle(model.specification(), name)
 
-    async def handle_sources(
-        self, glob: str, name: Optional[str] = None
-    ) -> None:
+    async def handle_sources(self, glob: str, name: Optional[str]) -> None:
         if name is None:
             name = _default_name(glob)
         spec = LocalSpecification.globs(glob)
@@ -111,6 +112,7 @@ async def _run(args: Mapping[str, Any]) -> None:
             args["PATH"],
             model_name=args["MODEL"],
             name=args["--name"],
+            allow_empty=args["--allow-empty"],
         )
     elif args["register-sources"]:
         await handler.handle_sources(args["GLOB"], name=args["--name"])
