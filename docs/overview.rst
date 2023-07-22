@@ -140,15 +140,15 @@ Once you have a problem's specification, the client exposes two distinct ways of
 solving it:
 
 + Direct :ref:`solves <Solves>`, which allow finding solutions in real-time
-+ Queued :ref:`attempts <Attempts>`, which support larger data sizes
++ Queued :ref:`solve attempts <Attempts>`, which support larger data sizes
 
 
 Solves
 ------
 
-Solves are run with the client's :meth:`.Client.run_solve` method.
+Solves are run with the client's :meth:`.Client.solve` method.
 
-.. automethod:: opvious.Client.run_solve
+.. automethod:: opvious.Client.solve
    :noindex:
 
 .. note::
@@ -167,14 +167,18 @@ Solves are run with the client's :meth:`.Client.run_solve` method.
 Attempts
 --------
 
-Attempts are started with the client's :meth:`.Client.start_attempt` method.
+Queued solve attempts are started with the client's :meth:`.Client.queue` 
+method.
 
-.. automethod:: opvious.Client.start_attempt
+.. automethod:: opvious.Client.queue
    :noindex:
 
 
-Inspecting solves
-*****************
+Debugging problems
+******************
 
-.. automethod:: opvious.Client.inspect_solve_instructions
+.. automethod:: opvious.Client.summarize
+   :noindex:
+
+.. automethod:: opvious.Client.inspect_instructions
    :noindex:

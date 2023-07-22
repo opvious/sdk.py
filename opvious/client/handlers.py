@@ -262,7 +262,7 @@ class Client:
         )
         return (candidate, outline)
 
-    async def serialize_problem(self, problem: Problem) -> Json:
+    async def serialize(self, problem: Problem) -> Json:
         """Returns a serialized representation of the problem
 
         The returned JSON object is a valid `SolveCandidate` value and can be
@@ -274,7 +274,7 @@ class Client:
         candidate, _outline = await self._prepare_candidate(problem)
         return candidate
 
-    async def summarize_problem(self, problem: Problem) -> SolveSummary:
+    async def summarize(self, problem: Problem) -> SolveSummary:
         """Returns summary statistics about a problem without solving it
 
         The arguments below are identical to :meth:`.Client.run_solve`, making
@@ -292,7 +292,7 @@ class Client:
         ) as res:
             return solve_summary_from_json(res.json_data())
 
-    async def inspect_problem_instructions(self, problem: Problem) -> str:
+    async def inspect_instructions(self, problem: Problem) -> str:
         """Returns the problem's representation in `LP format`_
 
         Args:

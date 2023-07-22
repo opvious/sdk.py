@@ -286,7 +286,7 @@ class Solution:
     """Solution data, present iff the solution is feasible"""
 
     @property
-    def is_feasible(self) -> bool:
+    def feasible(self) -> bool:
         """Returns true iff the solution's outcome is feasible"""
         return isinstance(self.outcome, FeasibleOutcome)
 
@@ -306,7 +306,7 @@ def solution_from_json(
         outcome = AbortedOutcome()
     else:
         outcome = FeasibleOutcome(
-            is_optimal=status == "OPTIMAL",
+            optimal=status == "OPTIMAL",
             objective_value=outcome_json.get("objectiveValue"),
             relative_gap=outcome_json.get("relativeGap"),
         )
