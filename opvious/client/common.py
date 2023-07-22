@@ -1,22 +1,23 @@
 from __future__ import annotations
 
+import dataclasses
 import enum
 import json
 import logging
 import os
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Mapping, Optional, cast
 
 from ..common import format_percent, Json, json_dict
 from ..data.outcomes import FeasibleOutcome
 from ..data.outlines import Label, Outline, outline_from_json
-from ..data.solves import SolveInputs
-from ..data.tensors import DimensionArgument, Tensor
+from ..data.solves import SolveInputs, SolveOptions, SolveStrategy
+from ..data.tensors import DimensionArgument, Tensor, TensorArgument
 from ..executors import Executor, JsonExecutorResult
-from ..specifications import FormulationSpecification
+from ..specifications import FormulationSpecification, Specification
 from ..transformations import Transformation, TransformationContext
 
 
-DEFAULT_ENDPOINT = "https://api.beta.opvious.io"
+DEFAULT_ENDPOINT = "https://api.cloud.opvious.io"
 
 
 class ClientSetting(enum.Enum):
@@ -200,3 +201,31 @@ def feasible_outcome_details(outcome: FeasibleOutcome) -> Optional[str]:
     if outcome.relative_gap:
         details.append(f"gap={format_percent(outcome.relative_gap)}")
     return ", ".join(details) if details else None
+
+
+@dataclasses.dataclass(frozen=True)
+class Problem:
+    specification: Specification
+    """:ref:`Model specification <Specifications>`"""
+
+    parameters: Optional[Mapping[Label, TensorArgument]] = None
+    """Input data, keyed by parameter label
+
+    Values may be any value accepted by :meth:`.Tensor.from_argument` and must
+    match the corresponding parameter's definition.
+    """
+
+    dimensions: Optional[Mapping[Label, DimensionArgument]] = None
+    """Dimension items, keyed by dimension label
+
+    If omitted, these will be automatically inferred from the parameters.
+    """
+
+    transformations: Optional[list[Transformation]] = None
+    """:ref:`Transformations` to apply to the specification"""
+
+    strategy: Optional[SolveStrategy] = None
+    """:ref:`Multi-objective strategy <Multi-objective strategies>`"""
+
+    options: Optional[SolveOptions] = None
+    """Solve options (gap thresholds, timeout, etc.)"""

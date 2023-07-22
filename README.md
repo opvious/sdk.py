@@ -59,14 +59,16 @@ import opvious
 
 client = opvious.Client.default()
 
-response = await client.run_solve(
-  specification=BinPacking().specification(),
-  parameters={
-    "weight": {"a": 10.5, "b": 22, "c": 48},
-    "binMaxWeight": 50,
-  },
+solution = await client.solve(
+  opvious.Problem(
+    specification=BinPacking().specification(),
+    parameters={
+      "weight": {"a": 10.5, "b": 22, "c": 48},
+      "binMaxWeight": 50,
+    },
+  )
 )
-solution = response.outputs.variable("assigned")  # Optimal assignment dataframe
+assignments = solution.variable("assigned")  # Optimal assignment dataframe
 ```
 
 Take a look at https://opvious.readthedocs.io for the full documentation or

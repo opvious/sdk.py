@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import json
 import humanize
 import logging
-from typing import cast, Iterable, Mapping, Optional, Sequence, Union
+from typing import cast, Iterable, Optional, Sequence, Union
 
 from ..common import (
     Json,
@@ -29,20 +29,17 @@ from ..data.outcomes import (
     UnboundedOutcome,
     UnexpectedOutcomeError,
 )
-from ..data.outlines import Label, Outline, outline_from_json
+from ..data.outlines import Outline, outline_from_json
 from ..data.solves import (
     SolveInputs,
-    SolveOptions,
     SolveOutputs,
-    SolveResponse,
-    SolveStrategy,
+    Solution,
     SolveSummary,
     solve_options_to_json,
-    solve_response_from_json,
+    solution_from_json,
     solve_strategy_to_json,
     solve_summary_from_json,
 )
-from ..data.tensors import DimensionArgument, TensorArgument
 from ..executors import (
     authorization_header,
     default_executor,
@@ -55,13 +52,12 @@ from ..specifications import (
     FormulationSpecification,
     LocalSpecification,
     RemoteSpecification,
-    Specification,
     local_specification_issue_from_json,
 )
-from ..transformations import Transformation
 from .common import (
     ClientSetting,
     OutlineGenerator,
+    Problem,
     SolveInputsBuilder,
     feasible_outcome_details,
     log_progress,
@@ -208,48 +204,44 @@ class Client:
             tag_name=tag_names[0] if tag_names else None,
         )
 
-    async def _prepare_solve(
-        self,
-        specification: Specification,
-        parameters: Optional[Mapping[Label, TensorArgument]] = None,
-        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        transformations: Optional[list[Transformation]] = None,
-        strategy: Optional[SolveStrategy] = None,
-        options: Optional[SolveOptions] = None,
+    async def _prepare_candidate(
+        self, problem: Problem
     ) -> tuple[Json, Outline]:
         """Generates solve candidate and final outline."""
         # First we fetch the outline to validate/coerce inputs later on
-        if isinstance(specification, FormulationSpecification):
+        if isinstance(problem.specification, FormulationSpecification):
             outline_generator, tag = await OutlineGenerator.formulation(
                 executor=self._executor,
-                specification=specification,
+                specification=problem.specification,
             )
             formulation = json_dict(
-                name=specification.formulation_name,
+                name=problem.specification.formulation_name,
                 specification_tag_name=tag,
             )
         else:
-            if isinstance(specification, RemoteSpecification):
-                sources = await specification.fetch_sources(self._executor)
+            if isinstance(problem.specification, RemoteSpecification):
+                sources = await problem.specification.fetch_sources(
+                    self._executor
+                )
             else:
-                sources = [s.text for s in specification.sources]
+                sources = [s.text for s in problem.specification.sources]
             formulation = json_dict(sources=sources)
             outline_generator = await OutlineGenerator.sources(
                 executor=self._executor, sources=sources
             )
 
         # Then we apply any transformations and refresh the outline if needed
-        for tf in transformations or []:
+        for tf in problem.transformations or []:
             outline_generator.add_transformation(tf)
         outline, transformation_data = await outline_generator.generate()
 
         # Then we assemble the inputs
         builder = SolveInputsBuilder(outline=outline)
-        if dimensions:
-            for label, dim in dimensions.items():
+        if problem.dimensions:
+            for label, dim in problem.dimensions.items():
                 builder.set_dimension(label, dim)
-        if parameters:
-            for label, param in parameters.items():
+        if problem.parameters:
+            for label, param in problem.parameters.items():
                 builder.set_parameter(label, param)
         inputs = builder.build()
         _logger.info(
@@ -265,46 +257,33 @@ class Client:
                 parameters=inputs.raw_parameters,
             ),
             transformations=transformation_data,
-            strategy=solve_strategy_to_json(strategy, outline),
-            options=solve_options_to_json(options),
+            strategy=solve_strategy_to_json(problem.strategy, outline),
+            options=solve_options_to_json(problem.options),
         )
         return (candidate, outline)
 
-    async def inspect_solve_summary(
-        self,
-        specification: Specification,
-        parameters: Optional[Mapping[Label, TensorArgument]] = None,
-        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        transformations: Optional[list[Transformation]] = None,
-        strategy: Optional[SolveStrategy] = None,
-        options: Optional[SolveOptions] = None,
-    ) -> SolveSummary:
-        """Returns summary statistics about the solve
+    async def serialize_problem(self, problem: Problem) -> Json:
+        """Returns a serialized representation of the problem
+
+        The returned JSON object is a valid `SolveCandidate` value and can be
+        used to call the REST API directly.
+
+        Args:
+            problem: :class:`.Problem` instance to serialize
+        """
+        candidate, _outline = await self._prepare_candidate(problem)
+        return candidate
+
+    async def summarize_problem(self, problem: Problem) -> SolveSummary:
+        """Returns summary statistics about a problem without solving it
 
         The arguments below are identical to :meth:`.Client.run_solve`, making
         it easy to swap one call for another when debugging.
 
         Args:
-            specification: :ref:`Model specification <Specifications>`
-            parameters: Input data, keyed by parameter label. Values may be any
-                value accepted by :meth:`.Tensor.from_argument` and must match
-                the corresponding parameter's definition.
-            dimensions: Dimension items, keyed by dimension label. If omitted,
-                these will be automatically inferred from the parameters.
-            transformations: :ref:`Transformations` to apply to the
-                specification
-            strategy: :ref:`Multi-objective strategy <Multi-objective
-                strategies>`
-            options: Solve options
+            problem: :class:`.Problem` instance to inspect
         """
-        candidate, _outline = await self._prepare_solve(
-            specification=specification,
-            parameters=parameters,
-            dimensions=dimensions,
-            transformations=transformations,
-            strategy=strategy,
-            options=options,
-        )
+        candidate, _outline = await self._prepare_candidate(problem)
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url="/solves/inspect/summary",
@@ -313,32 +292,11 @@ class Client:
         ) as res:
             return solve_summary_from_json(res.json_data())
 
-    async def inspect_solve_instructions(
-        self,
-        specification: Specification,
-        parameters: Optional[Mapping[Label, TensorArgument]] = None,
-        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        transformations: Optional[list[Transformation]] = None,
-        strategy: Optional[SolveStrategy] = None,
-        options: Optional[SolveOptions] = None,
-    ) -> str:
-        """Returns the model's representation in `LP format`_
-
-        The arguments below are identical to :meth:`.Client.run_solve`, making
-        it easy to swap one call for another when debugging.
+    async def inspect_problem_instructions(self, problem: Problem) -> str:
+        """Returns the problem's representation in `LP format`_
 
         Args:
-            specification: :ref:`Model specification <Specifications>`
-            parameters: Input data, keyed by parameter label. Values may be any
-                value accepted by :meth:`.Tensor.from_argument` and must match
-                the corresponding parameter's definition.
-            dimensions: Dimension items, keyed by dimension label. If omitted,
-                these will be automatically inferred from the parameters.
-            transformations: :ref:`Transformations` to apply to the
-                specification
-            strategy: :ref:`Multi-objective strategy <Multi-objective
-                strategies>`
-            options: Solve options
+            problem: :class:`.Problem` instance to inspect
 
         The LP formatted output will be fully annotated with matching keys and
         labels:
@@ -365,14 +323,7 @@ class Client:
 
         .. _LP format: https://web.mit.edu/lpsolve/doc/CPLEX-format.htm
         """
-        candidate, _outline = await self._prepare_solve(
-            specification=specification,
-            parameters=parameters,
-            dimensions=dimensions,
-            transformations=transformations,
-            strategy=strategy,
-            options=options,
-        )
+        candidate, _outline = await self._prepare_candidate(problem)
         async with self._executor.execute(
             result_type=PlainTextExecutorResult,
             url="/solves/inspect/instructions",
@@ -386,81 +337,60 @@ class Client:
                 lines.append(line)
             return "".join(lines)
 
-    async def run_solve(
+    async def solve(
         self,
-        specification: Specification,
-        parameters: Optional[Mapping[Label, TensorArgument]] = None,
-        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        transformations: Optional[list[Transformation]] = None,
-        strategy: Optional[SolveStrategy] = None,
-        options: Optional[SolveOptions] = None,
+        problem: Problem,
         assert_feasible=False,
         prefer_streaming=True,
-    ) -> SolveResponse:
+    ) -> Solution:
         """Solves an optimization problem remotely
 
         Inputs will be validated before being sent to the API for solving.
 
         Args:
-            specification: :ref:`Model specification <Specifications>`
-            parameters: Input data, keyed by parameter label. Values may be any
-                value accepted by :meth:`.Tensor.from_argument` and must match
-                the corresponding parameter's definition.
-            dimensions: Dimension items, keyed by dimension label. If omitted,
-                these will be automatically inferred from the parameters.
-            transformations: :ref:`Transformations` to apply to the
-                specification
-            strategy: :ref:`Multi-objective strategy <Multi-objective
-                strategies>`
-            options: Solve options
+            problem: :class:`.Problem` instance to solve
             assert_feasible: Throw if the final outcome was not feasible
             prefer_streaming: Show real time progress notifications when
                 possible
 
-        The returned response exposes both metadata (status, objective value,
+        The returned solution exposes both metadata (status, objective value,
         etc.) and solution data (if the solve was feasible):
 
         .. code-block:: python
 
-            response = await client.run_solve(
-                specification=opvious.RemoteSpecification.example(
-                    "porfolio-selection"
+            solution = await client.solve(
+                opvious.Problem(
+                    specification=opvious.RemoteSpecification.example(
+                        "porfolio-selection"
+                    ),
+                    parameters={
+                        "covariance": {
+                            ("AAPL", "AAPL"): 0.2,
+                            ("AAPL", "MSFT"): 0.1,
+                            ("MSFT", "AAPL"): 0.1,
+                            ("MSFT", "MSFT"): 0.25,
+                        },
+                        "expectedReturn": {
+                            "AAPL": 0.15,
+                            "MSFT": 0.2,
+                        },
+                        "desiredReturn": 0.1,
+                    },
                 ),
-                parameters={
-                    "covariance": {
-                        ("AAPL", "AAPL"): 0.2,
-                        ("AAPL", "MSFT"): 0.1,
-                        ("MSFT", "AAPL"): 0.1,
-                        ("MSFT", "MSFT"): 0.25,
-                    },
-                    "expectedReturn": {
-                        "AAPL": 0.15,
-                        "MSFT": 0.2,
-                    },
-                    "desiredReturn": 0.1,
-                },
                 assert_feasible=True,  # Throw if not feasible
             )
 
             # Metadata is available on `outcome`
-            print(f"Objective value: {response.outcome.objective_value}")
+            print(f"Objective value: {solution.outcome.objective_value}")
 
-            # Solution data is available via `outputs`
-            optimal_allocation = response.outputs.variable("allocation")
+            # Variable and constraint data are available via `outputs`
+            optimal_allocation = solution.outputs.variable("allocation")
 
 
-        See also :meth:`.Client.start_attempt` for an alternative for
+        See also :meth:`.Client.queue` for an alternative for
         long-running solves.
         """
-        candidate, outline = await self._prepare_solve(
-            specification=specification,
-            parameters=parameters,
-            dimensions=dimensions,
-            transformations=transformations,
-            strategy=strategy,
-            options=options,
-        )
-
+        candidate, outline = await self._prepare_candidate(problem)
         if prefer_streaming and self._executor.supports_streaming:
             summary = None
             response_json = None
@@ -506,7 +436,7 @@ class Client:
                         )
             if not summary or not response_json:
                 raise Exception("Streaming solve terminated early")
-            response = solve_response_from_json(
+            solution = solution_from_json(
                 outline=outline,
                 response_json=response_json,
                 summary=summary,
@@ -518,36 +448,27 @@ class Client:
                 method="POST",
                 json_data=json_dict(candidate=candidate),
             ) as res:
-                response = solve_response_from_json(
+                solution = solution_from_json(
                     outline=outline,
                     response_json=res.json_data(),
                 )
 
-        outcome = response.outcome
-        if isinstance(outcome, FeasibleOutcome):
-            details = feasible_outcome_details(outcome)
+        if isinstance(solution.outcome, FeasibleOutcome):
+            details = feasible_outcome_details(solution.outcome)
             _logger.info(
                 "Solve completed with status %s.%s",
-                response.status,
+                solution.status,
                 f" [{details}]" if details else "",
             )
         elif assert_feasible:
-            raise UnexpectedOutcomeError(response.outcome)
+            raise UnexpectedOutcomeError(solution.outcome)
         else:
-            _logger.info("Solve completed with status %s.", response.status)
+            _logger.info("Solve completed with status %s.", solution.status)
 
-        return response
+        return solution
 
-    async def start_attempt(
-        self,
-        specification: Union[str, FormulationSpecification],
-        parameters: Optional[Mapping[Label, TensorArgument]] = None,
-        dimensions: Optional[Mapping[Label, DimensionArgument]] = None,
-        transformations: Optional[list[Transformation]] = None,
-        strategy: Optional[SolveStrategy] = None,
-        options: Optional[SolveOptions] = None,
-    ) -> Attempt:
-        """Starts a new asynchronous remote solve attempt
+    async def queue(self, problem: Problem) -> Attempt:
+        """Queues a solve and returns the corresponding attempt
 
         Inputs will be validated locally before the request is sent to the API.
         From then on, he attempt will be queued and begin solving start as soon
@@ -580,9 +501,11 @@ class Client:
         .. code-block:: python
 
             # Queue a new Sudoku solve attempt
-            attempt = await client.start_attempt(
-                specification="sudoku",
-                parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
+            attempt = await client.queue(
+                opvious.Problem(
+                    specification=opvious.FormulationSpecification("sudoku"),
+                    parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
+                )
             )
 
             # Wait for the attempt to complete
@@ -599,18 +522,11 @@ class Client:
 
         See also :meth:`.Client.run_solve` for an alternative for short solves.
         """
-        if isinstance(specification, str):
-            specification = FormulationSpecification(
-                formulation_name=specification
+        if not isinstance(problem.specification, FormulationSpecification):
+            raise Exception(
+                "Queued solves must have a formulation as specification"
             )
-        candidate, outline = await self._prepare_solve(
-            specification=specification,
-            parameters=parameters,
-            dimensions=dimensions,
-            transformations=transformations,
-            strategy=strategy,
-            options=options,
-        )
+        candidate, outline = await self._prepare_candidate(problem)
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url="/attempts/start",
