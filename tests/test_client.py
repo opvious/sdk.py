@@ -17,7 +17,9 @@ class TestClient:
                 parameters={"bound": 0.1},
             )
         )
-        outcome = await client.wait_for_attempt_outcome(attempt, assert_feasible=True)
+        outcome = await client.wait_for_attempt_outcome(
+            attempt, assert_feasible=True
+        )
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.optimal
         assert outcome.objective_value == 2
