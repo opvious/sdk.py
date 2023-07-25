@@ -2,7 +2,7 @@ import opvious
 import pytest
 
 
-client = opvious.Client.from_environment()
+client = opvious.Client.default()
 
 
 @pytest.mark.skipif(

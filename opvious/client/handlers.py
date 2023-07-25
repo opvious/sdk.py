@@ -95,7 +95,7 @@ class Client:
                 authentication will be set.
             endpoint: API endpoint. If absent, defaults to the
                 `$OPVIOUS_ENDPOINT` environment variable, falling back to the
-                Cloud production endpoint if neither is present.
+                cloud endpoint if neither is present.
         """
         authorization = None
         if token is True or (not token and token is not False):
@@ -137,7 +137,7 @@ class Client:
 
     @property
     def authenticated(self) -> bool:
-        """Returns true if the client was created with a non-empty API token"""
+        """Returns true if the client is using a non-empty API token"""
         return self._executor.authenticated
 
     async def annotate_specification(
@@ -292,7 +292,11 @@ class Client:
         ) as res:
             return solve_summary_from_json(res.json_data())
 
-    async def inspect_instructions(self, problem: Problem) -> str:
+    async def inspect_instructions(
+        self,
+        problem: Problem,
+        include_line_comments=False
+    ) -> str:
         """Returns the problem's representation in `LP format`_
 
         Args:
@@ -334,6 +338,8 @@ class Client:
             async for line in res.lines():
                 if line.startswith("\\"):
                     _logger.debug(line[2:].strip())
+                    if not include_line_comments:
+                        continue
                 lines.append(line)
             return "".join(lines)
 
