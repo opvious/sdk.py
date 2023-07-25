@@ -2,7 +2,7 @@ import opvious
 import pytest
 
 
-client = opvious.Client.from_environment()
+client = opvious.Client.default()
 
 
 @pytest.mark.skipif(
@@ -372,7 +372,9 @@ class TestClient:
     async def test_solve_sudoku_from_url(self):
         solution = await client.solve(
             opvious.Problem(
-                specification=opvious.RemoteSpecification.example("sudoku"),
+                specification=opvious.RemoteSpecification(
+                    "https://gist.githubusercontent.com/mtth/82a21baacba4827bc1710b7526775315/raw/4e2b17c1509dfd40595f47167e8d859fa4ec8334/sudoku.md"  # noqa
+                ),
                 parameters={"input": [(0, 0, 3)]},
             )
         )

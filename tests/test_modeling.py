@@ -3,7 +3,7 @@ import pytest
 
 
 om = opvious.modeling
-client = opvious.Client.from_environment()
+client = opvious.Client.default()
 
 
 class SetCover(om.Model):

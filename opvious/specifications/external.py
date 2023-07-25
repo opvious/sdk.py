@@ -6,29 +6,12 @@ from typing import Optional
 from ..executors import Executor, PlainTextExecutorResult
 
 
-_EXAMPLE_URL_PREFIX = (
-    "https://raw.githubusercontent.com/opvious/examples/main/sources"  # noqa
-)
-
-
 @dataclasses.dataclass(frozen=True)
 class RemoteSpecification:
-    """A model specification from a remote URL
-
-    This is typically useful for examples.
-    """
+    """A model specification from a remote URL"""
 
     url: str
     """The specification's http(s) URL"""
-
-    @classmethod
-    def example(cls, name: str):
-        """Returns a standard example's specification
-
-        Standard examples are available here:
-        https://github.com/opvious/examples/tree/main/sources
-        """
-        return RemoteSpecification(url=f"{_EXAMPLE_URL_PREFIX}/{name}.md")
 
     async def fetch_sources(self, executor: Executor) -> list[str]:
         async with executor.execute(
@@ -51,7 +34,7 @@ class FormulationSpecification:
     <https://github.com/opvious/register-specification-action>`_ provides a
     convenient way to automatically create formulations from CI workflows.
 
-    .. _Optimization Hub: https://hub.beta.opvious.io
+    .. _Optimization Hub: https://hub.cloud.opvious.io
     """
 
     formulation_name: str

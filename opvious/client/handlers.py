@@ -95,7 +95,7 @@ class Client:
                 authentication will be set.
             endpoint: API endpoint. If absent, defaults to the
                 `$OPVIOUS_ENDPOINT` environment variable, falling back to the
-                Cloud production endpoint if neither is present.
+                cloud endpoint if neither is present.
         """
         authorization = None
         if token is True or (not token and token is not False):
@@ -137,7 +137,7 @@ class Client:
 
     @property
     def authenticated(self) -> bool:
-        """Returns true if the client was created with a non-empty API token"""
+        """Returns true if the client is using a non-empty API token"""
         return self._executor.authenticated
 
     async def annotate_specification(
@@ -292,11 +292,15 @@ class Client:
         ) as res:
             return solve_summary_from_json(res.json_data())
 
-    async def inspect_instructions(self, problem: Problem) -> str:
+    async def inspect_instructions(
+        self, problem: Problem, include_line_comments=False
+    ) -> str:
         """Returns the problem's representation in `LP format`_
 
         Args:
             problem: :class:`.Problem` instance to inspect
+            include_line_comments: Include comment lines in the output. By
+                default these lines are only logged as DEBUG messages.
 
         The LP formatted output will be fully annotated with matching keys and
         labels:
@@ -334,6 +338,8 @@ class Client:
             async for line in res.lines():
                 if line.startswith("\\"):
                     _logger.debug(line[2:].strip())
+                    if not include_line_comments:
+                        continue
                 lines.append(line)
             return "".join(lines)
 
@@ -360,7 +366,7 @@ class Client:
 
             solution = await client.solve(
                 opvious.Problem(
-                    specification=opvious.RemoteSpecification.example(
+                    specification=opvious.FormulationSpecification(
                         "porfolio-selection"
                     ),
                     parameters={
@@ -475,17 +481,7 @@ class Client:
         as enough capacity is available.
 
         Args:
-            specification: Model :class:`.FormulationSpecification` or
-                formulation name
-            parameters: Input data, keyed by parameter label. Values may be any
-                value accepted by :meth:`.Tensor.from_argument` and must match
-                the corresponding parameter's definition.
-            dimensions: Dimension items, keyed by dimension label. If omitted,
-                these will be automatically inferred from the parameters.
-            transformations: :ref:`Transformations`
-            strategy: :ref:`Multi-objective strategy <Multi-objective
-                strategies>`
-            options: Solve options
+            problem: :class:`.Problem` instance to solve
 
         The returned :class:`Attempt` instance can be used to:
 
