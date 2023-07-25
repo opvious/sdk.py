@@ -301,6 +301,8 @@ class Client:
 
         Args:
             problem: :class:`.Problem` instance to inspect
+            include_line_comments: Include comment lines in the output. By
+                default these lines are only logged as DEBUG messages.
 
         The LP formatted output will be fully annotated with matching keys and
         labels:
@@ -366,7 +368,7 @@ class Client:
 
             solution = await client.solve(
                 opvious.Problem(
-                    specification=opvious.RemoteSpecification.example(
+                    specification=opvious.FormulationSpecification(
                         "porfolio-selection"
                     ),
                     parameters={
@@ -481,17 +483,7 @@ class Client:
         as enough capacity is available.
 
         Args:
-            specification: Model :class:`.FormulationSpecification` or
-                formulation name
-            parameters: Input data, keyed by parameter label. Values may be any
-                value accepted by :meth:`.Tensor.from_argument` and must match
-                the corresponding parameter's definition.
-            dimensions: Dimension items, keyed by dimension label. If omitted,
-                these will be automatically inferred from the parameters.
-            transformations: :ref:`Transformations`
-            strategy: :ref:`Multi-objective strategy <Multi-objective
-                strategies>`
-            options: Solve options
+            problem: :class:`.Problem` instance to solve
 
         The returned :class:`Attempt` instance can be used to:
 
