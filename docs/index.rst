@@ -4,13 +4,7 @@ Opvious SDK
 ===========
 
 A Python SDK for solving linear, mixed-integer, and quadratic optimization 
-models
-
-.. note::
-  Opvious is currently in beta. You can preview the SDK's functionality on small 
-  datasets without registering but you will need an API key to solve larger 
-  instances. You can request to join `here <https://www.opvious.io/signup>`_ or 
-  by contacting us at hello@opvious.io.
+models with the `Opvious platform`_
 
 
 Highlights
@@ -39,10 +33,9 @@ First install the SDK, for example using `pip`:
   be omitted for compatibility with `Pyodide`_ environments, for example in 
   `JupyterLite`_ kernels.
 
-If you are a beta member (see above), we recommend you generate an API access 
-token in the `Optimization Hub`_ and set it as `OPVIOUS_TOKEN` environment 
-variable. This optional step allows you to optimize larger datasets and 
-increases rate limits.
+We recommend you generate an `API access token`_ and set it as `OPVIOUS_TOKEN` 
+environment variable. This optional step allows you to optimize larger datasets 
+and increases rate limits.
 
 You are now ready to hop on over to the :ref:`Overview` section!
 
@@ -69,7 +62,8 @@ External resources
 + `PyPI entry`_
 
 
-.. _Optimization Hub: https://hub.beta.opvious.io/
+.. _Opvious platform: https://www.opvious.io
+.. _API access token: https://hub.cloud.opvious.io/authorizations
 .. _pandas: https://pandas.pydata.org
 .. _Pyodide: https://pyodide.org
 .. _JupyterLite: https://jupyterlite.readthedocs.io
