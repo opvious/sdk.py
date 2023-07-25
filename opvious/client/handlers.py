@@ -293,9 +293,7 @@ class Client:
             return solve_summary_from_json(res.json_data())
 
     async def inspect_instructions(
-        self,
-        problem: Problem,
-        include_line_comments=False
+        self, problem: Problem, include_line_comments=False
     ) -> str:
         """Returns the problem's representation in `LP format`_
 
