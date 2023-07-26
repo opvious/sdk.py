@@ -6,6 +6,7 @@ from .common import (
     Executor,
     ExecutorError,
     ExecutorResult,
+    Headers,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
@@ -25,6 +26,7 @@ __all__ = [
     "JsonExecutorResult",
     "JsonSeqExecutorResult",
     "PlainTextExecutorResult",
+    "fetch_text",
 ]
 
 
@@ -80,3 +82,27 @@ def authorization_header(token: str) -> str:
         value = base64.b64encode(token.encode("utf8")).decode("utf8")
         return f"Basic {value}"
     return f"Bearer {token}"
+
+
+async def fetch_text(
+    url: str,
+    headers: Optional[Headers] = None,
+) -> str:
+    """Fetches a URL's contents as plain text
+
+    This convenience method is provided as a portable way to fetch data from
+    notebooks. Using the default `pandas.read_csv` for example does not support
+    `https://` URLs from JupyterLite (Pyodide).
+
+    Args:
+        url: The URL to fetch (via GET)
+        headers: Optional headers to include in the request
+    """
+    # We specify an invalid endpoint URL so that default headers are never
+    # included in the request. Otherwise it causes certain requests to fail
+    # (e.g. when fetching gists).
+    executor = default_executor("ignored://")
+    async with executor.execute(
+        PlainTextExecutorResult, url, headers=headers
+    ) as res:
+        return await res.text()

@@ -45,3 +45,10 @@ class TestExecutors:
             )
         assert info.value.status == 200
         assert "ERR_UNKNOWN_ATTEMPT" in info.value.reason
+
+    @pytest.mark.asyncio
+    async def test_fetch_text(self):
+        text = await opvious.executors.fetch_text(
+            "https://gist.githubusercontent.com/mtth/82a21baacba4827bc1710b7526775315/raw/4e2b17c1509dfd40595f47167e8d859fa4ec8334/sudoku.md"  # noqa
+        )
+        assert "defining" in text
