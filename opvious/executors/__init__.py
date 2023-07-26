@@ -101,7 +101,7 @@ async def fetch_text(url: str) -> str:
         return await res.text()
 
 
-async def fetch_csv(url: str, **kwargs) -> str:
+async def fetch_csv(url: str, **kwargs) -> pd.DataFrame:
     """Fetches a CSV from a URL
 
     This convenience method is provided as a portable way to fetch data from
