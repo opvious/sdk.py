@@ -8,7 +8,6 @@ from .common import (
     Executor,
     ExecutorError,
     ExecutorResult,
-    Headers,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
