@@ -240,23 +240,22 @@ class DefaultIdentifierFormatter(IdentifierFormatter):
 
     def _format_dimension(self, label: Label, env: Environment) -> Name:
         i = _last_capital_index(label)
-        if i is None:
-            return _first_available(label[0].upper(), env)
-        return f"{label[i]}^\\mathrm{{{label[:i]}}}" if i > 0 else label[i]
+        r = label[i or 0].upper()
+        n = r if i is None else f"{r}^\\mathrm{{{label[:i]}}}"
+        return _first_available(n, env)
 
     def _format_parameter(self, label: Label, env: Environment) -> Name:
         i = _last_capital_index(label)
-        if not i:
-            return _first_available(label[0].lower(), env)
-        return f"{label[i].lower()}^\\mathrm{{{label[:i]}}}"
+        r = label[i or 0].lower()
+        n = r if i is None else f"{r}^\\mathrm{{{label[:i]}}}"
+        return _first_available(n, env)
 
     def _format_variable(self, label: Label, env: Environment) -> Name:
         i = _last_capital_index(label)
         r = label[i or 0].lower()
         g = _greek_letters.get(r, r)
-        if not i:
-            return _first_available(g, env)
-        return f"{g}^\\mathrm{{{label[:i]}}}"
+        n = g if i is None else f"{g}^\\mathrm{{{label[:i]}}}"
+        return _first_available(n, env)
 
     def format_quantifier(
         self, identifier: QuantifierIdentifier, env: Environment
