@@ -80,7 +80,6 @@ class UnboundedOutcome:
     """No bounded optimal solution exists"""
 
 
-
 Outcome = Union[
     AbortedOutcome,
     FailedOutcome,
