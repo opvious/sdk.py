@@ -177,8 +177,8 @@ method.
 Debugging problems
 ******************
 
-.. automethod:: opvious.Client.summarize
+.. automethod:: opvious.Client.summarize_problem
    :noindex:
 
-.. automethod:: opvious.Client.inspect_instructions
+.. automethod:: opvious.Client.format_problem
    :noindex:

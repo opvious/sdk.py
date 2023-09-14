@@ -20,7 +20,7 @@ from .outlines import Label, ObjectiveSense, Outline
 
 
 @dataclasses.dataclass(frozen=True)
-class SolveSummary:
+class ProblemSummary:
     """Reified problem summary statistics"""
 
     column_count: int
@@ -45,8 +45,8 @@ class SolveSummary:
     """Objective summary statistics"""
 
 
-def solve_summary_from_json(data: Json) -> SolveSummary:
-    return SolveSummary(
+def problem_summary_from_json(data: Json) -> ProblemSummary:
+    return ProblemSummary(
         column_count=sum(v["columnCount"] for v in data["variables"]),
         row_count=sum(c["rowCount"] for c in data["constraints"]),
         dimensions=_labeled_dataframe(
@@ -277,8 +277,8 @@ class Solution:
     outcome: Outcome
     """Solution metadata"""
 
-    summary: SolveSummary
-    """Solve summary statistics"""
+    problem_summary: ProblemSummary
+    """Problem summary statistics"""
 
     outputs: Optional[SolveOutputs] = dataclasses.field(
         default=None, repr=False
@@ -294,7 +294,7 @@ class Solution:
 def solution_from_json(
     outline: Outline,
     response_json: Any,
-    summary: Optional[SolveSummary] = None,
+    problem_summary: Optional[ProblemSummary] = None,
 ) -> Solution:
     outcome_json = response_json["outcome"]
     status = outcome_json["status"]
@@ -319,7 +319,8 @@ def solution_from_json(
     return Solution(
         status=status,
         outcome=outcome,
-        summary=summary or solve_summary_from_json(response_json["summary"]),
+        problem_summary=problem_summary
+        or problem_summary_from_json(response_json["summaries"]["problem"]),
         outputs=outputs,
     )
 

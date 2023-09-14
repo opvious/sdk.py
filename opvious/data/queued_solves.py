@@ -9,25 +9,25 @@ from .tensors import Value
 
 
 @dataclasses.dataclass(frozen=True)
-class Attempt:
-    """Queueable optimization attempt
+class QueuedSolve:
+    """Queued optimization attempt
 
-    New attempts are started via :meth:`.Client.start_attempt`, existing
-    attempts can be retrieved from their UUID via :meth:`.Client.load_attempt`.
+    Solves are queued via :meth:`.Client.queue_solve`, existing queued solves
+    can be retrieved from their UUID via :meth:`.Client.fetch_solve`.
     """
 
     uuid: str
-    """The attempt's unique identifier"""
+    """The solve's unique identifier"""
 
     started_at: datetime
-    """The time the attempt was created"""
+    """The time the solve was created"""
 
     outline: Outline = dataclasses.field(repr=False)
-    """The specification outline corresponding to this attempt"""
+    """The specification outline corresponding to this solve"""
 
 
-def attempt_from_graphql(data: Any, outline: Outline) -> Attempt:
-    return Attempt(
+def queued_solve_from_graphql(data: Any, outline: Outline) -> QueuedSolve:
+    return QueuedSolve(
         uuid=data["uuid"],
         started_at=datetime.fromisoformat(data["startedAt"]),
         outline=outline,
@@ -35,11 +35,11 @@ def attempt_from_graphql(data: Any, outline: Outline) -> Attempt:
 
 
 @dataclasses.dataclass(frozen=True)
-class AttemptNotification:
-    """Attempt progress update notification"""
+class SolveNotification:
+    """Solve progress update notification"""
 
     dequeued: bool
-    """Whether the attempt has already been dequeued"""
+    """Whether the solve has already been dequeued"""
 
     relative_gap: Optional[Value]
     """The latest relative gap"""
@@ -51,10 +51,10 @@ class AttemptNotification:
     """The latest cut count"""
 
 
-def notification_from_graphql(
+def solve_notification_from_graphql(
     dequeued: bool, data: Any = None
-) -> AttemptNotification:
-    return AttemptNotification(
+) -> SolveNotification:
+    return SolveNotification(
         dequeued=dequeued,
         relative_gap=data["relativeGap"] if data else None,
         lp_iteration_count=data["lpIterationCount"] if data else None,

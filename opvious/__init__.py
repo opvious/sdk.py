@@ -2,10 +2,8 @@ import logging
 
 from .client import Client, ClientSetting, Problem
 from .common import __version__
-from .data.attempts import Attempt, AttemptNotification
 from .data.outcomes import (
     AbortedOutcome,
-    CancelledOutcome,
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
@@ -16,13 +14,14 @@ from .data.outcomes import (
     UnexpectedOutcomeError,
 )
 from .data.outlines import Label, Outline
+from .data.queued_solves import QueuedSolve, SolveNotification
 from .data.solves import (
     EpsilonConstraint,
     Solution,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
-    SolveSummary,
+    ProblemSummary,
     SolveStrategy,
     Target,
 )
@@ -64,9 +63,7 @@ __all__ = [
     "Specification",
     "load_notebook_models",
     "modeling",
-    # Solves and attempts
-    "Attempt",
-    "AttemptNotification",
+    # Solves
     "DimensionArgument",
     "EpsilonConstraint",
     "Key",
@@ -74,13 +71,15 @@ __all__ = [
     "Label",
     "Outline",
     "Problem",
+    "ProblemSummary",
+    "QueuedSolve",
     "Solution",
     "SolveInputs",
+    "SolveNotification",
     "SolveOptions",
     "SolveOutputs",
     "SolveStatus",
     "SolveStrategy",
-    "SolveSummary",
     "SparseTensorArgument",
     "Target",
     "Tensor",
@@ -88,7 +87,6 @@ __all__ = [
     "Value",
     # Outcomes
     "AbortedOutcome",
-    "CancelledOutcome",
     "FailedOutcome",
     "FeasibleOutcome",
     "InfeasibleOutcome",

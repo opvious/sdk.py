@@ -12,41 +12,41 @@ from ..common import (
     format_percent,
     json_dict,
 )
-from ..data.attempts import (
-    Attempt,
-    attempt_from_graphql,
-    AttemptNotification,
-    notification_from_graphql,
+from ..data.queued_solves import (
+    QueuedSolve,
+    queued_solve_from_graphql,
+    SolveNotification,
+    solve_notification_from_graphql,
 )
 from ..data.outcomes import (
-    CancelledOutcome,
-    failed_outcome_from_graphql,
+    AbortedOutcome,
     FeasibleOutcome,
-    feasible_outcome_from_graphql,
     InfeasibleOutcome,
     Outcome,
-    outcome_status,
     UnboundedOutcome,
     UnexpectedOutcomeError,
+    failed_outcome_from_graphql,
+    feasible_outcome_from_graphql,
+    outcome_status,
 )
 from ..data.outlines import Outline, outline_from_json
 from ..data.solves import (
+    ProblemSummary,
     SolveInputs,
     SolveOutputs,
     Solution,
-    SolveSummary,
+    problem_summary_from_json,
     solve_options_to_json,
     solution_from_json,
     solve_strategy_to_json,
-    solve_summary_from_json,
 )
 from ..executors import (
-    authorization_header,
-    default_executor,
     Executor,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
+    authorization_header,
+    default_executor,
 )
 from ..specifications import (
     FormulationSpecification,
@@ -186,7 +186,7 @@ class Client:
                 The first one, if any, will be used in the returned
                 specification.
 
-        The returned formulation can be used to start attempts for example.
+        The returned formulation can be used to queue solves for example.
         """
         await self._executor.execute_graphql_query(
             query="@RegisterSpecification",
@@ -204,10 +204,8 @@ class Client:
             tag_name=tag_names[0] if tag_names else None,
         )
 
-    async def _prepare_candidate(
-        self, problem: Problem
-    ) -> tuple[Json, Outline]:
-        """Generates solve candidate and final outline."""
+    async def _prepare_problem(self, problem: Problem) -> tuple[Json, Outline]:
+        """Generates solve problem and final outline."""
         # First we fetch the outline to validate/coerce inputs later on
         if isinstance(problem.specification, FormulationSpecification):
             outline_generator, tag = await OutlineGenerator.formulation(
@@ -250,7 +248,7 @@ class Client:
         )
 
         # Finally we put everything together
-        candidate = json_dict(
+        problem = json_dict(
             formulation=formulation,
             inputs=json_dict(
                 dimensions=inputs.raw_dimensions,
@@ -260,9 +258,9 @@ class Client:
             strategy=solve_strategy_to_json(problem.strategy, outline),
             options=solve_options_to_json(problem.options),
         )
-        return (candidate, outline)
+        return (problem, outline)
 
-    async def serialize(self, problem: Problem) -> Json:
+    async def serialize_problem(self, problem: Problem) -> Json:
         """Returns a serialized representation of the problem
 
         The returned JSON object is a valid `SolveCandidate` value and can be
@@ -271,10 +269,10 @@ class Client:
         Args:
             problem: :class:`.Problem` instance to serialize
         """
-        candidate, _outline = await self._prepare_candidate(problem)
-        return candidate
+        problem, _outline = await self._prepare_problem(problem)
+        return problem
 
-    async def summarize(self, problem: Problem) -> SolveSummary:
+    async def summarize_problem(self, problem: Problem) -> ProblemSummary:
         """Returns summary statistics about a problem without solving it
 
         The arguments below are identical to :meth:`.Client.run_solve`, making
@@ -283,16 +281,16 @@ class Client:
         Args:
             problem: :class:`.Problem` instance to inspect
         """
-        candidate, _outline = await self._prepare_candidate(problem)
+        problem, _outline = await self._prepare_problem(problem)
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            url="/solves/inspect/summary",
+            url="/summarize-problem",
             method="POST",
-            json_data=json_dict(candidate=candidate),
+            json_data=json_dict(problem=problem),
         ) as res:
-            return solve_summary_from_json(res.json_data())
+            return problem_summary_from_json(res.json_data())
 
-    async def inspect_instructions(
+    async def format_problem(
         self, problem: Problem, include_line_comments=False
     ) -> str:
         """Returns the problem's representation in `LP format`_
@@ -327,12 +325,12 @@ class Client:
 
         .. _LP format: https://web.mit.edu/lpsolve/doc/CPLEX-format.htm
         """
-        candidate, _outline = await self._prepare_candidate(problem)
+        problem, _outline = await self._prepare_problem(problem)
         async with self._executor.execute(
             result_type=PlainTextExecutorResult,
-            url="/solves/inspect/instructions",
+            url="/format-problem",
             method="POST",
-            json_data=json_dict(candidate=candidate),
+            json_data=json_dict(problem=problem),
         ) as res:
             lines = []
             async for line in res.lines():
@@ -396,15 +394,15 @@ class Client:
         See also :meth:`.Client.queue` for an alternative for
         long-running solves.
         """
-        candidate, outline = await self._prepare_candidate(problem)
+        problem, outline = await self._prepare_problem(problem)
         if prefer_streaming and self._executor.supports_streaming:
-            summary = None
+            problem_summary = None
             response_json = None
             async with self._executor.execute(
                 result_type=JsonSeqExecutorResult,
-                url="/solves/run",
+                url="/solve",
                 method="POST",
-                json_data=json_dict(candidate=candidate),
+                json_data=json_dict(problem=problem),
             ) as res:
                 async for data in res.json_seq_data():
                     kind = data["kind"]
@@ -419,14 +417,18 @@ class Client:
                                 summary["rowCount"],
                             )
                     elif kind == "reified":
-                        summary = solve_summary_from_json(data["summary"])
+                        problem_summary = problem_summary_from_json(
+                            data["summary"]
+                        )
                         _logger.info(
                             "Solving problem... [columns=%s, rows=%s]",
-                            summary.column_count,
-                            summary.row_count,
+                            problem_summary.column_count,
+                            problem_summary.row_count,
                         )
                     elif kind == "solving":
                         log_progress(_logger, data["progress"])
+                    elif kind == "denormalized":
+                        pass  # TODO: Output solution summary
                     elif kind == "solved":
                         _logger.debug("Downloaded outputs.")
                         response_json = data
@@ -440,19 +442,19 @@ class Client:
                         raise Exception(
                             f"Unexpected response: {json.dumps(data)}"
                         )
-            if not summary or not response_json:
+            if not problem_summary or not response_json:
                 raise Exception("Streaming solve terminated early")
             solution = solution_from_json(
                 outline=outline,
                 response_json=response_json,
-                summary=summary,
+                problem_summary=problem_summary,
             )
         else:
             async with self._executor.execute(
                 result_type=JsonExecutorResult,
-                url="/solves/run",
+                url="/solve",
                 method="POST",
-                json_data=json_dict(candidate=candidate),
+                json_data=json_dict(problem=problem),
             ) as res:
                 solution = solution_from_json(
                     outline=outline,
@@ -473,45 +475,45 @@ class Client:
 
         return solution
 
-    async def queue(self, problem: Problem) -> Attempt:
-        """Queues a solve and returns the corresponding attempt
+    async def queue_solve(self, problem: Problem) -> QueuedSolve:
+        """Queues a solve
 
         Inputs will be validated locally before the request is sent to the API.
-        From then on, he attempt will be queued and begin solving start as soon
+        From then on, the solve will be queued and begin solving start as soon
         as enough capacity is available.
 
         Args:
             problem: :class:`.Problem` instance to solve
 
-        The returned :class:`Attempt` instance can be used to:
+        The returned :class:`QueuedSolve` instance can be used to:
 
-        + track progress via :meth:`Client.poll_attempt`,
-        + retrieve inputs via :meth:`Client.fetch_attempt_inputs`,
-        + retrieve outputs via :meth:`Client.fetch_attempt_outputs` (after
+        + track progress via :meth:`Client.poll_solve`,
+        + retrieve inputs via :meth:`Client.fetch_solve`,
+        + retrieve outputs via :meth:`Client.fetch_solve_outputs` (after
           successful completion).
 
-        As a convenience, :meth:`Client.wait_for_attempt_outcome` allows
-        polling an attempt until until it completes, backing off exponentially
+        As a convenience, :meth:`Client.wait_for_solve_outcome` allows
+        polling an solve until until it completes, backing off exponentially
         between each poll:
 
         .. code-block:: python
 
-            # Queue a new Sudoku solve attempt
-            attempt = await client.queue(
+            # Queue a new Sudoku solve
+            solve = await client.queue_solve(
                 opvious.Problem(
                     specification=opvious.FormulationSpecification("sudoku"),
                     parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
                 )
             )
 
-            # Wait for the attempt to complete
-            await client.wait_for_attempt_outcome(
-                attempt,
+            # Wait for the solve to complete
+            await client.wait_for_solve_outcome(
+                solve,
                 assert_feasible=True  # Throw if not feasible
             )
 
             # Fetch the solution's data
-            output_data = await client.fetch_attempt_outputs(attempt)
+            output_data = await client.fetch_solve_outputs(solve)
 
             # Get a parsed variable as a dataframe
             decisions = output_data.variable("decisions")
@@ -522,85 +524,86 @@ class Client:
             raise Exception(
                 "Queued solves must have a formulation as specification"
             )
-        candidate, outline = await self._prepare_candidate(problem)
+        problem, outline = await self._prepare_problem(problem)
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            url="/attempts/start",
+            url="/queue-solve",
             method="POST",
-            json_data=json_dict(candidate=candidate),
+            json_data=json_dict(problem=problem),
         ) as res:
             uuid = res.json_data()["uuid"]
-        return Attempt(
+        return QueuedSolve(
             uuid=uuid,
             started_at=datetime.now(timezone.utc),
             outline=outline,
         )
 
-    async def load_attempt(self, uuid: str) -> Optional[Attempt]:
-        """Loads an existing attempt
+    async def fetch_solve(self, uuid: str) -> Optional[QueuedSolve]:
+        """Loads a queued solve
 
         Args:
-            uuid: The target attempt's ID
+            uuid: The solve's ID
         """
         data = await self._executor.execute_graphql_query(
-            query="@FetchAttempt",
+            query="@FetchQueuedSolve",
             variables=json_dict(uuid=uuid),
         )
-        attempt = data["attempt"]
-        if not attempt:
+        solve = data["queuedSolve"]
+        if not solve:
             return None
-        return attempt_from_graphql(
-            data=attempt,
-            outline=outline_from_json(attempt["outline"]),
+        return queued_solve_from_graphql(
+            data=solve,
+            outline=outline_from_json(solve["outline"]),
         )
 
-    async def cancel_attempt(self, uuid: str) -> bool:
-        """Cancels a running attempt
+    async def cancel_solve(self, uuid: str) -> bool:
+        """Cancels a running solve
 
-        This method will throw if the attempt does not exist or is not pending
+        This method will throw if the solve does not exist or is not pending
         anymore.
 
         Args:
-            uuid: The target attempt's ID
+            uuid: The target solve's ID
         """
         data = await self._executor.execute_graphql_query(
-            query="@CancelAttempt",
+            query="@CancelQueuedSolve",
             variables=json_dict(uuid=uuid),
         )
-        return bool(data["cancelAttempt"])
+        return bool(data["cancelQueuedSolve"])
 
-    async def poll_attempt(
-        self, attempt: Attempt
-    ) -> Union[AttemptNotification, Outcome]:
-        """Polls an attempt for its outcome or latest progress notification
+    async def poll_solve(
+        self, solve: QueuedSolve
+    ) -> Union[SolveNotification, Outcome]:
+        """Polls an solve for its outcome or latest progress notification
 
         Args:
-            attempt: The target attempt
+            solve: The target solve
         """
         data = await self._executor.execute_graphql_query(
-            query="@PollAttempt",
-            variables=json_dict(uuid=attempt.uuid),
+            query="@PollQueuedSolve",
+            variables=json_dict(uuid=solve.uuid),
         )
-        attempt_data = data["attempt"]
-        status = attempt_data["status"]
-        if status == "PENDING":
-            edges = attempt_data["notifications"]["edges"]
-            return notification_from_graphql(
-                dequeued=bool(attempt_data["dequeuedAt"]),
+        solve_data = data["queuedSolve"]
+        outcome_data = solve_data["outcome"]
+        if not outcome_data:
+            edges = solve_data["notifications"]["edges"]
+            return solve_notification_from_graphql(
+                dequeued=bool(solve_data["dequeuedAt"]),
                 data=edges[0]["node"] if edges else None,
             )
-        if status == "CANCELLED":
-            return cast(Outcome, CancelledOutcome())
+        status = outcome_data["status"]
+        if status == "ABORTED":
+            return cast(Outcome, AbortedOutcome())
         if status == "INFEASIBLE":
             return InfeasibleOutcome()
         if status == "UNBOUNDED":
             return UnboundedOutcome()
-        outcome = attempt_data["outcome"]
-        if status == "ERRORED":
-            return failed_outcome_from_graphql(outcome)
         if status == "FEASIBLE" or status == "OPTIMAL":
-            return feasible_outcome_from_graphql(outcome)
-        raise Exception(f"Unexpected status {status}")
+            return feasible_outcome_from_graphql(outcome_data)
+        failure_data = solve_data["failure"]
+        if not failure_data:
+            raise Exception(f"Unexpected status {status} without failure")
+        return failed_outcome_from_graphql(failure_data)
 
     @backoff.on_predicate(
         backoff.fibo,
@@ -608,10 +611,10 @@ class Client:
         max_value=90,
         logger=None,
     )
-    async def _track_attempt(self, attempt: Attempt) -> Optional[Outcome]:
-        ret = await self.poll_attempt(attempt)
-        if isinstance(ret, AttemptNotification):
-            delta = datetime.now(timezone.utc) - attempt.started_at
+    async def _track_solve(self, solve: QueuedSolve) -> Optional[Outcome]:
+        ret = await self.poll_solve(solve)
+        if isinstance(ret, SolveNotification):
+            delta = datetime.now(timezone.utc) - solve.started_at
             elapsed = humanize.naturaldelta(delta, minimum_unit="milliseconds")
             if ret.dequeued:
                 details = [f"elapsed={elapsed}"]
@@ -621,74 +624,76 @@ class Client:
                     details.append(f"cuts={ret.cut_count}")
                 if ret.lp_iteration_count is not None:
                     details.append(f"iterations={ret.lp_iteration_count}")
-                _logger.info("Attempt is running... [%s]", ", ".join(details))
+                _logger.info(
+                    "QueuedSolve is running... [%s]", ", ".join(details)
+                )
             else:
-                _logger.info("Attempt is queued... [elapsed=%s]", elapsed)
+                _logger.info("QueuedSolve is queued... [elapsed=%s]", elapsed)
             return None
         return ret
 
-    async def wait_for_attempt_outcome(
+    async def wait_for_solve_outcome(
         self,
-        attempt: Attempt,
+        solve: QueuedSolve,
         assert_feasible=False,
     ) -> Outcome:
-        """Waits for the attempt to complete and returns its outcome
+        """Waits for the solve to complete and returns its outcome
 
         This method emits real-time progress messages as INFO logs.
 
         Args:
-            attempt: The target attempt
+            solve: The target solve
             assert_feasible: Throw if the final outcome was not feasible
         """
-        outcome = await self._track_attempt(attempt)
+        outcome = await self._track_solve(solve)
         if not outcome:
             raise Exception("Missing outcome")
         status = outcome_status(outcome)
         if isinstance(outcome, FeasibleOutcome):
             details = feasible_outcome_details(outcome)
             _logger.info(
-                "Attempt completed with status %s.%s",
+                "QueuedSolve completed with status %s.%s",
                 status,
                 f" [{details}]" if details else "",
             )
         elif assert_feasible:
             raise UnexpectedOutcomeError(outcome)
         else:
-            _logger.info("Attempt completed with status %s.", status)
+            _logger.info("QueuedSolve completed with status %s.", status)
         return outcome
 
-    async def fetch_attempt_inputs(self, attempt: Attempt) -> SolveInputs:
-        """Retrieves an attempt's inputs
+    async def fetch_solve_inputs(self, solve: QueuedSolve) -> SolveInputs:
+        """Retrieves a queued solve's inputs
 
         Args:
-            attempt: The target attempt
+            solve: The target solve
         """
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            url=f"/attempts/{attempt.uuid}/inputs",
+            url=f"/queued-solves/{solve.uuid}/inputs",
         ) as res:
             data = res.json_data()
         return SolveInputs(
-            outline=attempt.outline,
+            outline=solve.outline,
             raw_parameters=data["parameters"],
             raw_dimensions=data["dimensions"],
         )
 
-    async def fetch_attempt_outputs(self, attempt: Attempt) -> SolveOutputs:
-        """Retrieves a successful attempt's outputs
+    async def fetch_solve_outputs(self, solve: QueuedSolve) -> SolveOutputs:
+        """Retrieves a successful queued solves's outputs
 
-        This method will throw if the attempt did not have a feasible solution.
+        This method will throw if the solve did not have a feasible solution.
 
         Args:
-            attempt: The target attempt
+            solve: The target solve
         """
         async with self._executor.execute(
             result_type=JsonExecutorResult,
-            url=f"/attempts/{attempt.uuid}/outputs",
+            url=f"/queued-solves/{solve.uuid}/outputs",
         ) as res:
             data = res.json_data()
         return SolveOutputs(
-            outline=attempt.outline,
+            outline=solve.outline,
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )
