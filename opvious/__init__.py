@@ -13,7 +13,7 @@ from .data.outcomes import (
     UnexpectedSolveOutcomeError,
     solve_outcome_status,
 )
-from .data.outlines import Label, Outline
+from .data.outlines import Label, ProblemOutline
 from .data.queued_solves import QueuedSolve, SolveNotification
 from .data.solves import (
     EpsilonConstraint,
@@ -69,8 +69,8 @@ __all__ = [
     "Key",
     "KeyItem",
     "Label",
-    "Outline",
     "Problem",
+    "ProblemOutline",
     "ProblemSummary",
     "QueuedSolve",
     "Solution",

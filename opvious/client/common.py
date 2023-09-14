@@ -9,12 +9,15 @@ from typing import Any, Dict, Mapping, Optional, cast
 
 from ..common import format_percent, Json, json_dict
 from ..data.outcomes import FeasibleOutcome
-from ..data.outlines import Label, Outline, outline_from_json
+from ..data.outlines import Label, ProblemOutline, outline_from_json
 from ..data.solves import SolveInputs, SolveOptions, SolveStrategy
 from ..data.tensors import DimensionArgument, Tensor, TensorArgument
 from ..executors import Executor, JsonExecutorResult
 from ..specifications import FormulationSpecification, Specification
-from ..transformations import Transformation, TransformationContext
+from ..transformations import (
+    ProblemTransformation,
+    ProblemTransformationContext,
+)
 
 
 DEFAULT_ENDPOINT = "https://api.cloud.opvious.io"
@@ -59,7 +62,7 @@ def log_progress(logger: logging.Logger, progress: Json) -> None:
 
 
 class SolveInputsBuilder:
-    def __init__(self, outline: Outline):
+    def __init__(self, outline: ProblemOutline):
         self._outline = outline
         self._dimensions: Dict[Label, Any] = {}
         self._parameters: Dict[Label, Any] = {}
@@ -112,22 +115,22 @@ class SolveInputsBuilder:
             raise Exception(f"Missing label(s): {missing_labels}")
 
         return SolveInputs(
-            outline=self._outline,
+            problem_outline=self._outline,
             raw_parameters=list(self._parameters.values()),
             raw_dimensions=list(self._dimensions.values()) or None,
         )
 
 
-class OutlineGenerator:
+class ProblemOutlineGenerator:
     def __init__(self, executor: Executor, outline_data: Json):
         self._executor = executor
         self._pristine_outline_data = outline_data
-        self._transformations = cast(list[Transformation], [])
+        self._transformations = cast(list[ProblemTransformation], [])
 
     @classmethod
     async def formulation(
         cls, executor: Executor, specification: FormulationSpecification
-    ) -> tuple[OutlineGenerator, str]:
+    ) -> tuple[ProblemOutlineGenerator, str]:
         data = await executor.execute_graphql_query(
             query="@FetchOutline",
             variables={
@@ -142,12 +145,15 @@ class OutlineGenerator:
         if not tag:
             raise Exception("No matching specification found")
         spec = tag["specification"]
-        return (OutlineGenerator(executor, spec["outline"]), tag["name"])
+        return (
+            ProblemOutlineGenerator(executor, spec["outline"]),
+            tag["name"],
+        )
 
     @classmethod
     async def sources(
         cls, executor: Executor, sources: list[str]
-    ) -> OutlineGenerator:
+    ) -> ProblemOutlineGenerator:
         async with executor.execute(
             result_type=JsonExecutorResult,
             url="/sources/parse",
@@ -158,20 +164,20 @@ class OutlineGenerator:
         errors = outline_data.get("errors")
         if errors:
             raise Exception(f"Invalid sources: {json.dumps(errors)}")
-        return OutlineGenerator(executor, outline_data["outline"])
+        return ProblemOutlineGenerator(executor, outline_data["outline"])
 
-    def add_transformation(self, tf: Transformation) -> None:
+    def add_transformation(self, tf: ProblemTransformation) -> None:
         self._transformations.append(tf)
 
-    async def generate(self) -> tuple[Outline, Json]:
+    async def generate(self) -> tuple[ProblemOutline, Json]:
         pristine_outline = outline_from_json(self._pristine_outline_data)
         if not self._transformations:
             return pristine_outline, []
         executor = self._executor
         pristine_outline_data = self._pristine_outline_data
 
-        class Context(TransformationContext):
-            async def fetch_outline(self) -> Outline:
+        class Context(ProblemTransformationContext):
+            async def fetch_outline(self) -> ProblemOutline:
                 transformations = self.get_json()
                 if not transformations:
                     return pristine_outline
@@ -223,7 +229,7 @@ class Problem:
     If omitted, these will be automatically inferred from the parameters.
     """
 
-    transformations: Optional[list[Transformation]] = None
+    transformations: Optional[list[ProblemTransformation]] = None
     """:ref:`Transformations` to apply to the specification"""
 
     strategy: Optional[SolveStrategy] = None

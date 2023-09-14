@@ -29,7 +29,7 @@ from ..data.outcomes import (
     feasible_outcome_from_graphql,
     solve_outcome_status,
 )
-from ..data.outlines import Outline, outline_from_json
+from ..data.outlines import ProblemOutline, outline_from_json
 from ..data.solves import (
     ProblemSummary,
     SolveInputs,
@@ -56,8 +56,8 @@ from ..specifications import (
 )
 from .common import (
     ClientSetting,
-    OutlineGenerator,
     Problem,
+    ProblemOutlineGenerator,
     SolveInputsBuilder,
     feasible_outcome_details,
     log_progress,
@@ -204,11 +204,13 @@ class Client:
             tag_name=tag_names[0] if tag_names else None,
         )
 
-    async def _prepare_problem(self, problem: Problem) -> tuple[Json, Outline]:
+    async def _prepare_problem(
+        self, problem: Problem
+    ) -> tuple[Json, ProblemOutline]:
         """Generates solve problem and final outline."""
         # First we fetch the outline to validate/coerce inputs later on
         if isinstance(problem.specification, FormulationSpecification):
-            outline_generator, tag = await OutlineGenerator.formulation(
+            outline_generator, tag = await ProblemOutlineGenerator.formulation(
                 executor=self._executor,
                 specification=problem.specification,
             )
@@ -224,7 +226,7 @@ class Client:
             else:
                 sources = [s.text for s in problem.specification.sources]
             formulation = json_dict(sources=sources)
-            outline_generator = await OutlineGenerator.sources(
+            outline_generator = await ProblemOutlineGenerator.sources(
                 executor=self._executor, sources=sources
             )
 
@@ -674,7 +676,7 @@ class Client:
         ) as res:
             data = res.json_data()
         return SolveInputs(
-            outline=solve.outline,
+            problem_outline=solve.outline,
             raw_parameters=data["parameters"],
             raw_dimensions=data["dimensions"],
         )
@@ -693,7 +695,7 @@ class Client:
         ) as res:
             data = res.json_data()
         return SolveOutputs(
-            outline=solve.outline,
+            problem_outline=solve.outline,
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )

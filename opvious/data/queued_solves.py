@@ -4,7 +4,7 @@ import dataclasses
 from datetime import datetime
 from typing import Any, Optional
 
-from .outlines import Outline
+from .outlines import ProblemOutline
 from .tensors import Value
 
 
@@ -22,11 +22,13 @@ class QueuedSolve:
     started_at: datetime
     """The time the solve was created"""
 
-    outline: Outline = dataclasses.field(repr=False)
+    outline: ProblemOutline = dataclasses.field(repr=False)
     """The specification outline corresponding to this solve"""
 
 
-def queued_solve_from_graphql(data: Any, outline: Outline) -> QueuedSolve:
+def queued_solve_from_graphql(
+    data: Any, outline: ProblemOutline
+) -> QueuedSolve:
     return QueuedSolve(
         uuid=data["uuid"],
         started_at=datetime.fromisoformat(data["startedAt"]),

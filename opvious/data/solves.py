@@ -16,7 +16,7 @@ from .outcomes import (
     SolveStatus,
     UnboundedOutcome,
 )
-from .outlines import Label, ObjectiveSense, Outline
+from .outlines import Label, ObjectiveSense, ProblemOutline
 
 
 @dataclasses.dataclass(frozen=True)
@@ -172,7 +172,7 @@ def _entry_index(entries, bindings):
 class SolveInputs:
     """Solve input data"""
 
-    outline: Outline
+    problem_outline: ProblemOutline
     """Target model metadata"""
 
     raw_parameters: list[Any]
@@ -186,7 +186,7 @@ class SolveInputs:
         for param in self.raw_parameters:
             if param["label"] == label:
                 entries = param["entries"]
-                outline = self.outline.parameters[label]
+                outline = self.problem_outline.parameters[label]
                 return pd.Series(
                     data=(e["value"] for e in entries),
                     index=_entry_index(entries, outline.bindings),
@@ -205,7 +205,7 @@ class SolveInputs:
 class SolveOutputs:
     """Successful solve output data"""
 
-    outline: Outline
+    problem_outline: ProblemOutline
     """Solved model metadata"""
 
     raw_variables: list[Any]
@@ -222,7 +222,7 @@ class SolveOutputs:
         for res in self.raw_variables:
             if res["label"] == label:
                 entries = res["entries"]
-                bindings = self.outline.variables[label].bindings
+                bindings = self.problem_outline.variables[label].bindings
                 df = pd.DataFrame(
                     data=(
                         {
@@ -244,7 +244,7 @@ class SolveOutputs:
         for res in self.raw_constraints:
             if res["label"] == label:
                 entries = res["entries"]
-                outline = self.outline.constraints[label]
+                outline = self.problem_outline.constraints[label]
                 df = pd.DataFrame(
                     data=(
                         {
@@ -259,9 +259,9 @@ class SolveOutputs:
         raise Exception(f"Unknown constraint {label}")
 
 
-def _outputs_from_json(data, outline) -> SolveOutputs:
+def _outputs_from_json(data, outline: ProblemOutline) -> SolveOutputs:
     return SolveOutputs(
-        outline=outline,
+        problem_outline=outline,
         raw_variables=data["variables"],
         raw_constraints=data["constraints"],
     )
@@ -292,7 +292,7 @@ class Solution:
 
 
 def solution_from_json(
-    outline: Outline,
+    outline: ProblemOutline,
     response_json: Any,
     problem_summary: Optional[ProblemSummary] = None,
 ) -> Solution:
@@ -387,7 +387,7 @@ associated values.
 """
 
 
-def _target_to_json(target: Target, outline: Outline) -> Json:
+def _target_to_json(target: Target, outline: ProblemOutline) -> Json:
     if isinstance(target, str):
         target = collections.defaultdict(lambda: 0, {target: 1})
     unknown = target.keys() - outline.objectives.keys()
@@ -438,7 +438,7 @@ class SolveStrategy:
 
 
 def solve_strategy_to_json(
-    strategy: Optional[SolveStrategy], outline: Outline
+    strategy: Optional[SolveStrategy], outline: ProblemOutline
 ) -> Json:
     if not strategy:
         return None
