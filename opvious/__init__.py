@@ -93,7 +93,7 @@ __all__ = [
     "SolveOutcome",
     "UnboundedOutcome",
     "UnexpectedSolveOutcomeError",
-    "outcome_status",
+    "solve_outcome_status",
     # Transformations
     "transformations",
     # Miscellaneous
