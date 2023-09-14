@@ -286,7 +286,10 @@ _DEFAULT_QUANTIFIER_NAME = "x"
 
 def _first_available(name: Name, env: Environment) -> Name:
     while name in env:
-        name += "'"
+        if name.endswith("}"):
+            name = name[:-1] + r" \prime}"
+        else:
+            name += "'"
     return name
 
 
