@@ -12,7 +12,7 @@ from .outcomes import (
     AbortedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    Outcome,
+    SolveOutcome,
     SolveStatus,
     UnboundedOutcome,
 )
@@ -274,7 +274,7 @@ class Solution:
     status: SolveStatus
     """Status string"""
 
-    outcome: Outcome
+    outcome: SolveOutcome
     """Solution metadata"""
 
     problem_summary: ProblemSummary
@@ -299,7 +299,7 @@ def solution_from_json(
     outcome_json = response_json["outcome"]
     status = outcome_json["status"]
     if status == "INFEASIBLE":
-        outcome = cast(Outcome, InfeasibleOutcome())
+        outcome = cast(SolveOutcome, InfeasibleOutcome())
     elif status == "UNBOUNDED":
         outcome = UnboundedOutcome()
     elif status == "ABORTED":

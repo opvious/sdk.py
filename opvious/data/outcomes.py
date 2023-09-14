@@ -80,7 +80,8 @@ class UnboundedOutcome:
     """No bounded optimal solution exists"""
 
 
-Outcome = Union[
+
+SolveOutcome = Union[
     AbortedOutcome,
     FailedOutcome,
     FeasibleOutcome,
@@ -89,7 +90,7 @@ Outcome = Union[
 ]
 
 
-def outcome_status(outcome: Outcome) -> SolveStatus:
+def solve_outcome_status(outcome: SolveOutcome) -> SolveStatus:
     """Returns the status corresponding to a given outcome"""
     if isinstance(outcome, AbortedOutcome):
         return "ABORTED"
@@ -102,8 +103,8 @@ def outcome_status(outcome: Outcome) -> SolveStatus:
     return "UNKNOWN"
 
 
-class UnexpectedOutcomeError(Exception):
+class UnexpectedSolveOutcomeError(Exception):
     """The solve ended with an unexpected outcome"""
 
-    def __init__(self, outcome: Outcome):
+    def __init__(self, outcome: SolveOutcome):
         self.outcome = outcome

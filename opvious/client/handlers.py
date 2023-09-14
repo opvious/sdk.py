@@ -22,12 +22,12 @@ from ..data.outcomes import (
     AbortedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    Outcome,
+    SolveOutcome,
     UnboundedOutcome,
-    UnexpectedOutcomeError,
+    UnexpectedSolveOutcomeError,
     failed_outcome_from_graphql,
     feasible_outcome_from_graphql,
-    outcome_status,
+    solve_outcome_status,
 )
 from ..data.outlines import Outline, outline_from_json
 from ..data.solves import (
@@ -469,7 +469,7 @@ class Client:
                 f" [{details}]" if details else "",
             )
         elif assert_feasible:
-            raise UnexpectedOutcomeError(solution.outcome)
+            raise UnexpectedSolveOutcomeError(solution.outcome)
         else:
             _logger.info("Solve completed with status %s.", solution.status)
 
@@ -573,7 +573,7 @@ class Client:
 
     async def poll_solve(
         self, solve: QueuedSolve
-    ) -> Union[SolveNotification, Outcome]:
+    ) -> Union[SolveNotification, SolveOutcome]:
         """Polls an solve for its outcome or latest progress notification
 
         Args:
@@ -593,7 +593,7 @@ class Client:
             )
         status = outcome_data["status"]
         if status == "ABORTED":
-            return cast(Outcome, AbortedOutcome())
+            return cast(SolveOutcome, AbortedOutcome())
         if status == "INFEASIBLE":
             return InfeasibleOutcome()
         if status == "UNBOUNDED":
@@ -611,7 +611,7 @@ class Client:
         max_value=90,
         logger=None,
     )
-    async def _track_solve(self, solve: QueuedSolve) -> Optional[Outcome]:
+    async def _track_solve(self, solve: QueuedSolve) -> Optional[SolveOutcome]:
         ret = await self.poll_solve(solve)
         if isinstance(ret, SolveNotification):
             delta = datetime.now(timezone.utc) - solve.started_at
@@ -636,7 +636,7 @@ class Client:
         self,
         solve: QueuedSolve,
         assert_feasible=False,
-    ) -> Outcome:
+    ) -> SolveOutcome:
         """Waits for the solve to complete and returns its outcome
 
         This method emits real-time progress messages as INFO logs.
@@ -648,7 +648,7 @@ class Client:
         outcome = await self._track_solve(solve)
         if not outcome:
             raise Exception("Missing outcome")
-        status = outcome_status(outcome)
+        status = solve_outcome_status(outcome)
         if isinstance(outcome, FeasibleOutcome):
             details = feasible_outcome_details(outcome)
             _logger.info(
@@ -657,7 +657,7 @@ class Client:
                 f" [{details}]" if details else "",
             )
         elif assert_feasible:
-            raise UnexpectedOutcomeError(outcome)
+            raise UnexpectedSolveOutcomeError(outcome)
         else:
             _logger.info("QueuedSolve completed with status %s.", status)
         return outcome

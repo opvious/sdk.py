@@ -10,7 +10,7 @@ client = opvious.Client.default()
 )
 class TestClient:
     @pytest.mark.asyncio
-    async def test_queue_bounded_feasible_attempt(self):
+    async def test_queue_bounded_feasible_solve(self):
         solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
@@ -25,7 +25,7 @@ class TestClient:
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
-    async def test_queue_bounded_infeasible_attempt(self):
+    async def test_queue_bounded_infeasible_solve(self):
         solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
@@ -36,7 +36,7 @@ class TestClient:
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_queue_simple_unbounded_attempt(self):
+    async def test_queue_simple_unbounded_solve(self):
         solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("unbounded")
@@ -46,7 +46,7 @@ class TestClient:
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
-    async def test_queue_diet_attempt(self):
+    async def test_queue_diet_solve(self):
         solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("diet"),
@@ -98,7 +98,7 @@ class TestClient:
         }
 
     @pytest.mark.asyncio
-    async def test_queue_relaxed_attempt(self):
+    async def test_queue_relaxed_solve(self):
         solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
@@ -118,7 +118,7 @@ class TestClient:
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
-    async def test_queue_bounded_relaxed_attempt(self):
+    async def test_queue_bounded_relaxed_solve(self):
         solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
@@ -294,7 +294,7 @@ class TestClient:
                 assert_feasible=True,
             )
             raise Exception()
-        except opvious.UnexpectedOutcomeError as exc:
+        except opvious.UnexpectedSolveOutcomeError as exc:
             assert isinstance(exc.outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio

@@ -7,11 +7,11 @@ from .data.outcomes import (
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    Outcome,
-    outcome_status,
+    SolveOutcome,
     SolveStatus,
     UnboundedOutcome,
-    UnexpectedOutcomeError,
+    UnexpectedSolveOutcomeError,
+    solve_outcome_status,
 )
 from .data.outlines import Label, Outline
 from .data.queued_solves import QueuedSolve, SolveNotification
@@ -90,9 +90,9 @@ __all__ = [
     "FailedOutcome",
     "FeasibleOutcome",
     "InfeasibleOutcome",
-    "Outcome",
+    "SolveOutcome",
     "UnboundedOutcome",
-    "UnexpectedOutcomeError",
+    "UnexpectedSolveOutcomeError",
     "outcome_status",
     # Transformations
     "transformations",
