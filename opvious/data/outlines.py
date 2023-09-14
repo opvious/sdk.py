@@ -140,7 +140,7 @@ def _constraint_from_json(data: Json) -> ConstraintOutline:
 
 
 @dataclasses.dataclass(frozen=True)
-class Outline:
+class ProblemOutline:
     """Model metadata"""
 
     objectives: Mapping[Label, ObjectiveOutline]
@@ -159,8 +159,8 @@ class Outline:
     """Constraint metadata, keyed by constraint label"""
 
 
-def outline_from_json(data: Json) -> Outline:
-    return Outline(
+def outline_from_json(data: Json) -> ProblemOutline:
+    return ProblemOutline(
         objectives=_map_outlines(_objective_from_json, data["objectives"]),
         dimensions=_map_outlines(_dimension_from_json, data["dimensions"]),
         parameters=_map_outlines(_tensor_from_json, data["parameters"]),

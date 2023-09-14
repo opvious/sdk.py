@@ -26,7 +26,7 @@ class RemoteSpecification:
 class FormulationSpecification:
     """A specification from an `Optimization Hub`_ formulation
 
-    This type of specification allows starting attempts and is recommended for
+    This type of specification allows queueing solves and is recommended for
     production use as it provides history and reproducibility when combined
     with tag names.
 

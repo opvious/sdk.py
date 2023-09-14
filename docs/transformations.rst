@@ -3,7 +3,7 @@
 Transformations
 ===============
 
-Transformations allow changing the solved model without updating its 
+Transformations allow changing the solved problem without updating its 
 specification. Common use-cases include:
 
 + Relaxing a constraint to investigate infeasibilities

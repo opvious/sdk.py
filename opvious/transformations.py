@@ -1,7 +1,7 @@
 """Built-in transformations
 
-This module exports all available :class:`~opvious.Transformation` instances.
-As a convenience it is also exported by the `opvious` module.
+This module exports all available :class:`~opvious.ProblemTransformation`
+instances. As a convenience it is also exported by the `opvious` module.
 """
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ import math
 from typing import Literal
 
 from .common import Json, json_dict
-from .data.outlines import Label, Outline
+from .data.outlines import Label, ProblemOutline
 from .data.solves import Target
 
 
-class TransformationContext:
+class ProblemTransformationContext:
     def __init__(self):
         self._json = []
 
@@ -28,23 +28,23 @@ class TransformationContext:
     def get_json(self) -> list[Json]:
         return self._json
 
-    async def fetch_outline(self) -> Outline:
+    async def fetch_outline(self) -> ProblemOutline:
         raise NotImplementedError()
 
 
-class Transformation:
-    """Base transformation class
+class ProblemTransformation:
+    """Base problem transformation class
 
     You should not need to interact with this class directly, instead use one
     of the available :ref:`transformation subclasses <Base transformations>`.
     """
 
-    async def register(self, context: TransformationContext) -> None:
+    async def register(self, context: ProblemTransformationContext) -> None:
         raise NotImplementedError()
 
 
 @dataclasses.dataclass(frozen=True)
-class PinVariables(Transformation):
+class PinVariables(ProblemTransformation):
     """A transformation which pins one or more variables to input values
 
     Each pinned variable will have an associated derived parameter labeled
@@ -78,7 +78,7 @@ class PinVariables(Transformation):
     If empty, all variables will be pinned.
     """
 
-    async def register(self, context: TransformationContext) -> None:
+    async def register(self, context: ProblemTransformationContext) -> None:
         labels = self.labels
         if not labels:
             outline = await context.fetch_outline()
@@ -95,7 +95,7 @@ RelaxationPenalty = Literal[
 
 
 @dataclasses.dataclass(frozen=True)
-class RelaxConstraints(Transformation):
+class RelaxConstraints(ProblemTransformation):
     """A transformation which relaxes one or more constraints
 
     Each relaxed constraint will be omitted from the formulation and replaced
@@ -153,7 +153,7 @@ class RelaxConstraints(Transformation):
     This option is required when using the `DEVIATION_CARDINALITY` penalty.
     """
 
-    async def register(self, context: TransformationContext) -> None:
+    async def register(self, context: ProblemTransformationContext) -> None:
         labels = self.labels
         if not labels:
             outline = await context.fetch_outline()
@@ -168,7 +168,7 @@ class RelaxConstraints(Transformation):
 
 
 @dataclasses.dataclass(frozen=True)
-class DensifyVariables(Transformation):
+class DensifyVariables(ProblemTransformation):
     """A transformation which updates one or more variables to be continuous"""
 
     labels: list[Label] = dataclasses.field(default_factory=lambda: [])
@@ -177,12 +177,12 @@ class DensifyVariables(Transformation):
     If empty, all integral variables will be densified.
     """
 
-    async def register(self, _context: TransformationContext) -> None:
+    async def register(self, _context: ProblemTransformationContext) -> None:
         raise NotImplementedError()  # TODO
 
 
 @dataclasses.dataclass(frozen=True)
-class OmitConstraints(Transformation):
+class OmitConstraints(ProblemTransformation):
     """A transformation which drops one or more constraints
 
     Any parameters or variables which are not referenced in any remaining
@@ -195,7 +195,7 @@ class OmitConstraints(Transformation):
     If empty, all constraints will be dropped.
     """
 
-    async def register(self, context: TransformationContext) -> None:
+    async def register(self, context: ProblemTransformationContext) -> None:
         labels = self.labels
         if not labels:
             outline = await context.fetch_outline()
@@ -205,7 +205,7 @@ class OmitConstraints(Transformation):
 
 
 @dataclasses.dataclass(frozen=True)
-class OmitObjectives(Transformation):
+class OmitObjectives(ProblemTransformation):
     """A transformation which drops one or more objectives
 
     Similar to :class:`.OmitConstraints`, any parameters or variables which are
@@ -219,7 +219,7 @@ class OmitObjectives(Transformation):
     If empty, all objectives will be dropped.
     """
 
-    async def register(self, context: TransformationContext) -> None:
+    async def register(self, context: ProblemTransformationContext) -> None:
         labels = self.labels
         if not labels:
             outline = await context.fetch_outline()
@@ -229,7 +229,7 @@ class OmitObjectives(Transformation):
 
 
 @dataclasses.dataclass(frozen=True)
-class ConstrainObjective(Transformation):
+class ConstrainObjective(ProblemTransformation):
     """A transformation which bounds the value of a objective
 
     This can be used for example to guarantee a minimum objective levels when
@@ -246,5 +246,5 @@ class ConstrainObjective(Transformation):
     max_value: float = math.inf
     """The objective's maximum allowed value"""
 
-    async def register(self, _context: TransformationContext) -> None:
+    async def register(self, _context: ProblemTransformationContext) -> None:
         raise NotImplementedError()  # TODO

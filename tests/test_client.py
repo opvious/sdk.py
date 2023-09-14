@@ -10,44 +10,44 @@ client = opvious.Client.default()
 )
 class TestClient:
     @pytest.mark.asyncio
-    async def test_queue_bounded_feasible_attempt(self):
-        attempt = await client.queue(
+    async def test_queue_bounded_feasible_solve(self):
+        solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 parameters={"bound": 0.1},
             )
         )
-        outcome = await client.wait_for_attempt_outcome(
-            attempt, assert_feasible=True
+        outcome = await client.wait_for_solve_outcome(
+            solve, assert_feasible=True
         )
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.optimal
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
-    async def test_queue_bounded_infeasible_attempt(self):
-        attempt = await client.queue(
+    async def test_queue_bounded_infeasible_solve(self):
+        solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 parameters={"bound": 3},
             )
         )
-        outcome = await client.wait_for_attempt_outcome(attempt)
+        outcome = await client.wait_for_solve_outcome(solve)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
-    async def test_queue_simple_unbounded_attempt(self):
-        attempt = await client.queue(
+    async def test_queue_simple_unbounded_solve(self):
+        solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("unbounded")
             )
         )
-        outcome = await client.wait_for_attempt_outcome(attempt)
+        outcome = await client.wait_for_solve_outcome(solve)
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
-    async def test_queue_diet_attempt(self):
-        attempt = await client.queue(
+    async def test_queue_diet_solve(self):
+        solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("diet"),
                 parameters={
@@ -74,11 +74,11 @@ class TestClient:
                 },
             ),
         )
-        outcome = await client.wait_for_attempt_outcome(attempt)
+        outcome = await client.wait_for_solve_outcome(solve)
         assert outcome.optimal
         assert outcome.objective_value == 33
 
-        input_data = await client.fetch_attempt_inputs(attempt)
+        input_data = await client.fetch_solve_inputs(solve)
         costs = input_data.parameter("costPerRecipe")
         assert costs.to_dict() == {
             "lasagna": 12,
@@ -87,7 +87,7 @@ class TestClient:
             "caviar": 23,
         }
 
-        output_data = await client.fetch_attempt_outputs(attempt)
+        output_data = await client.fetch_solve_outputs(solve)
         quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
         nutrients = output_data.constraint("enoughNutrients")
@@ -98,8 +98,8 @@ class TestClient:
         }
 
     @pytest.mark.asyncio
-    async def test_queue_relaxed_attempt(self):
-        attempt = await client.queue(
+    async def test_queue_relaxed_solve(self):
+        solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 transformations=[
@@ -113,13 +113,13 @@ class TestClient:
                 parameters={"bound": 3},
             ),
         )
-        outcome = await client.wait_for_attempt_outcome(attempt)
+        outcome = await client.wait_for_solve_outcome(solve)
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
-    async def test_queue_bounded_relaxed_attempt(self):
-        attempt = await client.queue(
+    async def test_queue_bounded_relaxed_solve(self):
+        solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 transformations=[
@@ -138,20 +138,20 @@ class TestClient:
                 },
             ),
         )
-        outcome = await client.wait_for_attempt_outcome(attempt)
+        outcome = await client.wait_for_solve_outcome(solve)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_queue_sudoku(self):
-        attempt = await client.queue(
+        solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("sudoku"),
                 parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
             ),
         )
-        outcome = await client.wait_for_attempt_outcome(attempt)
+        outcome = await client.wait_for_solve_outcome(solve)
         assert isinstance(outcome, opvious.FeasibleOutcome)
-        output_data = await client.fetch_attempt_outputs(attempt)
+        output_data = await client.fetch_solve_outputs(solve)
         decisions = output_data.variable("decisions")
         assert (0, 0, 3) in decisions.index
 
@@ -294,7 +294,7 @@ class TestClient:
                 assert_feasible=True,
             )
             raise Exception()
-        except opvious.UnexpectedOutcomeError as exc:
+        except opvious.UnexpectedSolveOutcomeError as exc:
             assert isinstance(exc.outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
@@ -348,8 +348,8 @@ class TestClient:
         assert len(deficit) == 1
 
     @pytest.mark.asyncio
-    async def test_inspect_instructions(self):
-        instructions = await client.inspect_instructions(
+    async def test_format_problem(self):
+        instructions = await client.format_problem(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("sudoku"),
                 parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
@@ -358,8 +358,8 @@ class TestClient:
         assert "decisions" in instructions
 
     @pytest.mark.asyncio
-    async def test_summarize(self):
-        summary = await client.summarize(
+    async def test_summarize_problem(self):
+        summary = await client.summarize_problem(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("sudoku"),
                 parameters={"hints": [(0, 0, 3), (1, 1, 5)]},

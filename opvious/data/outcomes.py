@@ -7,17 +7,17 @@ from .tensors import Value
 
 
 SolveStatus = Literal[
-    "CANCELLED",
-    "ERRORED",
+    "ABORTED",
     "FEASIBLE",
     "INFEASIBLE",
     "OPTIMAL",
     "UNBOUNDED",
+    "UNKNOWN",
 ]
 
 
 @dataclasses.dataclass(frozen=True)
-class CancelledOutcome:
+class AbortedOutcome:
     """The solve was cancelled before a solution was found"""
 
 
@@ -39,10 +39,9 @@ class FailedOutcome:
 
 
 def failed_outcome_from_graphql(data: Any) -> FailedOutcome:
-    failure = data["failure"]
-    error = failure["error"]
+    error = data["error"]
     return FailedOutcome(
-        status=failure["status"],
+        status=data["status"],
         message=error["message"],
         code=error.get("code"),
         tags=error.get("tags"),
@@ -65,7 +64,7 @@ class FeasibleOutcome:
 
 def feasible_outcome_from_graphql(data: Any) -> FeasibleOutcome:
     return FeasibleOutcome(
-        optimal=data["isOptimal"],
+        optimal=data["status"] == "OPTIMAL",
         objective_value=data.get("objectiveValue"),
         relative_gap=data.get("relativeGap"),
     )
@@ -81,12 +80,7 @@ class UnboundedOutcome:
     """No bounded optimal solution exists"""
 
 
-@dataclasses.dataclass(frozen=True)
-class AbortedOutcome:
-    """No feasible solution was found"""
-
-
-Outcome = Union[
+SolveOutcome = Union[
     AbortedOutcome,
     FailedOutcome,
     FeasibleOutcome,
@@ -95,23 +89,21 @@ Outcome = Union[
 ]
 
 
-def outcome_status(outcome: Outcome) -> SolveStatus:
+def solve_outcome_status(outcome: SolveOutcome) -> SolveStatus:
     """Returns the status corresponding to a given outcome"""
-    if isinstance(outcome, CancelledOutcome):
-        return "CANCELLED"
-    if isinstance(outcome, FailedOutcome):
-        return "ERRORED"
+    if isinstance(outcome, AbortedOutcome):
+        return "ABORTED"
     if isinstance(outcome, FeasibleOutcome):
         return "OPTIMAL" if outcome.optimal else "FEASIBLE"
     if isinstance(outcome, InfeasibleOutcome):
         return "INFEASIBLE"
     if isinstance(outcome, UnboundedOutcome):
         return "INFEASIBLE"
-    raise TypeError(f"Unexpected outcome: {outcome}")
+    return "UNKNOWN"
 
 
-class UnexpectedOutcomeError(Exception):
+class UnexpectedSolveOutcomeError(Exception):
     """The solve ended with an unexpected outcome"""
 
-    def __init__(self, outcome: Outcome):
+    def __init__(self, outcome: SolveOutcome):
         self.outcome = outcome

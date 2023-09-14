@@ -39,12 +39,9 @@ class TestExecutors:
     @pytest.mark.parametrize("executor", _executors)
     async def test_execute_not_found(self, executor):
         with pytest.raises(opvious.executors.ExecutorError) as info:
-            await executor.execute_graphql_query(
-                "@CancelAttempt",
-                {"uuid": "00000000-0000-0000-0000-000000000000"},
-            )
+            await executor.execute_graphql_query("@DoSomething", {})
         assert info.value.status == 200
-        assert "ERR_UNKNOWN_ATTEMPT" in info.value.reason
+        assert "ERR_UNKNOWN_OPERATION" in info.value.reason
 
     @pytest.mark.asyncio
     async def test_fetch_text(self):

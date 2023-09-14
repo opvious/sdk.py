@@ -2,27 +2,26 @@ import logging
 
 from .client import Client, ClientSetting, Problem
 from .common import __version__
-from .data.attempts import Attempt, AttemptNotification
 from .data.outcomes import (
     AbortedOutcome,
-    CancelledOutcome,
     FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
-    Outcome,
-    outcome_status,
+    SolveOutcome,
     SolveStatus,
     UnboundedOutcome,
-    UnexpectedOutcomeError,
+    UnexpectedSolveOutcomeError,
+    solve_outcome_status,
 )
-from .data.outlines import Label, Outline
+from .data.outlines import Label, ProblemOutline
+from .data.queued_solves import QueuedSolve, SolveNotification
 from .data.solves import (
     EpsilonConstraint,
     Solution,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
-    SolveSummary,
+    ProblemSummary,
     SolveStrategy,
     Target,
 )
@@ -64,23 +63,23 @@ __all__ = [
     "Specification",
     "load_notebook_models",
     "modeling",
-    # Solves and attempts
-    "Attempt",
-    "AttemptNotification",
+    # Solves
     "DimensionArgument",
     "EpsilonConstraint",
     "Key",
     "KeyItem",
     "Label",
-    "Outline",
     "Problem",
+    "ProblemOutline",
+    "ProblemSummary",
+    "QueuedSolve",
     "Solution",
     "SolveInputs",
+    "SolveNotification",
     "SolveOptions",
     "SolveOutputs",
     "SolveStatus",
     "SolveStrategy",
-    "SolveSummary",
     "SparseTensorArgument",
     "Target",
     "Tensor",
@@ -88,14 +87,13 @@ __all__ = [
     "Value",
     # Outcomes
     "AbortedOutcome",
-    "CancelledOutcome",
     "FailedOutcome",
     "FeasibleOutcome",
     "InfeasibleOutcome",
-    "Outcome",
+    "SolveOutcome",
     "UnboundedOutcome",
-    "UnexpectedOutcomeError",
-    "outcome_status",
+    "UnexpectedSolveOutcomeError",
+    "solve_outcome_status",
     # Transformations
     "transformations",
     # Miscellaneous

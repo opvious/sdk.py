@@ -76,7 +76,7 @@ class LocalSpecification:
     Instances are integrated with IPython's `rich display capabilities`_ and
     will automatically render their LaTeX sources when output in notebooks.
 
-    This type of specification cannot be used to start attempts.
+    This type of specification cannot be used to queue solves.
 
     .. _rich display capabilities: https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display  # noqa
     """
