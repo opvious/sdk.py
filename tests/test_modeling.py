@@ -253,18 +253,29 @@ class TestModeling:
     @pytest.mark.asyncio
     async def test_global_name_collision(self):
         class _Model(om.Model):
+            count = om.Variable.natural()
+            cost = om.Variable.natural()
             step_count = om.Variable.natural()
             step_cost = om.Variable.non_negative()
             step_color = om.Variable.non_negative()
 
             @om.objective
             def minimize_cost(self):
-                return self.step_count() + self.step_cost() + self.step_color()
+                return (
+                    self.count()
+                    + self.cost()
+                    + self.step_count()
+                    + self.step_cost()
+                    + self.step_color()
+                )
 
         model = _Model()
         spec = await client.annotate_specification(model.specification())
         assert spec.annotation.issue_count == 0
-        assert r"\chi^\mathrm{step}''" in spec.sources[0].text
+        text = spec.sources[0].text
+        assert r"\chi^\mathrm{step \prime}" in text
+        assert r"\chi^\mathrm{step \prime \prime}" in text
+        assert r"\chi'" in text
 
     @pytest.mark.asyncio
     async def test_annotate_markdown_repr(self):
