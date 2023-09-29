@@ -35,11 +35,11 @@ jobs:
       - name: Register specifications
         run: ./scripts/specifications.sh register
         env:
-          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_BETA_TOKEN }}
+          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_TOKEN }}
       - name: Test
         run: poetry run pytest
         env:
-          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_BETA_TOKEN }}
+          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_TOKEN }}
       - name: Publish
         run: poetry publish --build
         env:

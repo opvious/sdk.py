@@ -1,7 +1,7 @@
 """Built-in transformations
 
 This module exports all available :class:`~opvious.ProblemTransformation`
-instances. As a convenience it is also exported by the `opvious` module.
+instances.
 """
 
 from __future__ import annotations

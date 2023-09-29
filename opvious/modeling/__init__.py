@@ -34,8 +34,8 @@ from .definitions import (
     interval,
     objective,
 )
+from .model import Definition, Model, ModelFragment, Statement, relabel
 from .quantified import Quantified
-from .statements import Definition, Model, ModelFragment, Statement, relabel
 
 __all__ = [
     "Model",
