@@ -18,8 +18,18 @@ _logger = logging.getLogger(__name__)
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecificationSource:
+    """A document containing one or more model definitions
+
+    Models can comprise multiple sources, with each source only containing a
+    subset of the model's definitions. This provides an easy way to share
+    definitions between models.
+    """
+
     text: str
+    """The source's contents"""
+
     title: str = _DEFAULT_TITLE
+    """A title used to easily identify the source"""
 
     def _repr_markdown_(self) -> str:
         return _source_details(self, [], True)
@@ -27,12 +37,19 @@ class LocalSpecificationSource:
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecificationAnnotation:
+    """API-generated annotation"""
+
     issue_count: int
+    """The total number of issues detected in this specification"""
+
     issues: Mapping[int, Sequence[LocalSpecificationIssue]]
+    """All issues associated with the specification, keyed by source index"""
 
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecificationIssue:
+    """An issue detected within a specification"""
+
     source_index: int
     start_offset: int
     end_offset: int
@@ -71,12 +88,13 @@ _SUMMARY_STYLE = " ".join(
 @dataclasses.dataclass(frozen=True)
 class LocalSpecification:
     """
-    A local specification
+    A local model specification
 
-    Instances are integrated with IPython's `rich display capabilities`_ and
-    will automatically render their LaTeX sources when output in notebooks.
+    Instances of this class are integrated with IPython's `rich display
+    capabilities`_ and will automatically render their LaTeX sources when
+    output in notebooks.
 
-    This type of specification cannot be used to queue solves.
+    Note that this type of specification cannot be used to queue solves.
 
     .. _rich display capabilities: https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display  # noqa
     """
@@ -90,7 +108,7 @@ class LocalSpecification:
     annotation: Optional[LocalSpecificationAnnotation] = None
     """API-issued annotation
 
-    This field is typically generated automatically by clients'
+    This field is generated automatically by clients'
     :meth:`~opvious.Client.annotate_specification` method. When any issues are
     detected, the specification's pretty-printed representation will highlight
     any errors.
@@ -107,7 +125,7 @@ class LocalSpecification:
 
     @classmethod
     def inline(cls, *texts: str) -> LocalSpecification:
-        """Creates a local specification from strings"""
+        """Creates a local specification from inline LaTeX definitions"""
         sources = [LocalSpecificationSource(s) for s in texts]
         return LocalSpecification(sources)
 
@@ -115,11 +133,14 @@ class LocalSpecification:
     def globs(
         cls, *likes: str, root: Optional[str] = None
     ) -> LocalSpecification:
-        """Creates a local specification from file globs
+        """Creates a local specification from LaTeX definition files
 
-        As a convenience the root can be a file's name, in which case it will
-        be interpreted as its parent directory (this is typically handy when
-        used with `__file__`).
+        Args:
+            *likes: File names or globs
+            root: Optional root folder used for matching file names and globs.
+                As a convenience this argument can also be an existing file's
+                name, in which case it will be interpreted as its parent
+                directory (this is typically handy when used with `__file__`).
         """
         if root:
             root = os.path.realpath(root)

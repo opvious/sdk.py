@@ -30,10 +30,6 @@ class FormulationSpecification:
     production use as it provides history and reproducibility when combined
     with tag names.
 
-    `This GitHub action
-    <https://github.com/opvious/register-specification-action>`_ provides a
-    convenient way to automatically create formulations from CI workflows.
-
     .. _Optimization Hub: https://hub.cloud.opvious.io
     """
 
