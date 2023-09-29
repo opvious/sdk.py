@@ -1,8 +1,7 @@
 """Built-in model fragments
 
 This module exports :class:`~opvious.modeling.ModelFragment` instances for
-common use-cases. As a convenience it is also exported by the
-`opvious.modeling` module.
+common use-cases.
 """
 
 from __future__ import annotations
@@ -24,8 +23,8 @@ from .definitions import (
     constraint,
 )
 from .identifiers import Name
+from .model import method_decorator, ModelFragment
 from .quantified import Quantified
-from .statements import method_decorator, ModelFragment
 
 
 class MaskedSubspace(ModelFragment):

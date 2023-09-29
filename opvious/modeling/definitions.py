@@ -52,8 +52,8 @@ from .identifiers import (
     TensorIdentifier,
     local_formatting_scope,
 )
+from .model import Definition, Model, ModelFragment, method_decorator
 from .quantified import Quantified, unquantify
-from .statements import Definition, Model, ModelFragment, method_decorator
 
 
 _logger = logging.getLogger(__name__)
