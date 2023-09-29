@@ -214,7 +214,7 @@ class Problem:
     """An optimization problem instance"""
 
     specification: Specification
-    """:ref:`Model specification <Specifications>`"""
+    """Model :ref:`specification <Specifications>`"""
 
     parameters: Optional[Mapping[Label, TensorArgument]] = None
     """Input data, keyed by parameter label
@@ -230,10 +230,13 @@ class Problem:
     """
 
     transformations: Optional[list[ProblemTransformation]] = None
-    """:ref:`Transformations` to apply to the specification"""
+    """Optional :ref:`Transformations` to apply to the specification"""
 
     strategy: Optional[SolveStrategy] = None
-    """:ref:`Multi-objective strategy <Multi-objective strategies>`"""
+    """Optional :ref:`multi-objective strategy <Multi-objective strategies>`
+
+    This argument is required if the problem has two or more objectives.
+    """
 
     options: Optional[SolveOptions] = None
-    """Solve options (gap thresholds, timeout, etc.)"""
+    """Optional solve options (gap thresholds, timeout, etc.)"""
