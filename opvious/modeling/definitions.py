@@ -246,9 +246,16 @@ class Tensor(Definition):
         self.qualifiers = qualifiers
 
     @classmethod
-    def continuous(cls: Type[_T], *quantifiables, **kwargs) -> _T:
+    def continuous(
+        cls: Type[_T],
+        *quantifiables,
+        lower_bound: ExpressionLike = -math.inf,
+        upper_bound: ExpressionLike = math.inf,
+        **kwargs,
+    ) -> _T:
         """Returns a tensor with real image"""
-        return cls(Image(), *quantifiables, **kwargs)
+        image = Image(lower_bound=lower_bound, upper_bound=upper_bound)
+        return cls(image, *quantifiables, **kwargs)
 
     @classmethod
     def non_negative(
@@ -258,25 +265,42 @@ class Tensor(Definition):
         **kwargs,
     ) -> _T:
         """Returns a tensor with non-negative real image"""
-        img = Image(lower_bound=0, upper_bound=upper_bound)
-        return cls(img, *quantifiables, **kwargs)
+        return cls.continuous(
+            *quantifiables, lower_bound=0, upper_bound=upper_bound, **kwargs
+        )
 
     @classmethod
-    def non_positive(cls: Type[_T], *quantifiables, **kwargs) -> _T:
+    def non_positive(
+        cls: Type[_T],
+        *quantifiables,
+        lower_bound: ExpressionLike = -math.inf,
+        **kwargs,
+    ) -> _T:
         """Returns a tensor with non-positive real image"""
-        return cls(Image(upper_bound=0), *quantifiables, **kwargs)
+        return cls.continuous(
+            *quantifiables, lower_bound=lower_bound, upper_bound=0, **kwargs
+        )
 
     @classmethod
     def unit(cls: Type[_T], *quantifiables, **kwargs) -> _T:
         """Returns a tensor with `[0, 1]` real image"""
-        return cls(
-            Image(lower_bound=0, upper_bound=1), *quantifiables, **kwargs
+        return cls.continuous(
+            *quantifiables, lower_bound=0, upper_bound=1, **kwargs
         )
 
     @classmethod
-    def discrete(cls: Type[_T], *quantifiables, **kwargs) -> _T:
+    def discrete(
+        cls: Type[_T],
+        *quantifiables,
+        lower_bound: ExpressionLike = -math.inf,
+        upper_bound: ExpressionLike = math.inf,
+        **kwargs,
+    ) -> _T:
         """Returns a tensor with integral image"""
-        return cls(Image(is_integral=True), *quantifiables, **kwargs)
+        image = Image(
+            is_integral=True, lower_bound=lower_bound, upper_bound=upper_bound
+        )
+        return cls(image, *quantifiables, **kwargs)
 
     @classmethod
     def natural(
@@ -286,14 +310,16 @@ class Tensor(Definition):
         **kwargs,
     ) -> _T:
         """Returns a tensor with non-negative integral image"""
-        img = Image(lower_bound=0, upper_bound=upper_bound, is_integral=True)
-        return cls(img, *quantifiables, **kwargs)
+        return cls.discrete(
+            *quantifiables, lower_bound=0, upper_bound=upper_bound, **kwargs
+        )
 
     @classmethod
     def indicator(cls: Type[_T], *quantifiables, **kwargs) -> _T:
         """Returns a tensor with `{0, 1}` integral image"""
-        image = Image(lower_bound=0, upper_bound=1, is_integral=True)
-        return cls(image, *quantifiables, **kwargs)
+        return cls.discrete(
+            *quantifiables, lower_bound=0, upper_bound=1, **kwargs
+        )
 
     @property
     def identifier(self) -> Optional[GlobalIdentifier]:
