@@ -152,8 +152,8 @@ Solves can be run in real time with the client's :meth:`.Client.solve` method.
    :noindex:
 
 .. note::
-  In most environments, solves will stream progress notifications back to the 
-  client. This allows for real-time updates on the ongoing solve (current 
+  In many environments, clients can stream solve progress notifications back to 
+  the client. This allows for real-time updates on the ongoing solve (current 
   optimality gap, latest epsilon constraint added, etc.).
   You can view them by enabling `INFO` or `DEBUG` logging, for example:
 

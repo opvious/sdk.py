@@ -277,11 +277,8 @@ class Client:
     async def summarize_problem(self, problem: Problem) -> ProblemSummary:
         """Returns summary statistics about a problem without solving it
 
-        The arguments below are identical to :meth:`.Client.run_solve`, making
-        it easy to swap one call for another when debugging.
-
         Args:
-            problem: :class:`.Problem` instance to inspect
+            problem: :class:`.Problem` instance to summarize
         """
         problem, _outline = await self._prepare_problem(problem)
         async with self._executor.execute(
@@ -295,10 +292,10 @@ class Client:
     async def format_problem(
         self, problem: Problem, include_line_comments=False
     ) -> str:
-        """Returns the problem's representation in `LP format`_
+        """Returns the problem's annotated representation in `LP format`_
 
         Args:
-            problem: :class:`.Problem` instance to inspect
+            problem: :class:`.Problem` instance to format
             include_line_comments: Include comment lines in the output. By
                 default these lines are only logged as DEBUG messages.
 
@@ -383,7 +380,6 @@ class Client:
                         "desiredReturn": 0.1,
                     },
                 ),
-                assert_feasible=True,  # Throw if not feasible
             )
 
             # Metadata is available on `outcome`
@@ -393,7 +389,7 @@ class Client:
             optimal_allocation = solution.outputs.variable("allocation")
 
 
-        See also :meth:`.Client.queue` for an alternative for
+        See also :meth:`.Client.queue_solve` for an alternative for
         long-running solves.
         """
         problem, outline = await self._prepare_problem(problem)
@@ -478,7 +474,7 @@ class Client:
         return solution
 
     async def queue_solve(self, problem: Problem) -> QueuedSolve:
-        """Queues a solve
+        """Queues a solve for asynchronous processing
 
         Inputs will be validated locally before the request is sent to the API.
         From then on, the solve will be queued and begin solving start as soon
@@ -509,10 +505,7 @@ class Client:
             )
 
             # Wait for the solve to complete
-            await client.wait_for_solve_outcome(
-                solve,
-                assert_feasible=True  # Throw if not feasible
-            )
+            await client.wait_for_solve_outcome(solve, assert_feasible=True)
 
             # Fetch the solution's data
             output_data = await client.fetch_solve_outputs(solve)
@@ -520,7 +513,8 @@ class Client:
             # Get a parsed variable as a dataframe
             decisions = output_data.variable("decisions")
 
-        See also :meth:`.Client.run_solve` for an alternative for short solves.
+        See also :meth:`.Client.solve` for an alternative for solving problems
+        live.
         """
         if not isinstance(problem.specification, FormulationSpecification):
             raise Exception(
