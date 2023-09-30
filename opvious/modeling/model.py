@@ -2,21 +2,11 @@ from __future__ import annotations
 
 import collections
 import dataclasses
-import functools
 import logging
 import pandas as pd
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-)
-import weakref
+from typing import Any, Iterable, Literal, Mapping, Optional, Sequence, Union
 
-from ..common import Label, to_camel_case
+from ..common import BindableMethod, Label, to_camel_case
 from ..specifications.local import LocalSpecification, LocalSpecificationSource
 from .identifiers import (
     DefaultIdentifierFormatter,
@@ -69,37 +59,6 @@ class ModelFragment:
     @property
     def default_definition(self) -> Optional[str]:
         return None
-
-
-def method_decorator(wrapper: Callable[..., Any]) -> Any:
-    def wrap(fn):
-        return _DecoratedMethod(fn, wrapper)
-
-    return wrap
-
-
-class _DecoratedMethod:
-    def __init__(
-        self,
-        body: Callable[..., Any],
-        wrapper: Callable[[Callable[..., Any]], Any],
-    ) -> None:
-        self._body = body
-        self._wrapper = wrapper
-        self._bindings: Any = weakref.WeakKeyDictionary()
-
-    def bound_to(self, owner: Any) -> Any:
-        binding = self._bindings.get(owner)
-        if not binding:
-            binding = self._wrapper(functools.partial(self._body, owner))
-            self._bindings[owner] = binding
-        return binding
-
-    def __get__(self, owner: Any, _objtype=None) -> Any:
-        return self.bound_to(owner)
-
-    def __call__(self, owner) -> Any:  # Property call
-        return self.bound_to(owner)()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -199,21 +158,39 @@ class _ModelVisitor:
                 path[-1] = ""
             else:
                 path[-1] = attr
-            if isinstance(value, property):
-                value = value.fget
-            if isinstance(value, _DecoratedMethod):
-                value = value.bound_to(owner)
-            if isinstance(value, ModelFragment):
-                self._visit_owner(model, value, path)
-                continue
-            if not isinstance(value, Definition):
-                continue
-            label = (
-                labels.get(attr)
-                or value.label
-                or to_camel_case("_".join(path))
-            )
-            self.candidates.append(_Candidate(label, value, model))
+            unwrapped = _unwrap_value(value, owner)
+            if isinstance(unwrapped, ModelFragment):
+                self._visit_owner(model, unwrapped, path)
+            elif isinstance(unwrapped, Definition):
+                label = (
+                    labels.get(attr)
+                    or unwrapped.label
+                    or to_camel_case("_".join(path))
+                )
+                self.candidates.append(_Candidate(label, unwrapped, model))
+            else:
+                _logger.debug(
+                    "Ignoring attribute. [path=%s, value=%s]", path, value
+                )
+
+
+def _unwrap_value(
+    value: Any, owner: Any
+) -> Union[None, ModelFragment, Definition]:
+    is_property = isinstance(value, property)
+    if is_property:
+        value = value.fget
+    is_bindable = isinstance(value, BindableMethod)
+    if is_bindable:
+        value = value.bound_to(owner)
+    if isinstance(value, (ModelFragment, Definition)):
+        return value
+    if callable(value):
+        if is_bindable:
+            value = value()
+        elif is_property:
+            value = value(owner)
+    return value if isinstance(value, (ModelFragment, Definition)) else None
 
 
 class Model:

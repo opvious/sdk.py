@@ -20,7 +20,7 @@ from typing import (
     overload,
 )
 
-from ..common import Label
+from ..common import Label, method_decorator
 from .ast import (
     Domain,
     Expression,
@@ -52,7 +52,7 @@ from .identifiers import (
     TensorIdentifier,
     local_formatting_scope,
 )
-from .model import Definition, Model, ModelFragment, method_decorator
+from .model import Definition, Model, ModelFragment
 from .quantified import Quantified, unquantify
 
 

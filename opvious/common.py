@@ -1,7 +1,9 @@
+import functools
 from importlib import metadata
 import math
-from typing import Any, Iterable, Union
+from typing import Any, Callable, Iterable, Union
 import urllib.parse
+import weakref
 
 
 try:
@@ -85,3 +87,51 @@ def json_dict(**kwargs) -> Json:
         else:
             data[json_key] = val
     return data
+
+
+# Decorator utilities
+
+
+def method_decorator(wrapper: Callable[..., Any]) -> Any:
+    def wrap(fn):
+        return BindableMethod(fn, wrapper)
+
+    return wrap
+
+
+def with_instance(consumer):
+    def wrap(fn):
+        return BindableMethod(fn, consumer, lazy=True)
+
+    return wrap
+
+
+class BindableMethod:
+    def __init__(
+        self, body: Callable[..., Any], wrapper: Callable[..., Any], lazy=False
+    ) -> None:
+        self._body = body
+        self._wrapper = wrapper
+        self._lazy = lazy
+        self._bindings: Any = weakref.WeakKeyDictionary()
+
+    def _apply(self, owner: Any, bind=True) -> Any:
+        wrapper = self._wrapper(owner) if self._lazy else self._wrapper
+        body = functools.partial(self._body, owner) if bind else self._body
+        return wrapper(body)
+
+    def bound_to(self, owner: Any) -> Any:
+        binding = self._bindings.get(owner)
+        if not binding:
+            binding = self._apply(owner)
+            while isinstance(binding, BindableMethod):
+                binding = binding._apply(owner, False)
+            self._bindings[owner] = binding
+        return binding
+
+    def __get__(self, owner: Any, _objtype=None) -> Any:
+        return self.bound_to(owner)
+
+    def __call__(self, owner, *args, **kwargs) -> Any:
+        # Needed for property calls and direct calls
+        return self.bound_to(owner)(*args, **kwargs)

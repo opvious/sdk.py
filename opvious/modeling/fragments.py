@@ -6,9 +6,9 @@ common use-cases.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Union, cast
+from typing import Any, Callable, Iterable, Optional, Union
 
-from ..common import untuple
+from ..common import method_decorator, untuple, with_instance
 from .ast import cross, domain, lift, Projection, Quantifiable, total
 from .definitions import (
     Constraint,
@@ -23,7 +23,7 @@ from .definitions import (
     constraint,
 )
 from .identifiers import Name
-from .model import method_decorator, ModelFragment
+from .model import ModelFragment
 from .quantified import Quantified
 
 
@@ -84,43 +84,29 @@ class DerivedVariable(ModelFragment):
         image: Generated variable :class:`~opvious.modeling.Image`
     """
 
-    def __new__(
-        cls,
+    default_definition = "value"
+
+    def __init__(
+        self,
         body: Callable[..., Any],
         *quantifiables: Quantifiable,
         name: Optional[Name] = None,
         image: Image = Image(),
-    ) -> DerivedVariable:
-        class _Fragment(DerivedVariable):
-            value = Variable(image, quantifiables, name=name)
-
-            def __new__(cls) -> _Fragment:
-                return ModelFragment.__new__(cls)
-
-            @constraint
-            def is_defined(self) -> Quantified:
-                for t in self.value.space():
-                    yield self.value(*t) == body(*t)
-
-            def __call__(self, *subs: ExpressionLike) -> Expression:
-                return self.value(*subs)
-
-        return _Fragment()
-
-    default_definition = "value"
+    ) -> None:
+        self._body = body
+        self._value = Variable(image, quantifiables, name=name)
 
     @property
     def value(self) -> Variable:
-        """The generated variable"""
-        raise NotImplementedError()
+        return self._value
 
-    @property
-    def is_defined(self) -> Constraint:
-        """The constraint ensuring the variable's value"""
-        raise NotImplementedError()
+    @constraint
+    def is_defined(self) -> Quantified:
+        for t in self._value.space():
+            yield self._value(*t) == self._body(*t)
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
-        raise NotImplementedError()
+        return self._value(*subs)
 
 
 def derived_variable(
@@ -140,6 +126,10 @@ def derived_variable(
 class ActivationVariable(ModelFragment):
     """Indicator variable activation fragment
 
+    This variable tracks an underlying non-negative tensor. Assuming both of
+    its bounds are defined (see below) it will bel equal to 1 iff the
+    underlying tensor is positive and 0 otherwise.
+
     Args:
         tensor: Non-negative tensor-like
         quantifiables: Tensor quantifiables, can be omitted if the tensor is a
@@ -151,7 +141,9 @@ class ActivationVariable(ModelFragment):
             constraint. If `True` the variable's image's lower bound will be
             used, if `False` no deactivation constraint will be added.
         name: Name of the generated activation variable
-        projection: Mask used to project the variable's quantification
+        projection: Mask used to project the variable's quantification. When
+            this is set, the indicator variable will be set to 1 iff at least
+            one of the projected tensor values is positive.
     """
 
     def __new__(
@@ -269,8 +261,10 @@ class MagnitudeVariable(ModelFragment):
     See also :func:`magnitude_variable` for a decorator equivalent.
     """
 
-    def __new__(
-        cls,
+    default_definition = "value"
+
+    def __init__(
+        self,
         tensor: TensorLike,
         *quantifiables: Quantifiable,
         name: Optional[Name] = None,
@@ -278,7 +272,7 @@ class MagnitudeVariable(ModelFragment):
         projection: Projection = -1,
         lower_bound=True,
         upper_bound=True,
-    ) -> MagnitudeVariable:
+    ) -> None:
         if isinstance(tensor, Tensor):
             if not quantifiables:
                 quantifiables = tensor.quantifiables()
@@ -288,53 +282,39 @@ class MagnitudeVariable(ModelFragment):
                 lower_bound = False
             if upper_bound and tensor.image.upper_bound == 0:
                 upper_bound = False
-        domains = tuple(domain(q) for q in quantifiables)
-        if image is None:
-            image = Image(lower_bound=0)
+        self._tensor = tensor
+        self._domains = tuple(domain(q) for q in quantifiables)
+        self._projection = projection
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
+        self._value = Variable(
+            image or Image(lower_bound=0),
+            self._quantification(),
+            name=name,
+        )
 
-        def quantification(lift=False):
-            return cross(*domains, projection=projection, lift=lift)
-
-        class _Fragment(MagnitudeVariable):
-            value = Variable(cast(Any, image), quantification(), name=name)
-
-            def __new__(cls) -> _Fragment:
-                return ModelFragment.__new__(cls)
-
-            def __call__(self, *subs: ExpressionLike) -> Expression:
-                return self.value(*subs)
-
-            @constraint(disabled=not lower_bound)
-            def lower_bounds(self):
-                for cp in quantification(lift=True):
-                    yield -self.value(*cp) <= tensor(*cp.lifted)
-
-            @constraint(disabled=not upper_bound)
-            def upper_bounds(self):
-                for cp in quantification(lift=True):
-                    yield self.value(*cp) >= tensor(*cp.lifted)
-
-        return _Fragment()
-
-    default_definition = "value"
+    def _quantification(self, lift=False):
+        return cross(*self._domains, projection=self._projection, lift=lift)
 
     @property
     def value(self) -> Variable:
         """The magnitude variable"""
-        raise NotImplementedError()
+        return self._value
 
-    @property
-    def lower_bounds(self) -> Optional[Constraint]:
+    @with_instance(lambda self: constraint(disabled=not self._lower_bound))
+    def lower_bounds(self) -> Quantified:
         """The magnitude's lower bound constraint"""
-        raise NotImplementedError()
+        for cp in self._quantification(lift=True):
+            yield -self.value(*cp) <= self._tensor(*cp.lifted)
 
-    @property
-    def upper_bounds(self) -> Optional[Constraint]:
+    @with_instance(lambda self: constraint(disabled=not self._upper_bound))
+    def upper_bounds(self) -> Quantified:
         """The magnitude's upper bound constraint"""
-        raise NotImplementedError()
+        for cp in self._quantification(lift=True):
+            yield self._value(*cp) >= self._tensor(*cp.lifted)
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
-        raise NotImplementedError()
+        return self._value(*subs)
 
 
 def magnitude_variable(
@@ -344,7 +324,7 @@ def magnitude_variable(
     projection: Projection = -1,
     lower_bound=True,
     upper_bound=True,
-) -> Callable[[TensorLike], MagnitudeVariable]:
+) -> Callable[[Callable[..., TensorLike]], MagnitudeVariable]:
     """Transforms a method into a :class:`MagnitudeVariable` fragment
 
     Note that this method may alter the underlying method's call signature if a
