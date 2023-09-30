@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 from typing import Any, Iterable, Literal, Mapping, Optional, Sequence, Union
 
-from ..common import BindableMethod, Label, to_camel_case
+from ..common import Bindable, Label, to_camel_case
 from ..specifications.local import LocalSpecification, LocalSpecificationSource
 from .identifiers import (
     DefaultIdentifierFormatter,
@@ -180,7 +180,7 @@ def _unwrap_value(
     is_property = isinstance(value, property)
     if is_property:
         value = value.fget
-    is_bindable = isinstance(value, BindableMethod)
+    is_bindable = isinstance(value, Bindable)
     if is_bindable:
         value = value.bound_to(owner)
     if isinstance(value, (ModelFragment, Definition)):

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Iterable, Optional, Union
 
-from ..common import method_decorator, untuple, with_instance
+from ..common import method_decorator, untuple
 from .ast import cross, domain, lift, Projection, Quantifiable, total
 from .definitions import (
     Constraint,
@@ -109,6 +109,7 @@ class DerivedVariable(ModelFragment):
         return self._value(*subs)
 
 
+@method_decorator(require_call=True)
 def derived_variable(
     *quantifiables: Quantifiable,
     name: Optional[Name] = None,
@@ -116,7 +117,6 @@ def derived_variable(
 ) -> Callable[[TensorLike], DerivedVariable]:
     """Transforms a method into a :class:`DerivedVariable` fragment"""
 
-    @method_decorator
     def wrapper(fn):
         return DerivedVariable(fn, quantifiables, name=name, image=image)
 
@@ -301,13 +301,13 @@ class MagnitudeVariable(ModelFragment):
         """The magnitude variable"""
         return self._value
 
-    @with_instance(lambda self: constraint(disabled=not self._lower_bound))
+    @constraint(lambda init, self: init(disabled=not self._lower_bound))
     def lower_bounds(self) -> Quantified:
         """The magnitude's lower bound constraint"""
         for cp in self._quantification(lift=True):
             yield -self.value(*cp) <= self._tensor(*cp.lifted)
 
-    @with_instance(lambda self: constraint(disabled=not self._upper_bound))
+    @constraint(lambda init, self: init(disabled=not self._upper_bound))
     def upper_bounds(self) -> Quantified:
         """The magnitude's upper bound constraint"""
         for cp in self._quantification(lift=True):
@@ -317,6 +317,7 @@ class MagnitudeVariable(ModelFragment):
         return self._value(*subs)
 
 
+@method_decorator()
 def magnitude_variable(
     *quantifiables: Quantifiable,
     name: Optional[Name] = None,
@@ -331,7 +332,6 @@ def magnitude_variable(
     projection is specified.
     """
 
-    @method_decorator
     def wrapper(fn):
         return MagnitudeVariable(
             fn,

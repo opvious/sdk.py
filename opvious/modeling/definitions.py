@@ -570,6 +570,7 @@ _M = TypeVar("_M", bound=Union[Model, ModelFragment], contravariant=True)
 _F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
 
 
+@method_decorator()
 def alias(
     name: Optional[Name],
     *quantifiables: Quantifiable,
@@ -603,7 +604,6 @@ def alias(
                 return total(self.count(p) for p in self.products)
     """
 
-    @method_decorator
     def wrapper(fn):
         if name is None:
             return fn
@@ -682,9 +682,15 @@ def constraint(
     ...
 
 
+@overload
 def constraint(
-    method: Optional[ConstraintMethod] = None,
-    *,
+    new: Callable[..., Any]
+) -> Callable[[ConstraintMethod], Constraint]:
+    ...
+
+
+@method_decorator()
+def constraint(
     label: Optional[Label] = None,
     qualifiers: Optional[Sequence[Label]] = None,
     disabled=False,
@@ -718,7 +724,6 @@ def constraint(
                 # ...
     """
 
-    @method_decorator
     def wrapper(fn):
         if not inspect.isgeneratorfunction(fn):
             raise TypeError(f"Non-generator constraint function: {fn}")
@@ -726,7 +731,7 @@ def constraint(
             return None
         return Constraint(fn, label=label, qualifiers=qualifiers)
 
-    return wrapper(method) if method else wrapper
+    return wrapper
 
 
 ObjectiveSense = Literal["max", "min"]
@@ -804,9 +809,15 @@ def objective(
     ...
 
 
+@overload
 def objective(
-    method: Optional[ObjectiveMethod] = None,
-    *,
+    new: Callable[..., Any]
+) -> Callable[[ObjectiveMethod], Objective]:
+    ...
+
+
+@method_decorator()
+def objective(
     sense: Optional[ObjectiveSense] = None,
     label: Optional[Label] = None,
     disabled=False,
@@ -846,14 +857,13 @@ def objective(
                 return total(self.count(p) for p in self.products)
     """
 
-    @method_decorator
     def wrapper(fn):
         if disabled:
             return None
         method_sense = sense or _objective_sense(fn)
         return Objective(fn, sense=method_sense, label=label)
 
-    return wrapper(method) if method else wrapper
+    return wrapper
 
 
 def _objective_sense(fn: Callable[..., Any]) -> ObjectiveSense:

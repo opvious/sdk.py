@@ -92,21 +92,63 @@ def json_dict(**kwargs) -> Json:
 # Decorator utilities
 
 
-def method_decorator(wrapper: Callable[..., Any]) -> Any:
+_lambda = lambda: 0  # noqa
+
+
+def _is_lambda(fn: Callable[..., Any]) -> bool:
+    return fn.__name__ == _lambda.__name__
+
+
+def capturing_instance(wrapper: Callable[..., Any]) -> Any:
     def wrap(fn):
-        return BindableMethod(fn, wrapper)
+        return Bindable(fn, wrapper)
 
     return wrap
 
 
-def with_instance(consumer):
+def with_instance(consumer: Callable[..., Any]) -> Any:
     def wrap(fn):
-        return BindableMethod(fn, consumer, lazy=True)
+        return Bindable(fn, consumer, lazy=True)
 
     return wrap
 
 
-class BindableMethod:
+def method_decorator(require_call=False):
+    """Transforms a decorator into a method-friendly equivalent"""
+
+    def wrap_decorator(decorator: Callable[..., Any]) -> Any:
+        def wrapped_decorator(*args, **kwargs):
+            arg = args[0] if args else None
+            if callable(arg):
+
+                if _is_lambda(arg):
+                    # Lazy decorator constructor
+                    if len(args) > 1 or kwargs:
+                        raise Exception("Unexpected tail arguments")
+
+                    def wrap_method(meth):
+                        return Bindable(
+                            meth, lambda self: arg(decorator, self), lazy=True
+                        )
+
+                    return wrap_method
+                elif not require_call and len(args) == 1 and not kwargs:
+                    # No argument decorator
+                    return Bindable(arg, decorator())
+
+            # Standard decorator creation
+
+            def wrap_method(meth):
+                return Bindable(meth, decorator(*args, **kwargs))
+
+            return wrap_method
+
+        return wrapped_decorator
+
+    return wrap_decorator
+
+
+class Bindable:
     def __init__(
         self, body: Callable[..., Any], wrapper: Callable[..., Any], lazy=False
     ) -> None:
@@ -124,7 +166,7 @@ class BindableMethod:
         binding = self._bindings.get(owner)
         if not binding:
             binding = self._apply(owner)
-            while isinstance(binding, BindableMethod):
+            while isinstance(binding, Bindable):
                 binding = binding._apply(owner, False)
             self._bindings[owner] = binding
         return binding

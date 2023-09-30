@@ -448,7 +448,6 @@ class TestModeling:
         model = _Model()
         spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
-        print(text)
         assert r"\forall p \in P, {-\mu} \leq 2 \omicron_{p}" in text
         assert r"\forall p \in P, \mu \geq 2 \omicron_{p}" in text
         assert spec.annotation.issue_count == 0
