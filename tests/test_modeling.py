@@ -304,7 +304,6 @@ class TestModeling:
     @pytest.mark.parametrize("model", _models)
     async def test_specification(self, model):
         spec = await client.annotate_specification(model.specification())
-        print(spec.source().text)
         assert spec.annotation.issue_count == 0
 
     @pytest.mark.asyncio

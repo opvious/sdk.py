@@ -353,7 +353,7 @@ def activation_variable(
     negate=False,
     projection: Projection = -1,
 ) -> Callable[[Callable[..., TensorLike]], ActivationVariable]:
-    """Transforms a method into a :class:`ActivationVariable` fragment
+    """Transforms a method into an :class:`ActivationVariable` fragment
 
     Note that this method may alter the underlying method's call signature if a
     projection is specified.
