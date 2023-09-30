@@ -30,45 +30,34 @@ from .quantified import Quantified
 class MaskedSubspace(ModelFragment):
     """Masked subspace fragment"""
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *quantifiables: Quantifiable,
         alias_name: Optional[Name] = None,
-    ) -> MaskedSubspace:
-        class _Fragment(MaskedSubspace):
-            mask = Parameter.indicator(quantifiables)
-
-            def __new__(cls) -> _Fragment:
-                return ModelFragment.__new__(cls)
-
-            @property
-            @alias(alias_name)
-            def masked(self) -> Quantified:
-                for t in cross(quantifiables):
-                    if self.mask(*t):
-                        yield untuple(t)
-
-            def __iter__(self):
-                return (untuple(t) for t in cross(self.masked))
-
-        return _Fragment()
+    ) -> None:
+        self._alias_name = alias_name
+        self._quantifiables = quantifiables
+        self._mask = Parameter.indicator(quantifiables)
 
     @property
     def mask(self) -> Parameter:
         """Parameter controlling the subset's element"""
-        raise NotImplementedError()
+        return self._mask
 
     @property
+    @alias(lambda init, self: init(self._alias_name))
     def masked(self) -> Quantified:
         """Masked subset
 
         As a convenience, iterating on the subset directly also yields
         quantifiers from the masked subset.
         """
-        raise NotImplementedError()
+        for t in cross(self._quantifiables):
+            if self._mask(*t):
+                yield untuple(t)
 
     def __iter__(self) -> Iterable[Any]:
-        raise NotImplementedError()
+        return (untuple(t) for t in cross(self.masked))
 
 
 MaskedSubset = MaskedSubspace  # Deprecated alias
@@ -121,127 +110,6 @@ def derived_variable(
         return DerivedVariable(fn, quantifiables, name=name, image=image)
 
     return wrapper
-
-
-class ActivationVariable(ModelFragment):
-    """Indicator variable activation fragment
-
-    This variable tracks an underlying non-negative tensor. Assuming both of
-    its bounds are defined (see below) it will bel equal to 1 iff the
-    underlying tensor is positive and 0 otherwise.
-
-    Args:
-        tensor: Non-negative tensor-like
-        quantifiables: Tensor quantifiables, can be omitted if the tensor is a
-            variable or parameter
-        upper_bound: Value of the upper bound used in the activation
-            constraint. If `True` the variable's image's upper bound will be
-            used, if `False` no activation constraint will be added.
-        lower_bound: Value of the lower bound used in the deactivation
-            constraint. If `True` the variable's image's lower bound will be
-            used, if `False` no deactivation constraint will be added.
-        name: Name of the generated activation variable
-        projection: Mask used to project the variable's quantification. When
-            this is set, the indicator variable will be set to 1 iff at least
-            one of the projected tensor values is positive.
-    """
-
-    def __new__(
-        cls,
-        tensor: TensorLike,
-        *quantifiables: Quantifiable,
-        upper_bound: Union[ExpressionLike, TensorLike, bool] = True,
-        lower_bound: Union[ExpressionLike, TensorLike, bool] = False,
-        name: Optional[Name] = None,
-        projection: Projection = -1,
-    ) -> ActivationVariable:
-        if not quantifiables and isinstance(tensor, Tensor):
-            quantifiables = tensor.quantifiables()
-        domains = tuple(domain(q) for q in quantifiables)
-
-        def quantification(lift=False, projection=projection):
-            return cross(*domains, projection=projection, lift=lift)
-
-        def tensor_image():
-            if not isinstance(tensor, Tensor):
-                raise ValueError(
-                    f"Cannot infer bound for tensor-like {tensor}"
-                )
-            return tensor.image
-
-        class _Fragment(ActivationVariable):
-            value = Variable.indicator(quantification(), name=name)
-
-            def __new__(cls) -> _Fragment:
-                return ModelFragment.__new__(cls)
-
-            def __call__(self, *subs: ExpressionLike) -> Expression:
-                return self.value(*subs)
-
-            @constraint(disabled=upper_bound is False)
-            def activates(self):
-                bound = upper_bound
-                for cp in quantification(lift=True):
-                    if callable(bound):
-                        bound = bound(*cp.lifted)
-                    elif bound is True:
-                        bound = tensor_image().upper_bound
-                    yield bound * self.value(*cp) >= tensor(*cp.lifted)
-
-            @constraint(disabled=lower_bound is False)
-            def deactivates(self):
-                bound = lower_bound
-                for cp in quantification():
-                    if projection >= 0:
-                        term = total(
-                            tensor(*lift(cp, ep, projection))
-                            for ep in quantification(projection=~projection)
-                        )
-                    else:
-                        term = tensor(*cp)
-                    if callable(bound):
-                        bound = bound(*cp)
-                    elif bound is True:
-                        bound = tensor_image().lower_bound
-                    yield bound * self.value(*cp) <= term
-
-        return _Fragment()
-
-    default_definition = "value"
-
-    @property
-    def value(self) -> Variable:
-        """Activation variable value
-
-        As a convenience calling the fragment directly also returns expressions
-        from this variable.
-        """
-        raise NotImplementedError()
-
-    @property
-    def activates(self) -> Optional[Constraint]:
-        """Constraint ensuring that the activation variable activates
-
-        This constraint enforces that the activation variable is set to 1 when
-        at least one the underlying tensor's value is positive.
-        """
-        raise NotImplementedError()
-
-    @property
-    def deactivates(self) -> Optional[Constraint]:
-        """Constraint ensuring that the activation variable deactivates
-
-        This constraint enforces that the activation variable is set to 0 when
-        none of the underlying tensor's values are non-zero. It requires the
-        fragment to have a non-zero lower bound.
-        """
-        raise NotImplementedError()
-
-    def __call__(self, *subs: ExpressionLike) -> Expression:
-        raise NotImplementedError()
-
-
-ActivationIndicator = ActivationVariable  # Deprecated alias
 
 
 class MagnitudeVariable(ModelFragment):
@@ -347,3 +215,126 @@ def magnitude_variable(
 
 
 Magnitude = MagnitudeVariable  # Deprecated alias
+
+
+class ActivationVariable(ModelFragment):
+    """Indicator variable activation fragment
+
+    This variable tracks an underlying non-negative tensor. Assuming both of
+    its bounds are defined (see below) it will bel equal to 1 iff the
+    underlying tensor is positive and 0 otherwise.
+
+    Args:
+        tensor: Non-negative tensor-like
+        quantifiables: Tensor quantifiables, can be omitted if the tensor is a
+            variable or parameter
+        upper_bound: Value of the upper bound used in the activation
+            constraint. If `True` the variable's image's upper bound will be
+            used, if `False` no activation constraint will be added.
+        lower_bound: Value of the lower bound used in the deactivation
+            constraint. If `True` the variable's image's lower bound will be
+            used, if `False` no deactivation constraint will be added.
+        name: Name of the generated activation variable
+        projection: Mask used to project the variable's quantification. When
+            this is set, the indicator variable will be set to 1 iff at least
+            one of the projected tensor values is positive.
+    """
+
+    # This fragment shows an alternate implementation which does not rely on
+    # lazy method decorators. It uses a closure instead of instance variables.
+    def __new__(
+        cls,
+        tensor: TensorLike,
+        *quantifiables: Quantifiable,
+        upper_bound: Union[ExpressionLike, TensorLike, bool] = True,
+        lower_bound: Union[ExpressionLike, TensorLike, bool] = False,
+        name: Optional[Name] = None,
+        projection: Projection = -1,
+    ) -> ActivationVariable:
+        if not quantifiables and isinstance(tensor, Tensor):
+            quantifiables = tensor.quantifiables()
+        domains = tuple(domain(q) for q in quantifiables)
+
+        def quantification(lift=False, projection=projection):
+            return cross(*domains, projection=projection, lift=lift)
+
+        def tensor_image():
+            if not isinstance(tensor, Tensor):
+                raise ValueError(
+                    f"Cannot infer bound for tensor-like {tensor}"
+                )
+            return tensor.image
+
+        class _Fragment(ActivationVariable):
+            value = Variable.indicator(quantification(), name=name)
+
+            def __new__(cls) -> _Fragment:
+                return ModelFragment.__new__(cls)
+
+            def __call__(self, *subs: ExpressionLike) -> Expression:
+                return self.value(*subs)
+
+            @constraint(disabled=upper_bound is False)
+            def activates(self):
+                bound = upper_bound
+                for cp in quantification(lift=True):
+                    if callable(bound):
+                        bound = bound(*cp.lifted)
+                    elif bound is True:
+                        bound = tensor_image().upper_bound
+                    yield bound * self.value(*cp) >= tensor(*cp.lifted)
+
+            @constraint(disabled=lower_bound is False)
+            def deactivates(self):
+                bound = lower_bound
+                for cp in quantification():
+                    if projection >= 0:
+                        term = total(
+                            tensor(*lift(cp, ep, projection))
+                            for ep in quantification(projection=~projection)
+                        )
+                    else:
+                        term = tensor(*cp)
+                    if callable(bound):
+                        bound = bound(*cp)
+                    elif bound is True:
+                        bound = tensor_image().lower_bound
+                    yield bound * self.value(*cp) <= term
+
+        return _Fragment()
+
+    default_definition = "value"
+
+    @property
+    def value(self) -> Variable:
+        """Activation variable value
+
+        As a convenience calling the fragment directly also returns expressions
+        from this variable.
+        """
+        raise NotImplementedError()
+
+    @property
+    def activates(self) -> Optional[Constraint]:
+        """Constraint ensuring that the activation variable activates
+
+        This constraint enforces that the activation variable is set to 1 when
+        at least one the underlying tensor's value is positive.
+        """
+        raise NotImplementedError()
+
+    @property
+    def deactivates(self) -> Optional[Constraint]:
+        """Constraint ensuring that the activation variable deactivates
+
+        This constraint enforces that the activation variable is set to 0 when
+        none of the underlying tensor's values are non-zero. It requires the
+        fragment to have a non-zero lower bound.
+        """
+        raise NotImplementedError()
+
+    def __call__(self, *subs: ExpressionLike) -> Expression:
+        raise NotImplementedError()
+
+
+ActivationIndicator = ActivationVariable  # Deprecated alias
