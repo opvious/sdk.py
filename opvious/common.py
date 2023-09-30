@@ -1,7 +1,9 @@
+import functools
 from importlib import metadata
 import math
-from typing import Any, Iterable, Union
+from typing import Any, Callable, Iterable, Union
 import urllib.parse
+import weakref
 
 
 try:
@@ -85,3 +87,93 @@ def json_dict(**kwargs) -> Json:
         else:
             data[json_key] = val
     return data
+
+
+# Decorator utilities
+
+
+_lambda = lambda: 0  # noqa
+
+
+def _is_lambda(fn: Callable[..., Any]) -> bool:
+    return fn.__name__ == _lambda.__name__
+
+
+def capturing_instance(wrapper: Callable[..., Any]) -> Any:
+    def wrap(fn):
+        return Bindable(fn, wrapper)
+
+    return wrap
+
+
+def with_instance(consumer: Callable[..., Any]) -> Any:
+    def wrap(fn):
+        return Bindable(fn, consumer, lazy=True)
+
+    return wrap
+
+
+def method_decorator(require_call=False):
+    """Transforms a decorator into a method-friendly equivalent"""
+
+    def wrap_decorator(decorator: Callable[..., Any]) -> Any:
+        def wrapped_decorator(*args, **kwargs):
+            arg = args[0] if args else None
+            if callable(arg):
+
+                if _is_lambda(arg):
+                    # Lazy decorator constructor
+                    if len(args) > 1 or kwargs:
+                        raise Exception("Unexpected tail arguments")
+
+                    def wrap_method(meth):
+                        return Bindable(
+                            meth, lambda self: arg(decorator, self), lazy=True
+                        )
+
+                    return wrap_method
+                elif not require_call and len(args) == 1 and not kwargs:
+                    # No argument decorator
+                    return Bindable(arg, decorator())
+
+            # Standard decorator creation
+
+            def wrap_method(meth):
+                return Bindable(meth, decorator(*args, **kwargs))
+
+            return wrap_method
+
+        return wrapped_decorator
+
+    return wrap_decorator
+
+
+class Bindable:
+    def __init__(
+        self, body: Callable[..., Any], wrapper: Callable[..., Any], lazy=False
+    ) -> None:
+        self._body = body
+        self._wrapper = wrapper
+        self._lazy = lazy
+        self._bindings: Any = weakref.WeakKeyDictionary()
+
+    def _apply(self, owner: Any, bind=True) -> Any:
+        wrapper = self._wrapper(owner) if self._lazy else self._wrapper
+        body = functools.partial(self._body, owner) if bind else self._body
+        return wrapper(body)
+
+    def bound_to(self, owner: Any) -> Any:
+        binding = self._bindings.get(owner)
+        if not binding:
+            binding = self._apply(owner)
+            while isinstance(binding, Bindable):
+                binding = binding._apply(owner, False)
+            self._bindings[owner] = binding
+        return binding
+
+    def __get__(self, owner: Any, _objtype=None) -> Any:
+        return self.bound_to(owner)
+
+    def __call__(self, owner, *args, **kwargs) -> Any:
+        # Needed for property calls and direct calls
+        return self.bound_to(owner)(*args, **kwargs)

@@ -1,5 +1,6 @@
 """Modeling components"""
 
+from ..common import method_decorator
 from . import fragments
 from .ast import (
     Cross,
@@ -78,4 +79,6 @@ __all__ = [
     "domain",
     # Fragments
     "fragments",
+    # Utilities
+    "method_decorator",
 ]

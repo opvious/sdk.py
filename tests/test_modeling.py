@@ -131,11 +131,10 @@ class GroupExpenses(om.Model):
 
 class Sudoku(om.Model):
     _qualifiers = ["row", "column", "value"]
+    values = om.interval(1, 9, name="V")
+    positions = om.interval(0, 8, name="P")
 
     def __init__(self) -> None:
-        self.values = om.interval(1, 9, name="V")
-        self.positions = om.interval(0, 8, name="P")
-
         self.input = om.Parameter.indicator(
             self.grid * self.values,
             qualifiers=self._qualifiers,
