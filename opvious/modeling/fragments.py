@@ -220,12 +220,12 @@ Magnitude = MagnitudeVariable  # Deprecated alias
 class ActivationVariable(ModelFragment):
     """Indicator variable activation fragment
 
-    This variable tracks an underlying non-negative tensor. Assuming both of
-    its bounds are defined (see below) it will bel equal to 1 iff the
-    underlying tensor is positive and 0 otherwise.
+    This variable tracks an underlying tensor or tensor-like expression.
+    Assuming both of its bounds are defined (see below) it will be equal to 1
+    iff the underlying tensor is positive and 0 otherwise.
 
     Args:
-        tensor: Non-negative tensor-like
+        tensor: Tensor-like
         quantifiables: Tensor quantifiables, can be omitted if the tensor is a
             variable or parameter
         upper_bound: Value of the upper bound used in the activation
@@ -235,6 +235,7 @@ class ActivationVariable(ModelFragment):
             constraint. If `True` the variable's image's lower bound will be
             used, if `False` no deactivation constraint will be added.
         name: Name of the generated activation variable
+        negate: Negate the returned indicator variable.
         projection: Mask used to project the variable's quantification. When
             this is set, the indicator variable will be set to 1 iff at least
             one of the projected tensor values is positive.
@@ -249,6 +250,7 @@ class ActivationVariable(ModelFragment):
         upper_bound: Union[ExpressionLike, TensorLike, bool] = True,
         lower_bound: Union[ExpressionLike, TensorLike, bool] = False,
         name: Optional[Name] = None,
+        negate=False,
         projection: Projection = -1,
     ) -> ActivationVariable:
         if not quantifiables and isinstance(tensor, Tensor):
@@ -282,7 +284,8 @@ class ActivationVariable(ModelFragment):
                         bound = bound(*cp.lifted)
                     elif bound is True:
                         bound = tensor_image().upper_bound
-                    yield bound * self.value(*cp) >= tensor(*cp.lifted)
+                    value = 1 - self.value(*cp) if negate else self.value(*cp)
+                    yield bound * value >= tensor(*cp.lifted)
 
             @constraint(disabled=lower_bound is False)
             def deactivates(self):
@@ -299,7 +302,8 @@ class ActivationVariable(ModelFragment):
                         bound = bound(*cp)
                     elif bound is True:
                         bound = tensor_image().lower_bound
-                    yield bound * self.value(*cp) <= term
+                    value = 1 - self.value(*cp) if negate else self.value(*cp)
+                    yield bound * value <= term
 
         return _Fragment()
 
@@ -338,3 +342,32 @@ class ActivationVariable(ModelFragment):
 
 
 ActivationIndicator = ActivationVariable  # Deprecated alias
+
+
+@method_decorator(require_call=True)
+def activation_variable(
+    *quantifiables: Quantifiable,
+    upper_bound: Union[ExpressionLike, TensorLike, bool] = True,
+    lower_bound: Union[ExpressionLike, TensorLike, bool] = False,
+    name: Optional[Name] = None,
+    negate=False,
+    projection: Projection = -1,
+) -> Callable[[Callable[..., TensorLike]], ActivationVariable]:
+    """Transforms a method into a :class:`ActivationVariable` fragment
+
+    Note that this method may alter the underlying method's call signature if a
+    projection is specified.
+    """
+
+    def wrapper(fn):
+        return ActivationVariable(
+            fn,
+            *quantifiables,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            name=name,
+            negate=negate,
+            projection=projection,
+        )
+
+    return wrapper

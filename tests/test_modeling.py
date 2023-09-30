@@ -225,6 +225,68 @@ class InvalidSetCoverModel(om.Model):
             yield count >= 1
 
 
+class JobShopScheduling(om.Model):
+    tasks = om.Dimension()
+    duration = om.Parameter.natural(tasks)
+    machine = om.Parameter.natural(tasks)
+    dependency = om.Parameter.indicator(
+        (tasks, tasks), qualifiers=["child", "parent"]
+    )
+    task_start = om.Variable.natural(tasks)
+    horizon = om.Variable.natural()
+
+    @property
+    def competing_tasks(self):
+        for t1, t2 in self.tasks * self.tasks:
+            if t1 != t2 and self.machine(t1) == self.machine(t2):
+                yield t1, t2
+
+    def task_end(self, t):
+        return self.task_start(t) + self.duration(t)
+
+    @om.constraint
+    def all_tasks_end_within_horizon(self):
+        for t in self.tasks:
+            yield self.task_end(t) <= self.horizon()
+
+    @om.constraint
+    def child_starts_after_parent_ends(self):
+        for c, p in self.tasks * self.tasks:
+            if self.dependency(c, p):
+                yield self.task_start(c) >= self.task_end(p)
+
+    @om.fragments.activation_variable(
+        lambda init, self: init(
+            self.competing_tasks,
+            negate=True,
+            upper_bound=self.duration.total(),
+        )
+    )
+    def must_start_after(self, t1, t2):
+        return self.task_end(t2) - self.task_start(t1)
+
+    @om.fragments.activation_variable(
+        lambda init, self: init(
+            self.competing_tasks,
+            negate=True,
+            upper_bound=self.duration.total(),
+        )
+    )
+    def must_end_before(self, t1, t2):
+        return self.task_end(t1) - self.task_start(t2)
+
+    @om.constraint
+    def one_active_task_per_machine(self):
+        for t1, t2 in self.competing_tasks:
+            yield self.must_end_before(t1, t2) + self.must_start_after(
+                t1, t2
+            ) >= 1
+
+    @om.objective
+    def minimize_horizon(self):
+        return self.horizon()
+
+
 @pytest.mark.skipif(
     not client.authenticated, reason="No access token detected"
 )
@@ -235,12 +297,14 @@ class TestModeling:
         GroupExpenses(),
         Sudoku(),
         BinPacking(),
+        JobShopScheduling(),
     ]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("model", _models)
     async def test_specification(self, model):
         spec = await client.annotate_specification(model.specification())
+        print(spec.source().text)
         assert spec.annotation.issue_count == 0
 
     @pytest.mark.asyncio
