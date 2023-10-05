@@ -33,16 +33,15 @@ class Definition:
     """Base model definition
 
     Definition instances embedded within a model are automatically detected and
-    added to its specification.
+    added to its specification. There are several different types of
+    definitions:
 
-    There are four different types of definitions:
-
-    * dimensions
-    * parameters
-    * variables
-    * constraints
-    * objectives
-    * aliases
+    * :class:`dimensions <Dimension>`, input key sets
+    * :class:`parameters <Parameter>`, input tensors
+    * :class:`variables <Variable>`, output tensors
+    * :class:`constraints <Constraint>`, linear constraints
+    * :class:`objectives <Objective>`, linear or quadratic targets
+    * :class:`aliases <Alias>`, convenience shorthands
 
     """
 
