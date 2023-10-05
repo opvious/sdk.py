@@ -49,7 +49,9 @@ class PyodideExecutor(Executor):
                 status=status, trace=trace, reader=text
             )
         else:
+            text = await res.js_response.text()
             raise unsupported_content_type_error(
+                text=text,
                 content_type=ctype,
                 trace=trace,
             )

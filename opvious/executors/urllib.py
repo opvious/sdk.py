@@ -56,6 +56,7 @@ class UrllibExecutor(Executor):
             )
         else:
             raise unsupported_content_type_error(
+                text=res.read().decode("utf8"),
                 content_type=ctype,
                 trace=trace,
             )

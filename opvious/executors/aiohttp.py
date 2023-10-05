@@ -91,7 +91,9 @@ class AiohttpExecutor(Executor):
                             reader=res.content,
                         )
                     else:
+                        text = await res.text()
                         raise unsupported_content_type_error(
+                            text=text,
                             content_type=ctype,
                             trace=trace,
                         )
