@@ -67,10 +67,12 @@ def unexpected_response_error(
 
 
 def unsupported_content_type_error(
-    content_type: Optional[str], trace: Optional[str] = None
+    text: str, content_type: Optional[str], trace: Optional[str] = None
 ) -> Exception:
     return unexpected_response_error(
-        message=f"unsupported content-type: {content_type}",
+        message=(
+            f"unsupported content-type ({content_type or '<none>'}): {text}"
+        ),
         trace=trace,
     )
 

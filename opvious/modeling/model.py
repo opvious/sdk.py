@@ -30,7 +30,21 @@ DefinitionCategory = Literal[
 
 
 class Definition:
-    """Base model definition"""
+    """Base model definition
+
+    Definition instances embedded within a model are automatically detected and
+    added to its specification.
+
+    There are four different types of definitions:
+
+    * dimensions
+    * parameters
+    * variables
+    * constraints
+    * objectives
+    * aliases
+
+    """
 
     @property
     def category(self) -> DefinitionCategory:
