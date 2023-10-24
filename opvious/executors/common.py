@@ -35,17 +35,19 @@ Headers = dict[str, str]
 class ExecutorError(Exception):
     """Local representation of an error during an executor's request"""
 
-    status: int
+    status: Optional[int]
     trace: Optional[str]
     reason: Optional[str]
 
     def __init__(
         self,
-        status: int,
+        status: Optional[int] = None,
         trace: Optional[str] = None,
         reason: Optional[Any] = None,
     ) -> None:
-        message = f"Request failed with status {status}"
+        message = "Request errored"
+        if status and status >= 400:
+            message += f" with status {status}"
         if trace:
             message += f" ({trace})"
         if reason:
@@ -56,25 +58,11 @@ class ExecutorError(Exception):
         self.reason = reason
 
 
-def unexpected_response_error(
-    message: str, trace: Optional[str] = None
-) -> Exception:
-    return Exception(
-        "Unexpected response"
-        + (f" ({trace})" if trace else "")
-        + (f": {message}" if message else "")
-    )
-
-
 def unsupported_content_type_error(
     text: str, content_type: Optional[str], trace: Optional[str] = None
 ) -> Exception:
-    return unexpected_response_error(
-        message=(
-            f"unsupported content-type ({content_type or '<none>'}): {text}"
-        ),
-        trace=trace,
-    )
+    reason = f"unsupported content-type ({content_type or '<none>'}): {text}"
+    return ExecutorError(trace=trace, reason=reason)
 
 
 @dataclasses.dataclass

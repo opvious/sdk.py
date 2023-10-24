@@ -7,13 +7,13 @@ from typing import AsyncIterator, Optional
 from .common import (
     CONTENT_TYPE_HEADER,
     Executor,
+    ExecutorError,
     ExecutorResult,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
     Headers,
     TRACE_HEADER,
-    unexpected_response_error,
     unsupported_content_type_error,
 )
 
@@ -101,6 +101,7 @@ class AiohttpExecutor(Executor):
             trace = None
             if isinstance(err.headers, list):
                 trace = next(
-                    (v for (k, v) in err.headers if k == TRACE_HEADER), None
+                    (v for (k, v) in err.headers if k == TRACE_HEADER),
+                    None,
                 )
-            raise unexpected_response_error(message=err.message, trace=trace)
+            raise ExecutorError(status=err.status, trace=trace) from err
