@@ -2,9 +2,12 @@
 
 <div align="center">
   <p>
-    Define and deploy optimization models in minutes with <a href="https://www.opvious.io">Opvious</a>. No solver installation required.
+    Define and deploy optimization models in minutes with <a href="https://www.opvious.io">Opvious</a>.
   </p>
   <a href="https://www.opvious.io/notebooks/retro/notebooks/?path=guides/welcome.ipynb"><img src="https://www.opvious.io/opvious-steps.png" style="height: 600px;"/></a>
+    <p>
+    <a href="https://www.opvious.io/notebooks/retro/notebooks/?path=guides/welcome.ipynb">Try it out!</a>
+  </p>
 </div>
 
 
