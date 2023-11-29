@@ -31,10 +31,10 @@ class FailedOutcome:
     message: str
     """The underlying error's message"""
 
-    code: Optional[str]
+    code: Optional[str] = None
     """The underlying error's error code"""
 
-    tags: Any
+    tags: Any = None
     """Structured data associated with the failure"""
 
 

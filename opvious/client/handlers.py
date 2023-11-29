@@ -20,6 +20,7 @@ from ..data.queued_solves import (
 )
 from ..data.outcomes import (
     AbortedOutcome,
+    FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
     SolveOutcome,
@@ -29,7 +30,7 @@ from ..data.outcomes import (
     feasible_outcome_from_graphql,
     solve_outcome_status,
 )
-from ..data.outlines import ProblemOutline, outline_from_json
+from ..data.outlines import ProblemOutline
 from ..data.solves import (
     ProblemSummary,
     SolveInputs,
@@ -583,6 +584,18 @@ class Client:
             variables=json_dict(uuid=solve.uuid),
         )
         solve_data = data["queuedSolve"]
+
+        error_status = solve_data["attempt"]["errorStatus"]
+        if error_status:
+            failure_data = solve_data["failure"]
+            if failure_data:
+                return failed_outcome_from_graphql(failure_data)
+            else:
+                return FailedOutcome(
+                    error_status,
+                    "The problem's inputs did not match its specification",
+                )
+
         outcome_data = solve_data["outcome"]
         if not outcome_data:
             edges = solve_data["notifications"]["edges"]
@@ -590,6 +603,7 @@ class Client:
                 dequeued=bool(solve_data["dequeuedAt"]),
                 data=edges[0]["node"] if edges else None,
             )
+
         status = outcome_data["status"]
         if status == "ABORTED":
             return cast(SolveOutcome, AbortedOutcome())
@@ -599,10 +613,7 @@ class Client:
             return UnboundedOutcome()
         if status == "FEASIBLE" or status == "OPTIMAL":
             return feasible_outcome_from_graphql(outcome_data)
-        failure_data = solve_data["failure"]
-        if not failure_data:
-            raise Exception(f"Unexpected status {status} without failure")
-        return failed_outcome_from_graphql(failure_data)
+        raise Exception(f"Unexpected status {status} without failure")
 
     @backoff.on_predicate(
         backoff.fibo,

@@ -124,6 +124,8 @@ class SolveInputsBuilder:
 async def generate_outline(
     executor: Executor, outline_data: Json, transformation_data: Json
 ) -> ProblemOutline:
+    if not transformation_data:
+        return outline_from_json(outline_data)
     async with executor.execute(
         result_type=JsonExecutorResult,
         url="/outlines/transform",

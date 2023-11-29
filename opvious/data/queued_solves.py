@@ -25,19 +25,14 @@ class QueuedSolve:
     started_at: datetime
     """The time the solve was created"""
 
-    ended_at: Optional[datetime] = None
-    """The time the solve ended"""
-
 
 def queued_solve_from_graphql(
     data: Any, outline: ProblemOutline
 ) -> QueuedSolve:
-    end = datetime.fromisoformat(data["endedAt"]) if data["endedAt"] else None
     return QueuedSolve(
         uuid=data["uuid"],
         outline=outline,
-        started_at=datetime.fromisoformat(data["startedAt"]),
-        ended_at=end,
+        started_at=datetime.fromisoformat(data["attempt"]["startedAt"]),
     )
 
 
