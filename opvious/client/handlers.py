@@ -60,6 +60,7 @@ from .common import (
     ProblemOutlineGenerator,
     SolveInputsBuilder,
     feasible_outcome_details,
+    generate_outline,
     log_progress,
 )
 
@@ -530,8 +531,8 @@ class Client:
             uuid = res.json_data()["uuid"]
         return QueuedSolve(
             uuid=uuid,
-            started_at=datetime.now(timezone.utc),
             outline=outline,
+            started_at=datetime.now(timezone.utc),
         )
 
     async def fetch_solve(self, uuid: str) -> Optional[QueuedSolve]:
@@ -547,10 +548,12 @@ class Client:
         solve = data["queuedSolve"]
         if not solve:
             return None
-        return queued_solve_from_graphql(
-            data=solve,
-            outline=outline_from_json(solve["outline"]),
+        outline = await generate_outline(
+            self._executor,
+            solve["specification"]["outline"],
+            solve["transformations"],
         )
+        return queued_solve_from_graphql(solve, outline)
 
     async def cancel_solve(self, uuid: str) -> bool:
         """Cancels a running solve

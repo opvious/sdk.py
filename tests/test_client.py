@@ -99,7 +99,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_queue_relaxed_solve(self):
-        solve = await client.queue_solve(
+        queued = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 transformations=[
@@ -113,7 +113,8 @@ class TestClient:
                 parameters={"bound": 3},
             ),
         )
-        outcome = await client.wait_for_solve_outcome(solve)
+        fetched = await client.fetch_solve(queued.uuid)
+        outcome = await client.wait_for_solve_outcome(fetched)
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.objective_value == 2
 
