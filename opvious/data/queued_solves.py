@@ -19,11 +19,11 @@ class QueuedSolve:
     uuid: str
     """The solve's unique identifier"""
 
-    started_at: datetime
-    """The time the solve was created"""
-
     outline: ProblemOutline = dataclasses.field(repr=False)
     """The specification outline corresponding to this solve"""
+
+    started_at: datetime
+    """The time the solve was created"""
 
 
 def queued_solve_from_graphql(
@@ -31,8 +31,8 @@ def queued_solve_from_graphql(
 ) -> QueuedSolve:
     return QueuedSolve(
         uuid=data["uuid"],
-        started_at=datetime.fromisoformat(data["startedAt"]),
         outline=outline,
+        started_at=datetime.fromisoformat(data["attempt"]["startedAt"]),
     )
 
 

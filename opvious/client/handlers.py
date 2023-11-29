@@ -20,6 +20,7 @@ from ..data.queued_solves import (
 )
 from ..data.outcomes import (
     AbortedOutcome,
+    FailedOutcome,
     FeasibleOutcome,
     InfeasibleOutcome,
     SolveOutcome,
@@ -29,7 +30,7 @@ from ..data.outcomes import (
     feasible_outcome_from_graphql,
     solve_outcome_status,
 )
-from ..data.outlines import ProblemOutline, outline_from_json
+from ..data.outlines import ProblemOutline
 from ..data.solves import (
     ProblemSummary,
     SolveInputs,
@@ -60,6 +61,7 @@ from .common import (
     ProblemOutlineGenerator,
     SolveInputsBuilder,
     feasible_outcome_details,
+    generate_outline,
     log_progress,
 )
 
@@ -530,8 +532,8 @@ class Client:
             uuid = res.json_data()["uuid"]
         return QueuedSolve(
             uuid=uuid,
-            started_at=datetime.now(timezone.utc),
             outline=outline,
+            started_at=datetime.now(timezone.utc),
         )
 
     async def fetch_solve(self, uuid: str) -> Optional[QueuedSolve]:
@@ -547,10 +549,12 @@ class Client:
         solve = data["queuedSolve"]
         if not solve:
             return None
-        return queued_solve_from_graphql(
-            data=solve,
-            outline=outline_from_json(solve["outline"]),
+        outline = await generate_outline(
+            self._executor,
+            solve["specification"]["outline"],
+            solve["transformations"],
         )
+        return queued_solve_from_graphql(solve, outline)
 
     async def cancel_solve(self, uuid: str) -> bool:
         """Cancels a running solve
@@ -580,6 +584,18 @@ class Client:
             variables=json_dict(uuid=solve.uuid),
         )
         solve_data = data["queuedSolve"]
+
+        error_status = solve_data["attempt"]["errorStatus"]
+        if error_status:
+            failure_data = solve_data["failure"]
+            if failure_data:
+                return failed_outcome_from_graphql(failure_data)
+            else:
+                return FailedOutcome(
+                    error_status,
+                    "The problem's inputs did not match its specification",
+                )
+
         outcome_data = solve_data["outcome"]
         if not outcome_data:
             edges = solve_data["notifications"]["edges"]
@@ -587,6 +603,7 @@ class Client:
                 dequeued=bool(solve_data["dequeuedAt"]),
                 data=edges[0]["node"] if edges else None,
             )
+
         status = outcome_data["status"]
         if status == "ABORTED":
             return cast(SolveOutcome, AbortedOutcome())
@@ -596,10 +613,7 @@ class Client:
             return UnboundedOutcome()
         if status == "FEASIBLE" or status == "OPTIMAL":
             return feasible_outcome_from_graphql(outcome_data)
-        failure_data = solve_data["failure"]
-        if not failure_data:
-            raise Exception(f"Unexpected status {status} without failure")
-        return failed_outcome_from_graphql(failure_data)
+        raise Exception(f"Unexpected status {status} without failure")
 
     @backoff.on_predicate(
         backoff.fibo,

@@ -121,6 +121,24 @@ class SolveInputsBuilder:
         )
 
 
+async def generate_outline(
+    executor: Executor, outline_data: Json, transformation_data: Json
+) -> ProblemOutline:
+    if not transformation_data:
+        return outline_from_json(outline_data)
+    async with executor.execute(
+        result_type=JsonExecutorResult,
+        url="/outlines/transform",
+        method="POST",
+        json_data=json_dict(
+            outline=outline_data,
+            transformations=transformation_data,
+        ),
+    ) as res:
+        data = res.json_data()
+    return outline_from_json(data["outline"])
+
+
 class ProblemOutlineGenerator:
     def __init__(self, executor: Executor, outline_data: Json):
         self._executor = executor
@@ -178,20 +196,12 @@ class ProblemOutlineGenerator:
 
         class Context(ProblemTransformationContext):
             async def fetch_outline(self) -> ProblemOutline:
-                transformations = self.get_json()
-                if not transformations:
+                transformation_data = self.get_json()
+                if not transformation_data:
                     return pristine_outline
-                async with executor.execute(
-                    result_type=JsonExecutorResult,
-                    url="/outlines/transform",
-                    method="POST",
-                    json_data=json_dict(
-                        outline=pristine_outline_data,
-                        transformations=transformations,
-                    ),
-                ) as res:
-                    data = res.json_data()
-                return outline_from_json(data["outline"])
+                return await generate_outline(
+                    executor, pristine_outline_data, transformation_data
+                )
 
         context = Context()
         for tf in self._transformations:
