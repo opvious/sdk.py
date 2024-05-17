@@ -6,7 +6,8 @@ common use-cases.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Union
+import math
+from typing import Any, Callable, Iterable, Optional, Union, cast
 
 from ..common import method_decorator, untuple
 from .ast import cross, domain, lift, Projection, Quantifiable, total
@@ -361,7 +362,8 @@ def activation_variable(
     """Transforms a method into an :class:`ActivationVariable` fragment
 
     Note that this method may alter the underlying method's call signature if a
-    projection is specified.
+    projection is specified. See :class:`ActivationVariable` for argument
+    documentation.
     """
 
     def wrapper(fn):
@@ -373,6 +375,110 @@ def activation_variable(
             name=name,
             negate=negate,
             projection=projection,
+        )
+
+    return wrapper
+
+
+class PiecewiseLinear(ModelFragment):
+    """Multiplication with a piecewise-linear factor
+
+    Args:
+        tensor: Tensor-like
+        threshold_count: The number of linear pieces in the factor. Must be at
+            least 1.
+        quantifiables: Underlying quantifiable
+        assume_convex: Assume that the factors are increasing
+        component_name: Name of the generated component variables. The `%`
+            placeholder will be replaced by the piece's index (0-indexed).
+        factor_name: Name of the generated factor parameters. See
+            `component_name` for substitution rules.
+        threshold_name: Name of the generated threshold parameters. See
+            `component_name` for substitution rules.
+    """
+    def __init__(
+        self,
+        tensor: TensorLike,
+        threshold_count: int,
+        *quantifiables: Quantifiable,
+        assume_convex=False,
+        component_name: Optional[str] = None,
+        factor_name: Optional[str] = None,
+        threshold_name: Optional[str] = None,
+    ) -> None:
+        if threshold_count < 1:
+            raise ValueError("too few pieces")
+        if not assume_convex:
+            raise NotImplementedError() # TODO: Implement.
+
+        self._tensor = tensor
+        if not quantifiables and isinstance(tensor, Tensor):
+            quantifiables = tensor.quantifiables()
+        self._domains = tuple(domain(q) for q in quantifiables)
+
+        def _format(name, i):
+            if not name:
+                return None
+            return name.replace("%", str(i))
+
+        self._pieces: list[tuple[Parameter, Variable]] = []
+        offset = 0
+        for i in range(threshold_count):
+            if i < threshold_count - 1:
+                threshold = Parameter.continuous(
+                    name=_format(threshold_name, i)
+                )
+                setattr(self, f"threshold_{i}", threshold)
+                bound = threshold()
+            else:
+                bound = None
+            component = Variable.continuous(
+                self._domains,
+                lower_bound=0,
+                upper_bound=math.inf if bound is None else bound - offset,
+                name=_format(component_name, i),
+            )
+            factor = Parameter.continuous(name=_format(factor_name, i))
+            setattr(self, f"component_{i}", component)
+            setattr(self, f"factor_{i}", factor)
+            self._pieces.append((factor, component))
+
+    def __call__(self, *subs: ExpressionLike) -> Expression:
+        return cast(Expression, sum(f() * c(*subs) for f, c in self._pieces))
+
+    def total(self):
+        """Returns the fully quantified sum"""
+        return total(self(*cp) for cp in cross(*self._domains))
+
+    @constraint
+    def matches(self):
+        """Asserts that the sum of the components matches the input tensor"""
+        for cp in cross(*self._domains):
+            yield sum(c(*cp) for _f, c in self._pieces) == self._tensor(*cp)
+
+
+@method_decorator(require_call=True)
+def piecewise_linear(
+    threshold_count: int,
+    *quantifiables: Quantifiable,
+    assume_convex=False,
+    component_name: Optional[str] = None,
+    factor_name: Optional[str] = None,
+    threshold_name: Optional[str] = None,
+) -> Callable[[Callable[..., TensorLike]], PiecewiseLinear]:
+    """Transforms a method into an :class:`PiecewiseLinear` fragment
+
+    See :class:`PiecewiseLinear` for argument documentation.
+    """
+
+    def wrapper(fn):
+        return PiecewiseLinear(
+            fn,
+            *quantifiables,
+            assume_convex=assume_convex,
+            component_name=component_name,
+            factor_name=factor_name,
+            threshold_name=threshold_name,
         )
 
     return wrapper
