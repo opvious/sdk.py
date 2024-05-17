@@ -28,7 +28,12 @@ from .quantified import Quantified
 
 
 class MaskedSubspace(ModelFragment):
-    """Masked subspace fragment"""
+    """Masked subspace fragment
+
+    Args:
+        quantifiables: Underlying quantifiable
+        alias_name: Optional name for the masked subset
+    """
 
     def __init__(
         self,
