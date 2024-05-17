@@ -289,11 +289,16 @@ class Model:
         grouped: Any = df.groupby(["title", "category"])["text"].count()
         return grouped.unstack(["category"]).fillna(0).astype(int)
 
-    def specification(self) -> LocalSpecification:
+    def specification(self, align=True) -> LocalSpecification:
         """Generates the model's specification
 
         This specification can be used to interact with :class:`.Client`
         methods, for example to start a solve.
+
+        Args:
+            align: Embed generated statement definitions inside an `align`
+                environment. This can be disabled to enable pretty printing in
+                environments which do not support them (e.g. Colab).
         """
         grouped = collections.defaultdict(list)
         for s in self.statements():
@@ -304,9 +309,14 @@ class Model:
         }
         sources = [
             LocalSpecificationSource(
-                title=title,
-                text=f"$$\n\\begin{{align*}}\n{contents}\\end{{align*}}\n$$",
+                title=title, text=_format_contents(contents, align)
             )
             for title, contents in joined.items()
         ]
         return LocalSpecification(sources=sources, description=self.__doc__)
+
+
+def _format_contents(contents, align):
+    if align:
+        return f"$$\n\\begin{{align*}}\n{contents}\\end{{align*}}\n$$"
+    return f"$$\n{contents.replace('&', '')}\n$$"
