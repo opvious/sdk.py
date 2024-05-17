@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 import dataclasses
 import logging
+import os
 import pandas as pd
 from typing import Any, Iterable, Literal, Mapping, Optional, Sequence, Union
 
@@ -289,7 +290,9 @@ class Model:
         grouped: Any = df.groupby(["title", "category"])["text"].count()
         return grouped.unstack(["category"]).fillna(0).astype(int)
 
-    def specification(self, align=True) -> LocalSpecification:
+    def specification(
+        self, align: Optional[bool] = None
+    ) -> LocalSpecification:
         """Generates the model's specification
 
         This specification can be used to interact with :class:`.Client`
@@ -300,6 +303,8 @@ class Model:
                 environment. This can be disabled to enable pretty printing in
                 environments which do not support them (e.g. Colab).
         """
+        if align is None:
+            align = not os.getenv("COLAB_RELEASE_TAG")
         grouped = collections.defaultdict(list)
         for s in self.statements():
             grouped[s.title].append(s.text)
@@ -319,4 +324,4 @@ class Model:
 def _format_contents(contents, align):
     if align:
         return f"$$\n\\begin{{align*}}\n{contents}\\end{{align*}}\n$$"
-    return f"$$\n{contents.replace('&', '')}\n$$"
+    return f"$$\n{contents.replace('&', '')}$$"
