@@ -71,7 +71,12 @@ class ModelFragment:
     """
 
     @property
-    def default_definition(self) -> Optional[str]:
+    def default_definition(self) -> Optional[Label]:
+        """Optional label that will be used as the fragment's default.
+
+        The matching definition's final label will be shortened to the
+        fragment's prefix.
+        """
         return None
 
 

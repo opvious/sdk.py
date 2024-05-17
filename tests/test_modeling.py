@@ -667,3 +667,22 @@ class TestModeling:
         text = spec.sources[0].text
         assert r"\alpha - \left(1 - \alpha\right)" in text
         assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_piecewise_linear(self):
+        class _Model(om.Model):
+            products = om.Dimension()
+            builds = om.Variable.natural(products)
+            build_cost = om.fragments.PiecewiseLinear(
+                builds, 2, assume_convex=True, component_name="c^{p%}"
+            )
+
+            @om.objective
+            def minimize_cost(self):
+                return self.build_cost.total()
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\forall p \in P, c^{p0}_{p} + c^{p1}_{p} = \beta_{p}" in text
+        assert spec.annotation.issue_count == 0
