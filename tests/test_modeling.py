@@ -686,3 +686,24 @@ class TestModeling:
         text = spec.sources[0].text
         assert r"\forall p \in P, c^{p0}_{p} + c^{p1}_{p} = \beta_{p}" in text
         assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_piecewise_linear_decorator(self):
+        class _Model(om.Model):
+            products = om.Dimension()
+            new_builds = om.Variable.natural(products)
+            old_builds = om.Variable.natural(products)
+
+            @om.fragments.piecewise_linear(2, products, assume_convex=True)
+            def value(self, p):
+                return self.new_builds(p) + self.old_builds(p)
+
+            @om.objective
+            def maximize_value(self):
+                return self.value.total()
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"f^\mathrm{value \prime} \in \mathbb{R}" in text
+        assert spec.annotation.issue_count == 0

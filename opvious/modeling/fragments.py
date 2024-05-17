@@ -475,6 +475,7 @@ def piecewise_linear(
     def wrapper(fn):
         return PiecewiseLinear(
             fn,
+            threshold_count,
             *quantifiables,
             assume_convex=assume_convex,
             component_name=component_name,
