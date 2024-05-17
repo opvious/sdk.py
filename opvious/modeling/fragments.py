@@ -396,6 +396,7 @@ class PiecewiseLinear(ModelFragment):
         threshold_name: Name of the generated threshold parameters. See
             `component_name` for substitution rules.
     """
+
     def __init__(
         self,
         tensor: TensorLike,
@@ -409,7 +410,7 @@ class PiecewiseLinear(ModelFragment):
         if threshold_count < 1:
             raise ValueError("too few pieces")
         if not assume_convex:
-            raise NotImplementedError() # TODO: Implement.
+            raise NotImplementedError()  # TODO: Implement.
 
         self._tensor = tensor
         if not quantifiables and isinstance(tensor, Tensor):
