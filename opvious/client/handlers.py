@@ -252,7 +252,7 @@ class Client:
             for label, param in problem.parameters.items():
                 builder.set_parameter(label, param)
         inputs = builder.build()
-        _logger.info(
+        _logger.debug(
             "Validated inputs. [parameters=%s]",
             builder.parameter_entry_count,
         )
@@ -540,9 +540,11 @@ class Client:
                 annotations=encode_annotations(annotations or []),
             ),
         ) as res:
-            return res.json_data()["uuid"]
+            uuid = res.json_data()["uuid"]
+        _logger.info("Queued solve. [uuid=%s]", uuid)
+        return uuid
 
-    async def cancel_solve(self, uuid: Uuid) -> bool:
+    async def cancel_solve(self, uuid: Uuid) -> None:
         """Cancels a running solve
 
         This method will throw if the solve does not exist or is not pending
@@ -551,11 +553,11 @@ class Client:
         Args:
             uuid: The target solve's ID
         """
-        data = await self._executor.execute_graphql_query(
+        await self._executor.execute_graphql_query(
             query="@CancelQueuedSolve",
             variables=json_dict(uuid=uuid),
         )
-        return bool(data["cancelQueuedSolve"])
+        _logger.info("Cancelled solve. [uuid=%s]", uuid)
 
     async def poll_solve(
         self, uuid: Uuid
@@ -609,11 +611,9 @@ class Client:
                     details.append(f"cuts={ret.cut_count}")
                 if ret.lp_iteration_count is not None:
                     details.append(f"iterations={ret.lp_iteration_count}")
-                _logger.info(
-                    "QueuedSolve is running... [%s]", ", ".join(details)
-                )
+                _logger.info("Solve is running... [%s]", ", ".join(details))
             else:
-                _logger.info("QueuedSolve is queued...")
+                _logger.info("Solve is queued...")
             return None
         return ret
 
@@ -630,6 +630,7 @@ class Client:
             uuid: The target solve's ID
             assert_feasible: Throw if the final outcome was not feasible
         """
+        _logger.debug("Tracking solve... [uuid=%s]", uuid)
         outcome = await self._track_solve(uuid)
         if not outcome:
             raise Exception("Missing outcome")
@@ -637,14 +638,14 @@ class Client:
         if isinstance(outcome, FeasibleOutcome):
             details = feasible_outcome_details(outcome)
             _logger.info(
-                "QueuedSolve completed with status %s.%s",
+                "Solve completed with status %s.%s",
                 status,
                 f" [{details}]" if details else "",
             )
         elif assert_feasible:
             raise UnexpectedSolveOutcomeError(outcome)
         else:
-            _logger.info("QueuedSolve completed with status %s.", status)
+            _logger.info("Solve completed with status %s.", status)
         return outcome
 
     async def fetch_solve_inputs(self, uuid: Uuid) -> SolveInputs:
