@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import json
 import humanize
 import logging
-from typing import cast, Iterable, Optional, Sequence, Union
+from typing import cast, Any, AsyncIterator, Iterable, Optional, Sequence, Union
 
 from ..common import (
     Json,
@@ -730,7 +730,7 @@ class Client:
             else None
         )
         cursor = None
-        outlines: dict[int, Outline] = {}
+        outlines: dict[int, ProblemOutline] = {}
         while limit > 0:
             solves, cursor = await self._list_formulation_solves(
                 name, attribute_list, outlines, cursor, limit
@@ -745,7 +745,7 @@ class Client:
         self,
         name: str,
         attribute_list: Any,
-        outlines: dict[int, Outline],
+        outlines: dict[int, ProblemOutline],
         cursor: Optional[str],
         limit: Optional[int],
     ) -> tuple[list[QueuedSolve], str]:
@@ -757,7 +757,7 @@ class Client:
         )
         formulation = data["formulation"]
         if not formulation:
-            return []
+            return [], ""
         solves: list[QueuedSolve] = []
         for edge in formulation["attempts"]["edges"]:
             node = edge["node"]
