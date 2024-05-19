@@ -69,14 +69,11 @@ def queued_solve_from_graphql(
     else:
         outcome = None
 
-    enqueued_at = decode_datetime(attempt_data["startedAt"])
-    assert enqueued_at
-
     return QueuedSolve(
         uuid=data["uuid"],
-        enqueued_at=enqueued_at,
-        dequeued_at=decode_datetime(data["dequeuedAt"]),
-        completed_at=decode_datetime(attempt_data["endedAt"]),
+        enqueued_at=decode_datetime(attempt_data["startedAt"]),
+        dequeued_at=if_present(data["dequeuedAt"], decode_datetime),
+        completed_at=if_present(attempt_data["endedAt"], decode_datetime),
         annotations=decode_annotations(attempt_data["annotations"]),
         options=data["options"],
         transformations=data["transformations"],

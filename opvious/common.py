@@ -108,7 +108,7 @@ def encode_annotations(annots: list[Annotation]) -> Json:
     return [
         json_dict(key=annot)
         if isinstance(annot, str)
-        else json_dict(key=annot[0], value=annot[1])
+        else json_dict(key=annot[0], value=str(annot[1]))
         for annot in annots
     ]
 
@@ -122,9 +122,9 @@ def decode_annotations(elems: Json) -> list[Annotation]:
     ]
 
 
-def decode_datetime(iso: Optional[str]) -> Optional[datetime]:
+def decode_datetime(iso: str) -> datetime:
     """Parses a datetime from an ISO-formatted string"""
-    return datetime.fromisoformat(iso) if iso else None
+    return datetime.fromisoformat(iso)
 
 
 # Async
