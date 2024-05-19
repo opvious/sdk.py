@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional, cast
 
 from ..common import (
@@ -10,6 +10,7 @@ from ..common import (
     Uuid,
     decode_datetime,
     decode_annotations,
+    if_present,
 )
 from .outcomes import (
     SolveOutcome,
@@ -31,6 +32,12 @@ class QueuedSolve:
     uuid: Uuid
     """The solve's unique identifier"""
 
+    annotations: list[Annotation]
+    """Annotation metadata"""
+
+    outcome: Optional[SolveOutcome]
+    """Final solve outcome, if available"""
+
     enqueued_at: datetime
     """The time the solve was created"""
 
@@ -40,18 +47,19 @@ class QueuedSolve:
     completed_at: Optional[datetime]
     """The time the solve completed"""
 
-    annotations: list[Annotation]
-    """Annotation metadata"""
-
-    outcome: Optional[SolveOutcome]
-    """Final solve outcome, if available"""
-
     problem_summary: Optional[ProblemSummary] = dataclasses.field(repr=False)
     """Summary information about the solved problem"""
 
     options: Json = dataclasses.field(repr=False)
     transformations: Json = dataclasses.field(repr=False)
     strategy: Json = dataclasses.field(repr=False)
+
+    @property
+    def duration(self) -> Optional[timedelta]:
+        """The solve's runtime, if it is complete"""
+        return (
+            self.completed_at - self.enqueued_at if self.completed_at else None
+        )
 
 
 def queued_solve_from_graphql(
@@ -68,22 +76,19 @@ def queued_solve_from_graphql(
     else:
         outcome = None
 
-    enqueued_at = decode_datetime(attempt_data["startedAt"])
-    assert enqueued_at
-
     return QueuedSolve(
         uuid=data["uuid"],
-        enqueued_at=enqueued_at,
-        dequeued_at=decode_datetime(data["dequeuedAt"]),
-        completed_at=decode_datetime(attempt_data["endedAt"]),
+        enqueued_at=decode_datetime(attempt_data["startedAt"]),
+        dequeued_at=if_present(data["dequeuedAt"], decode_datetime),
+        completed_at=if_present(attempt_data["endedAt"], decode_datetime),
         annotations=decode_annotations(attempt_data["annotations"]),
         options=data["options"],
         transformations=data["transformations"],
         strategy=data["strategy"],
         outcome=outcome,
-        problem_summary=problem_summary_from_json(data["problemSummary"])
-        if data["problemSummary"]
-        else None,
+        problem_summary=if_present(
+            data["problemSummary"], problem_summary_from_json
+        ),
     )
 
 

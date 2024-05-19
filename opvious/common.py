@@ -2,7 +2,7 @@ from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, TypeVar, Union
 import urllib.parse
 import weakref
 
@@ -17,6 +17,14 @@ del metadata
 
 
 Uuid = str
+
+
+_V = TypeVar("_V", contravariant=True)
+_R = TypeVar("_R", covariant=True)
+
+
+def if_present(arg: Optional[_V], fn: Callable[[_V], _R]) -> Optional[_R]:
+    return None if arg is None else fn(arg)
 
 
 # Formatting
@@ -100,7 +108,7 @@ def encode_annotations(annots: list[Annotation]) -> Json:
     return [
         json_dict(key=annot)
         if isinstance(annot, str)
-        else json_dict(key=annot[0], value=annot[1])
+        else json_dict(key=annot[0], value=str(annot[1]))
         for annot in annots
     ]
 
@@ -114,9 +122,9 @@ def decode_annotations(elems: Json) -> list[Annotation]:
     ]
 
 
-def decode_datetime(iso: Optional[str]) -> Optional[datetime]:
+def decode_datetime(iso: str) -> datetime:
     """Parses a datetime from an ISO-formatted string"""
-    return datetime.fromisoformat(iso) if iso else None
+    return datetime.fromisoformat(iso)
 
 
 # Async
