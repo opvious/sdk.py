@@ -40,7 +40,8 @@ class TestClient:
         solve = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("unbounded")
-            )
+            ),
+            {"hello": "world"},
         )
         outcome = await client.wait_for_solve_outcome(solve)
         assert isinstance(outcome, opvious.UnboundedOutcome)
@@ -454,3 +455,8 @@ class TestClient:
             )
         )
         assert isinstance(res.outcome, opvious.FeasibleOutcome)
+
+    @pytest.mark.asyncio
+    async def test_paginate_formulation_solves(self):
+        async for solve in client.paginate_formulation_solves("unbounded"):
+            assert isinstance(solve, opvious.QueuedSolve)

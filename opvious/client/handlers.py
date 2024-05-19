@@ -13,6 +13,7 @@ from ..common import (
     json_dict,
 )
 from ..data.queued_solves import (
+    AttemptAttributes,
     QueuedSolve,
     queued_solve_from_graphql,
     SolveNotification,
@@ -475,7 +476,9 @@ class Client:
 
         return solution
 
-    async def queue_solve(self, problem: Problem) -> QueuedSolve:
+    async def queue_solve(
+        self, problem: Problem, attributes: Optional[AttemptAttributes] = None
+    ) -> QueuedSolve:
         """Queues a solve for asynchronous processing
 
         Inputs will be validated locally before the request is sent to the API.
@@ -527,7 +530,7 @@ class Client:
             result_type=JsonExecutorResult,
             url="/queue-solve",
             method="POST",
-            json_data=json_dict(problem=problem),
+            json_data=json_dict(problem=problem, attributes=attributes),
         ) as res:
             uuid = res.json_data()["uuid"]
         return QueuedSolve(
@@ -707,3 +710,74 @@ class Client:
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )
+
+    async def paginate_formulation_solves(
+        self,
+        name: str,
+        attributes: Optional[AttemptAttributes] = None,
+        limit: int = 25,
+    ) -> AsyncIterator[QueuedSolve]:
+        """Lists queued solves
+
+        Args:
+            name: Formulation name
+            attributes: Optional attributes to filter by
+            limit: Maximum number of results to return
+        """
+        attribute_list = (
+            [json_dict(key=k, value=v) for k, v in attributes.items()]
+            if attributes
+            else None
+        )
+        cursor = None
+        outlines: dict[int, Outline] = {}
+        while limit > 0:
+            solves, cursor = await self._list_formulation_solves(
+                name, attribute_list, outlines, cursor, limit
+            )
+            if not solves:
+                return
+            for solve in solves:
+                yield solve
+            limit -= len(solves)
+
+    async def _list_formulation_solves(
+        self,
+        name: str,
+        attribute_list: Any,
+        outlines: dict[int, Outline],
+        cursor: Optional[str],
+        limit: Optional[int],
+    ) -> tuple[list[QueuedSolve], str]:
+        data = await self._executor.execute_graphql_query(
+            query="@PaginateFormulationQueuedSolves",
+            variables=json_dict(
+                name=name, last=limit, before=cursor, attributes=attribute_list
+            ),
+        )
+        formulation = data["formulation"]
+        if not formulation:
+            return []
+        solves: list[QueuedSolve] = []
+        for edge in formulation["attempts"]["edges"]:
+            node = edge["node"]
+            content = node["content"]
+            if not content:
+                continue
+            spec = content["specification"]
+            outline = outlines.get(spec["revno"])
+            if not outline:
+                outline = await generate_outline(
+                    self._executor,
+                    spec["outline"],
+                    content["transformations"],
+                )
+                outlines[spec["revno"]] = outline
+            solves.append(
+                QueuedSolve(
+                    uuid=content["uuid"],
+                    outline=outline,
+                    started_at=datetime.fromisoformat(node["startedAt"]),
+                )
+            )
+        return solves, formulation["attempts"]["pageInfo"]["startCursor"]
