@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
-from typing import Any, Mapping, Optional
+from typing import Any, Optional, cast
 
-from .outlines import ProblemOutline
+from ..common import (
+    Annotation,
+    Json,
+    Uuid,
+    decode_datetime,
+    decode_annotations,
+)
+from .outcomes import (
+    SolveOutcome,
+    failed_outcome_from_graphql,
+    solve_outcome_from_graphql,
+)
+from .solves import ProblemSummary, problem_summary_from_json
 from .tensors import Value
-
-
-AttemptAttributes = Mapping[str, str]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -19,23 +28,62 @@ class QueuedSolve:
     can be retrieved from their UUID via :meth:`.Client.fetch_solve`.
     """
 
-    uuid: str
+    uuid: Uuid
     """The solve's unique identifier"""
 
-    outline: ProblemOutline = dataclasses.field(repr=False)
-    """The specification outline corresponding to this solve"""
-
-    started_at: datetime
+    enqueued_at: datetime
     """The time the solve was created"""
+
+    dequeued_at: Optional[datetime]
+    """The time the solve started running"""
+
+    completed_at: Optional[datetime]
+    """The time the solve completed"""
+
+    annotations: list[Annotation]
+    """Annotation metadata"""
+
+    outcome: Optional[SolveOutcome]
+    """Final solve outcome, if available"""
+
+    problem_summary: Optional[ProblemSummary] = dataclasses.field(repr=False)
+    """Summary information about the solved problem"""
+
+    options: Json = dataclasses.field(repr=False)
+    transformations: Json = dataclasses.field(repr=False)
+    strategy: Json = dataclasses.field(repr=False)
 
 
 def queued_solve_from_graphql(
-    data: Any, outline: ProblemOutline
+    data: Json, attempt_data: Optional[Json] = None
 ) -> QueuedSolve:
+    attempt_data = attempt_data or data["attempt"]
+
+    if data["failure"]:
+        outcome = cast(
+            SolveOutcome, failed_outcome_from_graphql(data["failure"])
+        )
+    elif data["outcome"]:
+        outcome = solve_outcome_from_graphql(data["outcome"])
+    else:
+        outcome = None
+
+    enqueued_at = decode_datetime(attempt_data["startedAt"])
+    assert enqueued_at
+
     return QueuedSolve(
         uuid=data["uuid"],
-        outline=outline,
-        started_at=datetime.fromisoformat(data["attempt"]["startedAt"]),
+        enqueued_at=enqueued_at,
+        dequeued_at=decode_datetime(data["dequeuedAt"]),
+        completed_at=decode_datetime(attempt_data["endedAt"]),
+        annotations=decode_annotations(attempt_data["annotations"]),
+        options=data["options"],
+        transformations=data["transformations"],
+        strategy=data["strategy"],
+        outcome=outcome,
+        problem_summary=problem_summary_from_json(data["problemSummary"])
+        if data["problemSummary"]
+        else None,
     )
 
 

@@ -8,11 +8,11 @@ from .common import (
     CONTENT_TYPE_HEADER,
     Headers,
     Executor,
+    ExecutorError,
     ExecutorResult,
     JsonExecutorResult,
     PlainTextExecutorResult,
     TRACE_HEADER,
-    unsupported_content_type_error,
 )
 
 
@@ -55,8 +55,8 @@ class UrllibExecutor(Executor):
                 status=status, trace=trace, reader=res
             )
         else:
-            raise unsupported_content_type_error(
-                text=res.read().decode("utf8"),
-                content_type=ctype,
+            raise ExecutorError(
+                status=status,
                 trace=trace,
+                reason=res.read().decode("utf8"),
             )

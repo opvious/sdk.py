@@ -1,7 +1,8 @@
+from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any, Callable, Iterable, Union
+from typing import Any, Callable, Iterable, Optional, Union
 import urllib.parse
 import weakref
 
@@ -13,6 +14,9 @@ except metadata.PackageNotFoundError:
 
 
 del metadata
+
+
+Uuid = str
 
 
 # Formatting
@@ -87,6 +91,51 @@ def json_dict(**kwargs) -> Json:
         else:
             data[json_key] = val
     return data
+
+
+Annotation = Union[str, tuple[str, str]]
+
+
+def encode_annotations(annots: list[Annotation]) -> Json:
+    return [
+        json_dict(key=annot)
+        if isinstance(annot, str)
+        else json_dict(key=annot[0], value=annot[1])
+        for annot in annots
+    ]
+
+
+def decode_annotations(elems: Json) -> list[Annotation]:
+    return [
+        elem["key"]
+        if elem.get("value") is None
+        else (elem["key"], elem["value"])
+        for elem in elems
+    ]
+
+
+def decode_datetime(iso: Optional[str]) -> Optional[datetime]:
+    """Parses a datetime from an ISO-formatted string"""
+    return datetime.fromisoformat(iso) if iso else None
+
+
+# Async
+
+
+async def gather(*futures) -> list[Any]:
+    """Compatibility shim for asyncio.gather
+
+    It is useful to work in environments which do not support asyncio.
+    """
+    try:
+        import asyncio
+    except ImportError:
+        ret: list[Any] = []
+        for future in futures:
+            ret.append(await future)
+        return ret
+    else:
+        return await asyncio.gather(*futures)
 
 
 # Decorator utilities

@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import backoff
-from datetime import datetime, timezone
 import json
-import humanize
 import logging
 from typing import (
-    cast,
-    Any,
     AsyncIterator,
     Iterable,
     Optional,
@@ -16,27 +12,27 @@ from typing import (
 )
 
 from ..common import (
+    Annotation,
     Json,
+    encode_annotations,
+    Uuid,
     format_percent,
+    gather,
     json_dict,
 )
 from ..data.queued_solves import (
-    AttemptAttributes,
     QueuedSolve,
     queued_solve_from_graphql,
     SolveNotification,
     solve_notification_from_graphql,
 )
 from ..data.outcomes import (
-    AbortedOutcome,
     FailedOutcome,
     FeasibleOutcome,
-    InfeasibleOutcome,
     SolveOutcome,
-    UnboundedOutcome,
     UnexpectedSolveOutcomeError,
     failed_outcome_from_graphql,
-    feasible_outcome_from_graphql,
+    solve_outcome_from_graphql,
     solve_outcome_status,
 )
 from ..data.outlines import ProblemOutline
@@ -67,10 +63,10 @@ from ..specifications import (
 from .common import (
     ClientSetting,
     Problem,
+    ProblemOutlineCache,
     ProblemOutlineGenerator,
     SolveInputsBuilder,
     feasible_outcome_details,
-    generate_outline,
     log_progress,
 )
 
@@ -83,6 +79,7 @@ class Client:
 
     def __init__(self, executor: Executor):
         self._executor = executor
+        self._problem_outline_cache = ProblemOutlineCache(executor)
 
     def __repr__(self) -> str:
         fields = [
@@ -485,8 +482,8 @@ class Client:
         return solution
 
     async def queue_solve(
-        self, problem: Problem, attributes: Optional[AttemptAttributes] = None
-    ) -> QueuedSolve:
+        self, problem: Problem, annotations: Optional[list[Annotation]] = None
+    ) -> Uuid:
         """Queues a solve for asynchronous processing
 
         Inputs will be validated locally before the request is sent to the API.
@@ -533,41 +530,19 @@ class Client:
             raise Exception(
                 "Queued solves must have a formulation as specification"
             )
-        problem, outline = await self._prepare_problem(problem)
+        problem, _outline = await self._prepare_problem(problem)
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url="/queue-solve",
             method="POST",
-            json_data=json_dict(problem=problem, attributes=attributes),
+            json_data=json_dict(
+                problem=problem,
+                annotations=encode_annotations(annotations or []),
+            ),
         ) as res:
-            uuid = res.json_data()["uuid"]
-        return QueuedSolve(
-            uuid=uuid,
-            outline=outline,
-            started_at=datetime.now(timezone.utc),
-        )
+            return res.json_data()["uuid"]
 
-    async def fetch_solve(self, uuid: str) -> Optional[QueuedSolve]:
-        """Loads a queued solve
-
-        Args:
-            uuid: The solve's ID
-        """
-        data = await self._executor.execute_graphql_query(
-            query="@FetchQueuedSolve",
-            variables=json_dict(uuid=uuid),
-        )
-        solve = data["queuedSolve"]
-        if not solve:
-            return None
-        outline = await generate_outline(
-            self._executor,
-            solve["specification"]["outline"],
-            solve["transformations"],
-        )
-        return queued_solve_from_graphql(solve, outline)
-
-    async def cancel_solve(self, uuid: str) -> bool:
+    async def cancel_solve(self, uuid: Uuid) -> bool:
         """Cancels a running solve
 
         This method will throw if the solve does not exist or is not pending
@@ -583,16 +558,16 @@ class Client:
         return bool(data["cancelQueuedSolve"])
 
     async def poll_solve(
-        self, solve: QueuedSolve
+        self, uuid: Uuid
     ) -> Union[SolveNotification, SolveOutcome]:
-        """Polls an solve for its outcome or latest progress notification
+        """Polls a solve for its outcome or latest progress notification
 
         Args:
-            solve: The target solve
+            uuid: The target queued solve's UUID
         """
         data = await self._executor.execute_graphql_query(
             query="@PollQueuedSolve",
-            variables=json_dict(uuid=solve.uuid),
+            variables=json_dict(uuid=uuid),
         )
         solve_data = data["queuedSolve"]
 
@@ -608,23 +583,14 @@ class Client:
                 )
 
         outcome_data = solve_data["outcome"]
-        if not outcome_data:
-            edges = solve_data["notifications"]["edges"]
-            return solve_notification_from_graphql(
-                dequeued=bool(solve_data["dequeuedAt"]),
-                data=edges[0]["node"] if edges else None,
-            )
+        if outcome_data:
+            return solve_outcome_from_graphql(outcome_data)
 
-        status = outcome_data["status"]
-        if status == "ABORTED":
-            return cast(SolveOutcome, AbortedOutcome())
-        if status == "INFEASIBLE":
-            return InfeasibleOutcome()
-        if status == "UNBOUNDED":
-            return UnboundedOutcome()
-        if status == "FEASIBLE" or status == "OPTIMAL":
-            return feasible_outcome_from_graphql(outcome_data)
-        raise Exception(f"Unexpected status {status} without failure")
+        edges = solve_data["notifications"]["edges"]
+        return solve_notification_from_graphql(
+            dequeued=bool(solve_data["dequeuedAt"]),
+            data=edges[0]["node"] if edges else None,
+        )
 
     @backoff.on_predicate(
         backoff.fibo,
@@ -632,13 +598,11 @@ class Client:
         max_value=90,
         logger=None,
     )
-    async def _track_solve(self, solve: QueuedSolve) -> Optional[SolveOutcome]:
-        ret = await self.poll_solve(solve)
+    async def _track_solve(self, uuid: Uuid) -> Optional[SolveOutcome]:
+        ret = await self.poll_solve(uuid)
         if isinstance(ret, SolveNotification):
-            delta = datetime.now(timezone.utc) - solve.started_at
-            elapsed = humanize.naturaldelta(delta, minimum_unit="milliseconds")
             if ret.dequeued:
-                details = [f"elapsed={elapsed}"]
+                details: list[str] = []
                 if ret.relative_gap is not None:
                     details.append(f"gap={format_percent(ret.relative_gap)}")
                 if ret.cut_count is not None:
@@ -649,13 +613,13 @@ class Client:
                     "QueuedSolve is running... [%s]", ", ".join(details)
                 )
             else:
-                _logger.info("QueuedSolve is queued... [elapsed=%s]", elapsed)
+                _logger.info("QueuedSolve is queued...")
             return None
         return ret
 
     async def wait_for_solve_outcome(
         self,
-        solve: QueuedSolve,
+        uuid: Uuid,
         assert_feasible=False,
     ) -> SolveOutcome:
         """Waits for the solve to complete and returns its outcome
@@ -663,10 +627,10 @@ class Client:
         This method emits real-time progress messages as INFO logs.
 
         Args:
-            solve: The target solve
+            uuid: The target solve's ID
             assert_feasible: Throw if the final outcome was not feasible
         """
-        outcome = await self._track_solve(solve)
+        outcome = await self._track_solve(uuid)
         if not outcome:
             raise Exception("Missing outcome")
         status = solve_outcome_status(outcome)
@@ -683,38 +647,52 @@ class Client:
             _logger.info("QueuedSolve completed with status %s.", status)
         return outcome
 
-    async def fetch_solve_inputs(self, solve: QueuedSolve) -> SolveInputs:
+    async def fetch_solve_inputs(self, uuid: Uuid) -> SolveInputs:
         """Retrieves a queued solve's inputs
 
         Args:
-            solve: The target solve
+            uuid: The target queued solve's UUID
         """
-        async with self._executor.execute(
-            result_type=JsonExecutorResult,
-            url=f"/queued-solves/{solve.uuid}/inputs",
-        ) as res:
-            data = res.json_data()
+
+        async def _data():
+            async with self._executor.execute(
+                result_type=JsonExecutorResult,
+                url=f"/queued-solves/{uuid}/inputs",
+            ) as res:
+                return res.json_data()
+
+        async def _outline():
+            return await self._problem_outline_cache.get_solve_outline(uuid)
+
+        data, outline = await gather(_data(), _outline())
         return SolveInputs(
-            problem_outline=solve.outline,
+            problem_outline=outline,
             raw_parameters=data["parameters"],
             raw_dimensions=data["dimensions"],
         )
 
-    async def fetch_solve_outputs(self, solve: QueuedSolve) -> SolveOutputs:
+    async def fetch_solve_outputs(self, uuid: Uuid) -> SolveOutputs:
         """Retrieves a successful queued solves's outputs
 
         This method will throw if the solve did not have a feasible solution.
 
         Args:
-            solve: The target solve
+            uuid: The target queued solve's UUID
         """
-        async with self._executor.execute(
-            result_type=JsonExecutorResult,
-            url=f"/queued-solves/{solve.uuid}/outputs",
-        ) as res:
-            data = res.json_data()
+
+        async def _data():
+            async with self._executor.execute(
+                result_type=JsonExecutorResult,
+                url=f"/queued-solves/{uuid}/outputs",
+            ) as res:
+                return res.json_data()
+
+        async def _outline():
+            return await self._problem_outline_cache.get_solve_outline(uuid)
+
+        data, outline = await gather(_data(), _outline())
         return SolveOutputs(
-            problem_outline=solve.outline,
+            problem_outline=outline,
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )
@@ -722,70 +700,53 @@ class Client:
     async def paginate_formulation_solves(
         self,
         name: str,
-        attributes: Optional[AttemptAttributes] = None,
+        annotations: Optional[list[Annotation]] = None,
         limit: int = 25,
     ) -> AsyncIterator[QueuedSolve]:
-        """Lists queued solves
+        """Lists queued solves for a given formulation
 
         Args:
             name: Formulation name
-            attributes: Optional attributes to filter by
-            limit: Maximum number of results to return
+            annotations: Optional annotations to filter solves by
+            limit: Maximum number of solves to return
+
+        Solves are sorted from most recently started to least.
         """
-        attribute_list = (
-            [json_dict(key=k, value=v) for k, v in attributes.items()]
-            if attributes
-            else None
-        )
         cursor = None
-        outlines: dict[int, ProblemOutline] = {}
-        while limit > 0:
-            solves, cursor = await self._list_formulation_solves(
-                name, attribute_list, outlines, cursor, limit
+        attempt_filter = json_dict(
+            operation="QUEUE_SOLVE",
+            annotations=encode_annotations(annotations or []),
+        )
+
+        async def _next_page() -> list[QueuedSolve]:
+            nonlocal cursor
+            data = await self._executor.execute_graphql_query(
+                query="@PaginateFormulationAttempts",
+                variables=json_dict(
+                    name=name,
+                    last=min(25, limit),
+                    before=cursor,
+                    filter=attempt_filter,
+                ),
             )
+            formulation = data["formulation"]
+            if not formulation:
+                return []
+            cursor = formulation["attempts"]["pageInfo"]["startCursor"]
+            solves: list[QueuedSolve] = []
+            for edge in formulation["attempts"]["edges"]:
+                attempt = edge["node"]
+                content = attempt["content"]
+                if not content:
+                    continue
+                solves.append(queued_solve_from_graphql(content, attempt))
+            solves.reverse()
+            return solves
+
+        while limit > 0:
+            solves = await _next_page()
             if not solves:
                 return
             for solve in solves:
                 yield solve
             limit -= len(solves)
-
-    async def _list_formulation_solves(
-        self,
-        name: str,
-        attribute_list: Any,
-        outlines: dict[int, ProblemOutline],
-        cursor: Optional[str],
-        limit: Optional[int],
-    ) -> tuple[list[QueuedSolve], str]:
-        data = await self._executor.execute_graphql_query(
-            query="@PaginateFormulationQueuedSolves",
-            variables=json_dict(
-                name=name, last=limit, before=cursor, attributes=attribute_list
-            ),
-        )
-        formulation = data["formulation"]
-        if not formulation:
-            return [], ""
-        solves: list[QueuedSolve] = []
-        for edge in formulation["attempts"]["edges"]:
-            node = edge["node"]
-            content = node["content"]
-            if not content:
-                continue
-            spec = content["specification"]
-            outline = outlines.get(spec["revno"])
-            if not outline:
-                outline = await generate_outline(
-                    self._executor,
-                    spec["outline"],
-                    content["transformations"],
-                )
-                outlines[spec["revno"]] = outline
-            solves.append(
-                QueuedSolve(
-                    uuid=content["uuid"],
-                    outline=outline,
-                    started_at=datetime.fromisoformat(node["startedAt"]),
-                )
-            )
-        return solves, formulation["attempts"]["pageInfo"]["startCursor"]

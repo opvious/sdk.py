@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union, cast
 
 from .tensors import Value
 
@@ -62,14 +62,6 @@ class FeasibleOutcome:
     """The solution's relative gap (0.1 is 10%)"""
 
 
-def feasible_outcome_from_graphql(data: Any) -> FeasibleOutcome:
-    return FeasibleOutcome(
-        optimal=data["status"] == "OPTIMAL",
-        objective_value=data.get("objectiveValue"),
-        relative_gap=data.get("relativeGap"),
-    )
-
-
 @dataclasses.dataclass(frozen=True)
 class InfeasibleOutcome:
     """No feasible solution exists"""
@@ -87,6 +79,23 @@ SolveOutcome = Union[
     InfeasibleOutcome,
     UnboundedOutcome,
 ]
+
+
+def solve_outcome_from_graphql(data: Any) -> SolveOutcome:
+    status = data["status"]
+    if status == "ABORTED":
+        return cast(SolveOutcome, AbortedOutcome())
+    if status == "INFEASIBLE":
+        return InfeasibleOutcome()
+    if status == "UNBOUNDED":
+        return UnboundedOutcome()
+    if status == "FEASIBLE" or status == "OPTIMAL":
+        return FeasibleOutcome(
+            optimal=data["status"] == "OPTIMAL",
+            objective_value=data.get("objectiveValue"),
+            relative_gap=data.get("relativeGap"),
+        )
+    raise ValueError(f"Unexpected status: {status}")
 
 
 def solve_outcome_status(outcome: SolveOutcome) -> SolveStatus:
