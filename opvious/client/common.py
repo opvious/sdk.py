@@ -6,7 +6,7 @@ import json
 import logging
 import lru
 import os
-from typing import Any, Dict, Mapping, MutableMapping, Optional, cast
+from typing import Any, Dict, Mapping, Optional, cast
 
 from ..common import Json, Uuid, format_percent, json_dict
 from ..data.outcomes import FeasibleOutcome

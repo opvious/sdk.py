@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import backoff
-from datetime import datetime, timezone
 import json
-import humanize
 import logging
 from typing import (
-    cast,
-    Any,
     AsyncIterator,
     Iterable,
     Optional,
@@ -31,12 +27,9 @@ from ..data.queued_solves import (
     solve_notification_from_graphql,
 )
 from ..data.outcomes import (
-    AbortedOutcome,
     FailedOutcome,
     FeasibleOutcome,
-    InfeasibleOutcome,
     SolveOutcome,
-    UnboundedOutcome,
     UnexpectedSolveOutcomeError,
     failed_outcome_from_graphql,
     solve_outcome_from_graphql,
@@ -55,7 +48,6 @@ from ..data.solves import (
 )
 from ..executors import (
     Executor,
-    ExecutorError,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
@@ -715,50 +707,46 @@ class Client:
 
         Args:
             name: Formulation name
-            attributes: Optional attributes to filter by
-            limit: Maximum number of results to return
+            annotations: Optional annotations to filter solves by
+            limit: Maximum number of solves to return
+
+        Solves are sorted from most recently started to least.
         """
-        encoded_annotations = encode_annotations(annotations or [])
         cursor = None
-        outlines: dict[int, ProblemOutline] = {}
-        while limit > 0:
-            solves, cursor = await self._list_formulation_solves(
-                name, encoded_annotations, outlines, cursor, limit
+        attempt_filter = json_dict(
+            operation="QUEUE_SOLVE",
+            annotations=encode_annotations(annotations or [])
+        )
+
+        async def _next_page() -> list[QueuedSolve]:
+            nonlocal cursor
+            data = await self._executor.execute_graphql_query(
+                query="@PaginateFormulationAttempts",
+                variables=json_dict(
+                    name=name,
+                    last=min(25, limit),
+                    before=cursor,
+                    filter=attempt_filter,
+                ),
             )
+            formulation = data["formulation"]
+            if not formulation:
+                return []
+            cursor = formulation["attempts"]["pageInfo"]["startCursor"]
+            solves: list[QueuedSolve] = []
+            for edge in formulation["attempts"]["edges"]:
+                attempt = edge["node"]
+                content = attempt["content"]
+                if not content:
+                    continue
+                solves.append(queued_solve_from_graphql(content, attempt))
+            solves.reverse()
+            return solves
+
+        while limit > 0:
+            solves = await _next_page()
             if not solves:
                 return
             for solve in solves:
                 yield solve
             limit -= len(solves)
-
-    async def _list_formulation_solves(
-        self,
-        name: str,
-        encoded_annotations: Json,
-        outlines: dict[int, ProblemOutline],
-        cursor: Optional[str],
-        limit: Optional[int],
-    ) -> tuple[list[QueuedSolve], str]:
-        data = await self._executor.execute_graphql_query(
-            query="@PaginateFormulationAttempts",
-            variables=json_dict(
-                name=name,
-                last=limit,
-                before=cursor,
-                filter=json_dict(
-                    operation="QUEUE_SOLVE",
-                    annotations=encoded_annotations,
-                ),
-            ),
-        )
-        formulation = data["formulation"]
-        if not formulation:
-            return [], ""
-        solves: list[QueuedSolve] = []
-        for edge in formulation["attempts"]["edges"]:
-            attempt = edge["node"]
-            content = attempt["content"]
-            if not content:
-                continue
-            solves.append(queued_solve_from_graphql(content, attempt))
-        return solves, formulation["attempts"]["pageInfo"]["startCursor"]

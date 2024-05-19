@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union, cast
+from typing import Any, Optional, cast
 
 from ..common import (
     Annotation,
@@ -16,7 +16,6 @@ from .outcomes import (
     failed_outcome_from_graphql,
     solve_outcome_from_graphql,
 )
-from .outlines import ProblemOutline
 from .solves import ProblemSummary, problem_summary_from_json
 from .tensors import Value
 
