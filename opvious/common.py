@@ -2,7 +2,7 @@ from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Protocol, TypeVar, Union
 import urllib.parse
 import weakref
 
@@ -17,6 +17,14 @@ del metadata
 
 
 Uuid = str
+
+
+_V = TypeVar("_V", contravariant=True)
+_R = TypeVar("_R", covariant=True)
+
+
+def if_present(arg: Optional[_V], fn: Callable[[_V], _R]) -> Optional[_R]:
+    return None if arg is None else fn(arg)
 
 
 # Formatting

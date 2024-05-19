@@ -10,6 +10,7 @@ from ..common import (
     Uuid,
     decode_datetime,
     decode_annotations,
+    if_present,
 )
 from .outcomes import (
     SolveOutcome,
@@ -81,9 +82,7 @@ def queued_solve_from_graphql(
         transformations=data["transformations"],
         strategy=data["strategy"],
         outcome=outcome,
-        problem_summary=problem_summary_from_json(data["problemSummary"])
-        if data["problemSummary"]
-        else None,
+        problem_summary=if_present(data["problemSummary"], problem_summary_from_json),
     )
 
 
