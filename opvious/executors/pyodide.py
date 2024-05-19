@@ -6,12 +6,12 @@ from typing import AsyncIterator, Optional
 from .common import (
     CONTENT_TYPE_HEADER,
     Executor,
+    ExecutorError,
     ExecutorResult,
     JsonExecutorResult,
     Headers,
     PlainTextExecutorResult,
     TRACE_HEADER,
-    unsupported_content_type_error,
 )
 
 
@@ -50,8 +50,4 @@ class PyodideExecutor(Executor):
             )
         else:
             text = await res.js_response.text()
-            raise unsupported_content_type_error(
-                text=text,
-                content_type=ctype,
-                trace=trace,
-            )
+            raise ExecutorError(status=status, trace=trace, reason=text)

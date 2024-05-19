@@ -37,7 +37,7 @@ class ExecutorError(Exception):
 
     status: Optional[int]
     trace: Optional[str]
-    reason: Optional[str]
+    reason: Optional[Any]
 
     def __init__(
         self,
@@ -56,13 +56,6 @@ class ExecutorError(Exception):
         self.status = status
         self.trace = trace
         self.reason = reason
-
-
-def unsupported_content_type_error(
-    text: str, content_type: Optional[str], trace: Optional[str] = None
-) -> Exception:
-    reason = f"unsupported content-type ({content_type or '<none>'}): {text}"
-    return ExecutorError(trace=trace, reason=reason)
 
 
 @dataclasses.dataclass

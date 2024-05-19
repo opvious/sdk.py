@@ -4,9 +4,9 @@ import dataclasses
 import enum
 import json
 import logging
-import lru  # type: ignore
+import lru
 import os
-from typing import Any, Dict, Mapping, Optional, cast
+from typing import Any, Dict, Mapping, MutableMapping, Optional, cast
 
 from ..common import Json, Uuid, format_percent, json_dict
 from ..data.outcomes import FeasibleOutcome
@@ -141,21 +141,24 @@ async def _generate_outline(
 
 
 class ProblemOutlineCache:
+    """Efficiently returns outlines for past queued solves"""
+
     def __init__(self, executor: Executor) -> None:
         self._executor = executor
-        self._by_solve = lru.LRU(100)
+        self._by_solve: lru.LRU[Uuid, ProblemOutline] = lru.LRU(100)
 
     async def get_solve_outline(self, uuid: Uuid) -> ProblemOutline:
         cached = self._by_solve.get(uuid)
         if cached:
             return cached
 
-        solve_data = await self._executor.execute_graphql_query(
+        data = await self._executor.execute_graphql_query(
             query="@FetchQueuedSolve",
             variables=json_dict(uuid=uuid),
         )
+        solve_data = data['queuedSolve']
         if not solve_data:
-            raise TypeError(f"Unknown solve: {uuid}")
+            raise ValueError(f"Unknown solve: {uuid}")
         outline = await _generate_outline(
             self._executor,
             solve_data["specification"]["outline"],
@@ -166,6 +169,8 @@ class ProblemOutlineCache:
 
 
 class ProblemOutlineGenerator:
+    """Generates outlines from a formulation and transformations"""
+
     def __init__(self, executor: Executor, outline_data: Json):
         self._executor = executor
         self._pristine_outline_data = outline_data

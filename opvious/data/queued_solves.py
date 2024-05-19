@@ -4,13 +4,20 @@ import dataclasses
 from datetime import datetime
 from typing import Any, Mapping, Optional, Union, cast
 
-from ..common import Annotation, Json, decode_datetime, decode_annotations
+from ..common import (
+    Annotation,
+    Json,
+    Uuid,
+    decode_datetime,
+    decode_annotations,
+)
 from .outcomes import (
     SolveOutcome,
     failed_outcome_from_graphql,
     solve_outcome_from_graphql,
 )
 from .outlines import ProblemOutline
+from .solves import ProblemSummary, problem_summary_from_json
 from .tensors import Value
 
 
@@ -22,17 +29,26 @@ class QueuedSolve:
     can be retrieved from their UUID via :meth:`.Client.fetch_solve`.
     """
 
-    uuid: str
+    uuid: Uuid
     """The solve's unique identifier"""
 
     enqueued_at: datetime
     """The time the solve was created"""
 
     dequeued_at: Optional[datetime]
+    """The time the solve started running"""
+
+    completed_at: Optional[datetime]
+    """The time the solve completed"""
 
     annotations: list[Annotation]
+    """Annotation metadata"""
 
     outcome: Optional[SolveOutcome]
+    """Final solve outcome, if available"""
+
+    problem_summary: Optional[ProblemSummary] = dataclasses.field(repr=False)
+    """Summary information about the solved problem"""
 
     options: Json = dataclasses.field(repr=False)
     transformations: Json = dataclasses.field(repr=False)
@@ -60,11 +76,15 @@ def queued_solve_from_graphql(
         uuid=data["uuid"],
         enqueued_at=enqueued_at,
         dequeued_at=decode_datetime(data["dequeuedAt"]),
-        annotations=decode_annotations(data["annotations"]),
+        completed_at=decode_datetime(attempt_data["endedAt"]),
+        annotations=decode_annotations(attempt_data["annotations"]),
         options=data["options"],
         transformations=data["transformations"],
         strategy=data["strategy"],
         outcome=outcome,
+        problem_summary=problem_summary_from_json(data["problemSummary"])
+        if data["problemSummary"]
+        else None,
     )
 
 

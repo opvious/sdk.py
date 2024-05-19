@@ -122,7 +122,7 @@ def decode_datetime(iso: Optional[str]) -> Optional[datetime]:
 # Async
 
 
-async def gather(*fns) -> list[Any]:
+async def gather(*futures) -> list[Any]:
     """Compatibility shim for asyncio.gather
 
     It is useful to work in environments which do not support asyncio.
@@ -131,11 +131,11 @@ async def gather(*fns) -> list[Any]:
         import asyncio
     except ImportError:
         ret: list[Any] = []
-        for fn in fns:
-            ret.append(await fn())
+        for future in futures:
+            ret.append(await future)
         return ret
     else:
-        return await asyncio.gather(*fns)
+        return await asyncio.gather(*futures)
 
 
 # Decorator utilities

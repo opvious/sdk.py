@@ -11,14 +11,14 @@ client = opvious.Client.default()
 class TestClient:
     @pytest.mark.asyncio
     async def test_queue_bounded_feasible_solve(self):
-        solve = await client.queue_solve(
+        uuid = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 parameters={"bound": 0.1},
             )
         )
         outcome = await client.wait_for_solve_outcome(
-            solve, assert_feasible=True
+            uuid, assert_feasible=True
         )
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.optimal
@@ -26,29 +26,29 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_queue_bounded_infeasible_solve(self):
-        solve = await client.queue_solve(
+        uuid = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 parameters={"bound": 3},
             )
         )
-        outcome = await client.wait_for_solve_outcome(solve)
+        outcome = await client.wait_for_solve_outcome(uuid)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_queue_simple_unbounded_solve(self):
-        solve = await client.queue_solve(
+        uuid = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("unbounded")
             ),
             {"hello": "world"},
         )
-        outcome = await client.wait_for_solve_outcome(solve)
+        outcome = await client.wait_for_solve_outcome(uuid)
         assert isinstance(outcome, opvious.UnboundedOutcome)
 
     @pytest.mark.asyncio
     async def test_queue_diet_solve(self):
-        solve = await client.queue_solve(
+        uuid = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("diet"),
                 parameters={
@@ -75,11 +75,11 @@ class TestClient:
                 },
             ),
         )
-        outcome = await client.wait_for_solve_outcome(solve)
+        outcome = await client.wait_for_solve_outcome(uuid)
         assert outcome.optimal
         assert outcome.objective_value == 33
 
-        input_data = await client.fetch_solve_inputs(solve)
+        input_data = await client.fetch_solve_inputs(uuid)
         costs = input_data.parameter("costPerRecipe")
         assert costs.to_dict() == {
             "lasagna": 12,
@@ -88,7 +88,7 @@ class TestClient:
             "caviar": 23,
         }
 
-        output_data = await client.fetch_solve_outputs(solve)
+        output_data = await client.fetch_solve_outputs(uuid)
         quantities = output_data.variable("quantityOfRecipe")
         assert quantities["value"].to_dict() == {"pizza": 1, "salad": 2}
         nutrients = output_data.constraint("enoughNutrients")
@@ -100,7 +100,7 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_queue_relaxed_solve(self):
-        queued = await client.queue_solve(
+        uuid = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 transformations=[
@@ -114,14 +114,13 @@ class TestClient:
                 parameters={"bound": 3},
             ),
         )
-        fetched = await client.fetch_solve(queued.uuid)
-        outcome = await client.wait_for_solve_outcome(fetched)
+        outcome = await client.wait_for_solve_outcome(uuid)
         assert isinstance(outcome, opvious.FeasibleOutcome)
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
     async def test_queue_bounded_relaxed_solve(self):
-        solve = await client.queue_solve(
+        uuid = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("bounded"),
                 transformations=[
@@ -140,20 +139,20 @@ class TestClient:
                 },
             ),
         )
-        outcome = await client.wait_for_solve_outcome(solve)
+        outcome = await client.wait_for_solve_outcome(uuid)
         assert isinstance(outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
     async def test_queue_sudoku(self):
-        solve = await client.queue_solve(
+        uuid = await client.queue_solve(
             opvious.Problem(
                 specification=opvious.FormulationSpecification("sudoku"),
                 parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
             ),
         )
-        outcome = await client.wait_for_solve_outcome(solve)
+        outcome = await client.wait_for_solve_outcome(uuid)
         assert isinstance(outcome, opvious.FeasibleOutcome)
-        output_data = await client.fetch_solve_outputs(solve)
+        output_data = await client.fetch_solve_outputs(uuid)
         decisions = output_data.variable("decisions")
         assert (0, 0, 3) in decisions.index
 
@@ -459,4 +458,11 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_paginate_formulation_solves(self):
         async for solve in client.paginate_formulation_solves("unbounded"):
+            print(solve)
             assert isinstance(solve, opvious.QueuedSolve)
+
+    @pytest.mark.asyncio
+    async def test_fetch_unknown_solve_outputs(self):
+        with pytest.raises(opvious.executors.ExecutorError) as info:
+            await client.fetch_solve_outputs("abc")
+        assert info.value.status == 404

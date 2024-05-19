@@ -55,6 +55,7 @@ from ..data.solves import (
 )
 from ..executors import (
     Executor,
+    ExecutorError,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
@@ -669,7 +670,7 @@ class Client:
                 return res.json_data()
 
         async def _outline():
-            return self._problem_outline_cache.get_solve_outline(uuid)
+            return await self._problem_outline_cache.get_solve_outline(uuid)
 
         data, outline = await gather(_data(), _outline())
         return SolveInputs(
@@ -692,10 +693,10 @@ class Client:
                 result_type=JsonExecutorResult,
                 url=f"/queued-solves/{uuid}/outputs",
             ) as res:
-                data = res.json_data()
+                return res.json_data()
 
         async def _outline():
-            return self._problem_outline_cache.get_solve_outline(uuid)
+            return await self._problem_outline_cache.get_solve_outline(uuid)
 
         data, outline = await gather(_data(), _outline())
         return SolveOutputs(
@@ -710,7 +711,7 @@ class Client:
         annotations: Optional[list[Annotation]] = None,
         limit: int = 25,
     ) -> AsyncIterator[QueuedSolve]:
-        """Lists queued solves
+        """Lists queued solves for a given formulation
 
         Args:
             name: Formulation name

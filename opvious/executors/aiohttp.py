@@ -14,7 +14,6 @@ from .common import (
     PlainTextExecutorResult,
     Headers,
     TRACE_HEADER,
-    unsupported_content_type_error,
 )
 
 
@@ -92,10 +91,10 @@ class AiohttpExecutor(Executor):
                         )
                     else:
                         text = await res.text()
-                        raise unsupported_content_type_error(
-                            text=text,
-                            content_type=ctype,
+                        raise ExecutorError(
+                            status=status,
                             trace=trace,
+                            reason=text
                         )
         except aiohttp.ClientResponseError as err:
             trace = None
