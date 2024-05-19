@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from .outlines import ProblemOutline
 from .tensors import Value
+
+
+AttemptAttributes = Mapping[str, str]
 
 
 @dataclasses.dataclass(frozen=True)
