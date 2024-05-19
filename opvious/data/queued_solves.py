@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional, cast
 
 from ..common import (
@@ -55,7 +55,7 @@ class QueuedSolve:
     strategy: Json = dataclasses.field(repr=False)
 
     @property
-    def duration(self) -> Optional[datetime.timedelta]:
+    def duration(self) -> Optional[timedelta]:
         """The solve's runtime, if it is complete"""
         return (
             self.completed_at - self.enqueued_at if self.completed_at else None
