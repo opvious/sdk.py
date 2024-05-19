@@ -461,5 +461,5 @@ class TestClient:
 
     @pytest.mark.asyncio
     async def test_fetch_unknown_solve_outputs(self):
-        with pytest.raises(opvious.executors.ExecutorError) as info:
+        with pytest.raises(opvious.executors.ExecutorError):
             await client.fetch_solve_outputs("invalid-uuid")

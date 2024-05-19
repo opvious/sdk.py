@@ -2,7 +2,7 @@ from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any, Callable, Iterable, Optional, Protocol, TypeVar, Union
+from typing import Any, Callable, Iterable, Optional, TypeVar, Union
 import urllib.parse
 import weakref
 

@@ -82,7 +82,9 @@ def queued_solve_from_graphql(
         transformations=data["transformations"],
         strategy=data["strategy"],
         outcome=outcome,
-        problem_summary=if_present(data["problemSummary"], problem_summary_from_json),
+        problem_summary=if_present(
+            data["problemSummary"], problem_summary_from_json
+        ),
     )
 
 
