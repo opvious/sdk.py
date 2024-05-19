@@ -4,10 +4,11 @@ import dataclasses
 import enum
 import json
 import logging
+import lru  # type: ignore
 import os
 from typing import Any, Dict, Mapping, Optional, cast
 
-from ..common import format_percent, Json, json_dict
+from ..common import Json, Uuid, format_percent, json_dict
 from ..data.outcomes import FeasibleOutcome
 from ..data.outlines import Label, ProblemOutline, outline_from_json
 from ..data.solves import SolveInputs, SolveOptions, SolveStrategy
@@ -121,7 +122,7 @@ class SolveInputsBuilder:
         )
 
 
-async def generate_outline(
+async def _generate_outline(
     executor: Executor, outline_data: Json, transformation_data: Json
 ) -> ProblemOutline:
     if not transformation_data:
@@ -137,6 +138,31 @@ async def generate_outline(
     ) as res:
         data = res.json_data()
     return outline_from_json(data["outline"])
+
+
+class ProblemOutlineCache:
+    def __init__(self, executor: Executor) -> None:
+        self._executor = executor
+        self._by_solve = lru.LRU(100)
+
+    async def get_solve_outline(self, uuid: Uuid) -> ProblemOutline:
+        cached = self._by_solve.get(uuid)
+        if cached:
+            return cached
+
+        solve_data = await self._executor.execute_graphql_query(
+            query="@FetchQueuedSolve",
+            variables=json_dict(uuid=uuid),
+        )
+        if not solve_data:
+            raise TypeError(f"Unknown solve: {uuid}")
+        outline = await _generate_outline(
+            self._executor,
+            solve_data["specification"]["outline"],
+            solve_data["transformations"],
+        )
+        self._by_solve[uuid] = outline
+        return outline
 
 
 class ProblemOutlineGenerator:
@@ -199,7 +225,7 @@ class ProblemOutlineGenerator:
                 transformation_data = self.get_json()
                 if not transformation_data:
                     return pristine_outline
-                return await generate_outline(
+                return await _generate_outline(
                     executor, pristine_outline_data, transformation_data
                 )
 

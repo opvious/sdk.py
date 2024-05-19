@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Union, cast
 
+from ..common import Annotation, Json, decode_datetime, decode_annotations
+from .outcomes import (
+    SolveOutcome,
+    failed_outcome_from_graphql,
+    solve_outcome_from_graphql,
+)
 from .outlines import ProblemOutline
 from .tensors import Value
-
-
-AttemptAttributes = Mapping[str, str]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -22,20 +25,46 @@ class QueuedSolve:
     uuid: str
     """The solve's unique identifier"""
 
-    outline: ProblemOutline = dataclasses.field(repr=False)
-    """The specification outline corresponding to this solve"""
-
-    started_at: datetime
+    enqueued_at: datetime
     """The time the solve was created"""
+
+    dequeued_at: Optional[datetime]
+
+    annotations: list[Annotation]
+
+    outcome: Optional[SolveOutcome]
+
+    options: Json = dataclasses.field(repr=False)
+    transformations: Json = dataclasses.field(repr=False)
+    strategy: Json = dataclasses.field(repr=False)
 
 
 def queued_solve_from_graphql(
-    data: Any, outline: ProblemOutline
+    data: Json, attempt_data: Optional[Json] = None
 ) -> QueuedSolve:
+    attempt_data = attempt_data or data["attempt"]
+
+    if data["failure"]:
+        outcome = cast(
+            SolveOutcome, failed_outcome_from_graphql(data["failure"])
+        )
+    elif data["outcome"]:
+        outcome = solve_outcome_from_graphql(data["outcome"])
+    else:
+        outcome = None
+
+    enqueued_at = decode_datetime(attempt_data["startedAt"])
+    assert enqueued_at
+
     return QueuedSolve(
         uuid=data["uuid"],
-        outline=outline,
-        started_at=datetime.fromisoformat(data["attempt"]["startedAt"]),
+        enqueued_at=enqueued_at,
+        dequeued_at=decode_datetime(data["dequeuedAt"]),
+        annotations=decode_annotations(data["annotations"]),
+        options=data["options"],
+        transformations=data["transformations"],
+        strategy=data["strategy"],
+        outcome=outcome,
     )
 
 
