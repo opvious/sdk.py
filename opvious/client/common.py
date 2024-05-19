@@ -156,7 +156,7 @@ class ProblemOutlineCache:
             query="@FetchQueuedSolve",
             variables=json_dict(uuid=uuid),
         )
-        solve_data = data['queuedSolve']
+        solve_data = data["queuedSolve"]
         if not solve_data:
             raise ValueError(f"Unknown solve: {uuid}")
         outline = await _generate_outline(

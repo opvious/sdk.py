@@ -92,9 +92,7 @@ class AiohttpExecutor(Executor):
                     else:
                         text = await res.text()
                         raise ExecutorError(
-                            status=status,
-                            trace=trace,
-                            reason=text
+                            status=status, trace=trace, reason=text
                         )
         except aiohttp.ClientResponseError as err:
             trace = None

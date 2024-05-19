@@ -366,7 +366,6 @@ class TestClient:
                 parameters={"hints": [(0, 0, 3), (1, 1, 5)]},
             )
         )
-        print(summary.constraints)
         assert len(summary.parameters) == 1
 
     @pytest.mark.asyncio
@@ -458,7 +457,6 @@ class TestClient:
     @pytest.mark.asyncio
     async def test_paginate_formulation_solves(self):
         async for solve in client.paginate_formulation_solves("unbounded"):
-            print(solve)
             assert isinstance(solve, opvious.QueuedSolve)
 
     @pytest.mark.asyncio
