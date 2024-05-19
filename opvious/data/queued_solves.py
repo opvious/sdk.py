@@ -32,6 +32,12 @@ class QueuedSolve:
     uuid: Uuid
     """The solve's unique identifier"""
 
+    annotations: list[Annotation]
+    """Annotation metadata"""
+
+    outcome: Optional[SolveOutcome]
+    """Final solve outcome, if available"""
+
     enqueued_at: datetime
     """The time the solve was created"""
 
@@ -41,18 +47,19 @@ class QueuedSolve:
     completed_at: Optional[datetime]
     """The time the solve completed"""
 
-    annotations: list[Annotation]
-    """Annotation metadata"""
-
-    outcome: Optional[SolveOutcome]
-    """Final solve outcome, if available"""
-
     problem_summary: Optional[ProblemSummary] = dataclasses.field(repr=False)
     """Summary information about the solved problem"""
 
     options: Json = dataclasses.field(repr=False)
     transformations: Json = dataclasses.field(repr=False)
     strategy: Json = dataclasses.field(repr=False)
+
+    @property
+    def duration(self) -> Optional[datetime.timedelta]:
+        """The solve's runtime, if it is complete"""
+        return (
+            self.completed_at - self.enqueued_at if self.completed_at else None
+        )
 
 
 def queued_solve_from_graphql(
