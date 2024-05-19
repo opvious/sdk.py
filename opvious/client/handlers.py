@@ -715,7 +715,7 @@ class Client:
         cursor = None
         attempt_filter = json_dict(
             operation="QUEUE_SOLVE",
-            annotations=encode_annotations(annotations or [])
+            annotations=encode_annotations(annotations or []),
         )
 
         async def _next_page() -> list[QueuedSolve]:
