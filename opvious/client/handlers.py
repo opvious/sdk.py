@@ -5,7 +5,15 @@ from datetime import datetime, timezone
 import json
 import humanize
 import logging
-from typing import cast, Any, AsyncIterator, Iterable, Optional, Sequence, Union
+from typing import (
+    cast,
+    Any,
+    AsyncIterator,
+    Iterable,
+    Optional,
+    Sequence,
+    Union,
+)
 
 from ..common import (
     Json,
