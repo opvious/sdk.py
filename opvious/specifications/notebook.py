@@ -2,7 +2,7 @@ import logging
 import os
 import threading
 import types
-from typing import Optional
+from typing import Optional, Sequence
 import warnings
 
 from ..modeling import Model
@@ -12,7 +12,11 @@ _logger = logging.getLogger(__name__)
 
 
 def load_notebook_models(
-    path: str, root: Optional[str] = None, allow_empty=False
+    path: str,
+    root: Optional[str] = None,
+    allow_empty=False,
+    include_classes=False,
+    include_symbols: Sequence[str] = (),
 ) -> types.SimpleNamespace:
     """Loads all models from a notebook
 
@@ -20,7 +24,9 @@ def load_notebook_models(
         path: Path to the notebook, relative to `root` if present otherwise CWD
         root: Root path. If set to a file, its parent directory will be used
             (convenient for use with `__file__`).
-        allow_empty: Do not throw an error if no models were found
+        allow_empty: Do not throw an error if no exports were found
+        include_classes: Also include :class:`Model` subclasses
+        include_symbols: Also add values with these names
     """
     if root:
         root = os.path.realpath(root)
@@ -31,7 +37,10 @@ def load_notebook_models(
 
     # We run the import logic in a separate, fresh, thread since `importnb`
     # expects an inactive event loop if the notebook includes async statements.
-    t = _ImportThread(target=_populate_notebook_namespace, args=(path, ns))
+    t = _ImportThread(
+        target=_populate_notebook_namespace,
+        args=(path, ns, include_classes, set(include_symbols)),
+    )
     t.start()
     t.join()
 
@@ -57,7 +66,12 @@ class _ImportThread(threading.Thread):
             raise Exception("Notebook import failed") from self._exception
 
 
-def _populate_notebook_namespace(path: str, ns: types.SimpleNamespace) -> None:
+def _populate_notebook_namespace(
+    path: str,
+    ns: types.SimpleNamespace,
+    include_classes: bool,
+    include_symbols: set[str],
+) -> None:
     import asyncio
 
     loop = asyncio.new_event_loop()
@@ -92,7 +106,15 @@ def _populate_notebook_namespace(path: str, ns: types.SimpleNamespace) -> None:
     count = 0
     for attr in dir(nb):
         value = getattr(nb, attr)
-        if isinstance(value, Model):
+        if (
+            isinstance(value, Model)
+            or (
+                include_classes
+                and isinstance(value, type)
+                and issubclass(value, Model)
+            )
+            or attr in include_symbols
+        ):
             count += 1
             setattr(ns, attr, value)
-    _logger.debug("Loaded %s model(s) from %s.", count, path)
+    _logger.debug("Loaded %s symbols(s) from %s.", count, path)
