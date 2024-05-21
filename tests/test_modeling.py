@@ -37,7 +37,7 @@ class LotSizing(om.Model):
         self.production = om.Variable.non_negative(
             self.steps, upper_bound=self.demand.total(absolute=True)
         )
-        self.production_indicator = om.fragments.ActivationIndicator(
+        self.production_indicator = om.fragments.ActivationVariable(
             tensor=self.production,
         )
         self.inventory = om.Variable.non_negative(self.steps)
@@ -74,7 +74,7 @@ class GroupExpenses(om.Model):
             (self.friends, self.friends),
             qualifiers=["sender", "recipient"],
         )
-        self.tranferred_indicator = om.fragments.ActivationIndicator(
+        self.tranferred_indicator = om.fragments.ActivationVariable(
             tensor=self.transferred,
             upper_bound=self.overall_cost(),
         )
@@ -187,7 +187,7 @@ class BinPacking(om.Model):
     bin_max_weight = om.Parameter.non_negative()
 
     assigned = om.Variable.indicator(bins, items)
-    used = om.fragments.ActivationIndicator(assigned, projection=1)
+    used = om.fragments.ActivationVariable(assigned, projection=1)
 
     @om.objective
     def minimize_bins_used(self):
