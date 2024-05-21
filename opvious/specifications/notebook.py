@@ -1,3 +1,4 @@
+import inspect
 import logging
 import os
 import threading
@@ -15,7 +16,7 @@ def load_notebook_models(
     path: str,
     root: Optional[str] = None,
     allow_empty=False,
-    include_classes=True,
+    include_classes=False,
     include_symbols: Sequence[str] = (),
 ) -> types.SimpleNamespace:
     """Loads all models from a notebook
@@ -108,7 +109,7 @@ def _populate_notebook_namespace(
         value = getattr(nb, attr)
         if (
             isinstance(value, Model)
-            or (include_classes and issubclass(value, Model))
+            or (include_classes and isinstance(value, type) and issubclass(value, Model))
             or attr in include_symbols
         ):
             count += 1
