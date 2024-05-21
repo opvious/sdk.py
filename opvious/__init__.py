@@ -1,7 +1,7 @@
 import logging
 
 from .client import Client, ClientSetting, Problem
-from .common import __version__
+from .common import __version__, Annotation
 from .data.outcomes import (
     AbortedOutcome,
     FailedOutcome,
@@ -64,6 +64,7 @@ __all__ = [
     "load_notebook_models",
     "modeling",
     # Solves
+    "Annotation",
     "DimensionArgument",
     "EpsilonConstraint",
     "Key",
