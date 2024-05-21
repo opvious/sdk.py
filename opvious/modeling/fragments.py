@@ -66,9 +66,6 @@ class MaskedSubspace(ModelFragment):
         return (untuple(t) for t in cross(self.masked))
 
 
-MaskedSubset = MaskedSubspace  # Deprecated alias
-
-
 class DerivedVariable(ModelFragment):
     """Variable equal to a given equation
 
@@ -220,9 +217,6 @@ def magnitude_variable(
     return wrapper
 
 
-Magnitude = MagnitudeVariable  # Deprecated alias
-
-
 class ActivationVariable(ModelFragment):
     """Indicator variable activation fragment
 
@@ -345,9 +339,6 @@ class ActivationVariable(ModelFragment):
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
         raise NotImplementedError()
-
-
-ActivationIndicator = ActivationVariable  # Deprecated alias
 
 
 @method_decorator(require_call=True)
