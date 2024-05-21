@@ -37,7 +37,7 @@ class TestSpecifications:
         spec = ns.model.specification()
         text = spec.sources[0].text
         assert r"\S^d_\mathrm{sets}&: S" in text
-        assert not hasattr(ns, 'SetCover')
+        assert not hasattr(ns, "SetCover")
 
     def test_load_notebook_model_classes(self):
         ns = load_notebook_models(

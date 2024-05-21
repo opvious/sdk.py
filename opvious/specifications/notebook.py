@@ -109,7 +109,11 @@ def _populate_notebook_namespace(
         value = getattr(nb, attr)
         if (
             isinstance(value, Model)
-            or (include_classes and isinstance(value, type) and issubclass(value, Model))
+            or (
+                include_classes
+                and isinstance(value, type)
+                and issubclass(value, Model)
+            )
             or attr in include_symbols
         ):
             count += 1
