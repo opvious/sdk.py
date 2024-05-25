@@ -611,7 +611,10 @@ class Client:
                     details.append(f"cuts={ret.cut_count}")
                 if ret.lp_iteration_count is not None:
                     details.append(f"iterations={ret.lp_iteration_count}")
-                _logger.info("Solve is running... [%s]", ", ".join(details))
+                suffix = ", ".join(details)
+                _logger.info(
+                    "Solve is running...%s", f" [{suffix}]" if suffix else ""
+                )
             else:
                 _logger.info("Solve is queued...")
             return None
@@ -697,6 +700,54 @@ class Client:
             raw_variables=data["variables"],
             raw_constraints=data["constraints"],
         )
+
+    async def paginate_solves(
+        self,
+        annotations: Optional[list[Annotation]] = None,
+        limit: int = 25,
+    ) -> AsyncIterator[QueuedSolve]:
+        """Lists recent queued solves
+
+        Args:
+            annotations: Optional annotations to filter solves by
+            limit: Maximum number of solves to return
+
+        Solves are sorted from most recently started to least.
+        """
+        cursor = None
+        attempt_filter = json_dict(
+            operation="QUEUE_SOLVE",
+            annotations=encode_annotations(annotations or []),
+        )
+
+        async def _next_page() -> list[QueuedSolve]:
+            nonlocal cursor
+            data = await self._executor.execute_graphql_query(
+                query="@PaginateQueuedSolveAttempts",
+                variables=json_dict(
+                    last=min(25, limit),
+                    before=cursor,
+                    filter=attempt_filter,
+                ),
+            )
+            cursor = data["attempts"]["pageInfo"]["startCursor"]
+            solves: list[QueuedSolve] = []
+            for edge in data["attempts"]["edges"]:
+                attempt = edge["node"]
+                content = attempt["content"]
+                if not content:
+                    continue
+                solves.append(queued_solve_from_graphql(content, attempt))
+            solves.reverse()
+            return solves
+
+        while limit > 0:
+            solves = await _next_page()
+            if not solves:
+                return
+            for solve in solves:
+                yield solve
+            limit -= len(solves)
 
     async def paginate_formulation_solves(
         self,
