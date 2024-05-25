@@ -376,7 +376,7 @@ class PiecewiseLinear(ModelFragment):
 
     Args:
         tensor: Tensor-like
-        threshold_count: The number of linear pieces in the factor. Must be at
+        piece_count: The number of linear pieces in the factor. Must be at
             least 1.
         quantifiables: Underlying quantifiable
         assume_convex: Assume that the factors are increasing
@@ -384,22 +384,22 @@ class PiecewiseLinear(ModelFragment):
             placeholder will be replaced by the piece's index (0-indexed).
         factor_name: Name of the generated factor parameters. See
             `component_name` for substitution rules.
-        threshold_name: Name of the generated threshold parameters. See
+        width_name: Name of the generated width parameters. See
             `component_name` for substitution rules.
     """
 
     def __init__(
         self,
         tensor: TensorLike,
-        threshold_count: int,
+        piece_count: int,
         *quantifiables: Quantifiable,
         assume_convex=False,
         component_name: Optional[str] = None,
         factor_name: Optional[str] = None,
-        threshold_name: Optional[str] = None,
+        width_name: Optional[str] = None,
     ) -> None:
-        if threshold_count < 1:
-            raise ValueError("too few pieces")
+        if piece_count < 1:
+            raise ValueError(f"Invalid piece count: {piece_count}")
         if not assume_convex:
             raise NotImplementedError()  # TODO: Implement.
 
@@ -414,25 +414,22 @@ class PiecewiseLinear(ModelFragment):
             return name.replace("%", str(i))
 
         self._pieces: list[tuple[Parameter, Variable]] = []
-        offset = 0
-        for i in range(threshold_count):
-            if i < threshold_count - 1:
-                threshold = Parameter.continuous(
-                    name=_format(threshold_name, i)
-                )
-                setattr(self, f"threshold_{i}", threshold)
-                bound = threshold()
+        for i in range(piece_count):
+            if i < piece_count - 1:
+                width = Parameter.continuous(name=_format(width_name, i))
             else:
-                bound = None
+                width = None
             component = Variable.continuous(
                 self._domains,
                 lower_bound=0,
-                upper_bound=math.inf if bound is None else bound - offset,
+                upper_bound=math.inf if width is None else width(),
                 name=_format(component_name, i),
             )
             factor = Parameter.continuous(name=_format(factor_name, i))
             setattr(self, f"component_{i}", component)
             setattr(self, f"factor_{i}", factor)
+            if width:
+                setattr(self, f"width_{i}", width)
             self._pieces.append((factor, component))
 
     def __call__(self, *subs: ExpressionLike) -> Expression:
@@ -451,12 +448,12 @@ class PiecewiseLinear(ModelFragment):
 
 @method_decorator(require_call=True)
 def piecewise_linear(
-    threshold_count: int,
+    piece_count: int,
     *quantifiables: Quantifiable,
     assume_convex=False,
     component_name: Optional[str] = None,
     factor_name: Optional[str] = None,
-    threshold_name: Optional[str] = None,
+    width_name: Optional[str] = None,
 ) -> Callable[[Callable[..., TensorLike]], PiecewiseLinear]:
     """Transforms a method into an :class:`PiecewiseLinear` fragment
 
@@ -466,12 +463,12 @@ def piecewise_linear(
     def wrapper(fn):
         return PiecewiseLinear(
             fn,
-            threshold_count,
+            piece_count,
             *quantifiables,
             assume_convex=assume_convex,
             component_name=component_name,
             factor_name=factor_name,
-            threshold_name=threshold_name,
+            width_name=width_name,
         )
 
     return wrapper
