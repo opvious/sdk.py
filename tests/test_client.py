@@ -463,3 +463,8 @@ class TestClient:
     async def test_fetch_unknown_solve_outputs(self):
         with pytest.raises(opvious.executors.ExecutorError):
             await client.fetch_solve_outputs("invalid-uuid")
+
+    @pytest.mark.asyncio
+    async def test_paginate_solves(self):
+        async for solve in client.paginate_solves(limit=3):
+            assert isinstance(solve, opvious.QueuedSolve)
