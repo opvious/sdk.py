@@ -674,7 +674,7 @@ class TestModeling:
             products = om.Dimension()
             builds = om.Variable.natural(products)
             build_cost = om.fragments.PiecewiseLinear(
-                builds, 2, assume_convex=True, component_name="c^{p%}"
+                builds, assume_convex=True, pieces_name="N"
             )
 
             @om.objective
@@ -684,7 +684,7 @@ class TestModeling:
         model = _Model()
         spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
-        assert r"\forall p \in P, c^{p0}_{p} + c^{p1}_{p} = \beta_{p}" in text
+        assert r"\S^v_\mathrm{builds}&: \beta \in \mathbb{N}^{P}" in text
         assert spec.annotation.issue_count == 0
 
     @pytest.mark.asyncio
@@ -694,7 +694,7 @@ class TestModeling:
             new_builds = om.Variable.natural(products)
             old_builds = om.Variable.natural(products)
 
-            @om.fragments.piecewise_linear(2, products, assume_convex=True)
+            @om.fragments.piecewise_linear(products, assume_convex=True)
             def value(self, p):
                 return self.new_builds(p) + self.old_builds(p)
 
@@ -705,5 +705,5 @@ class TestModeling:
         model = _Model()
         spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
-        assert r"f^\mathrm{value \prime} \in \mathbb{R}" in text
+        assert r"\chi^\mathrm{value} \in \mathbb{R}_+^{" in text
         assert spec.annotation.issue_count == 0
