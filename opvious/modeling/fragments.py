@@ -6,8 +6,7 @@ common use-cases.
 
 from __future__ import annotations
 
-import math
-from typing import Any, Callable, Iterable, Optional, Union, cast
+from typing import Any, Callable, Iterable, Optional, Union
 
 from ..common import method_decorator, untuple
 from .ast import cross, domain, lift, Projection, Quantifiable, total
@@ -22,6 +21,7 @@ from .definitions import (
     Variable,
     alias,
     constraint,
+    interval,
 )
 from .identifiers import Name
 from .model import ModelFragment
@@ -376,30 +376,27 @@ class PiecewiseLinear(ModelFragment):
 
     Args:
         tensor: Tensor-like
-        piece_count: The number of linear pieces in the factor. Must be at
-            least 1.
         quantifiables: Underlying quantifiable
         assume_convex: Assume that the factors are increasing
-        component_name: Name of the generated component variables. The `%`
-            placeholder will be replaced by the piece's index (0-indexed).
-        factor_name: Name of the generated factor parameters. See
-            `component_name` for substitution rules.
-        width_name: Name of the generated width parameters. See
-            `component_name` for substitution rules.
+        component_name: Name of the generated variable used to represent the
+            value in each segmented piece.
+        pieces_name: Name of the interval representing all piece indices.
+        piece_count_name: Name of the generated piece count parameter.
+        factor_name: Name of the generated factor parameter.
+        width_name: Name of the generated width parameter.
     """
 
     def __init__(
         self,
         tensor: TensorLike,
-        piece_count: int,
         *quantifiables: Quantifiable,
         assume_convex=False,
+        pieces_name: Optional[str] = None,
+        piece_count_name: Optional[str] = None,
         component_name: Optional[str] = None,
         factor_name: Optional[str] = None,
         width_name: Optional[str] = None,
     ) -> None:
-        if piece_count < 1:
-            raise ValueError(f"Invalid piece count: {piece_count}")
         if not assume_convex:
             raise NotImplementedError()  # TODO: Implement.
 
@@ -408,49 +405,74 @@ class PiecewiseLinear(ModelFragment):
             quantifiables = tensor.quantifiables()
         self._domains = tuple(domain(q) for q in quantifiables)
 
-        def _format(name, i):
-            if not name:
-                return None
-            return name.replace("%", str(i))
+        self._piece_count = Parameter.discrete(
+            lower_bound=1, name=piece_count_name
+        )
+        self._pieces = interval(1, self.piece_count(), name=pieces_name)
+        self._component = Variable.non_negative(
+            self._pieces, self._domains, name=component_name
+        )
+        self._factor = Parameter.continuous(self._pieces, name=factor_name)
+        self._width = Parameter.continuous(self._pieces, name=width_name)
 
-        self._pieces: list[tuple[Parameter, Variable]] = []
-        for i in range(piece_count):
-            if i < piece_count - 1:
-                width = Parameter.continuous(name=_format(width_name, i))
-            else:
-                width = None
-            component = Variable.continuous(
-                self._domains,
-                lower_bound=0,
-                upper_bound=math.inf if width is None else width(),
-                name=_format(component_name, i),
-            )
-            factor = Parameter.continuous(name=_format(factor_name, i))
-            setattr(self, f"component_{i}", component)
-            setattr(self, f"factor_{i}", factor)
-            if width:
-                setattr(self, f"width_{i}", width)
-            self._pieces.append((factor, component))
+    @property
+    def piece_count(self) -> Parameter:
+        """The total number of pieces"""
+        return self._piece_count
 
-    def __call__(self, *subs: ExpressionLike) -> Expression:
-        return cast(Expression, sum(f() * c(*subs) for f, c in self._pieces))
+    @property
+    def pieces(self):
+        return self._pieces
 
-    def total(self):
-        """Returns the fully quantified sum"""
-        return total(self(*cp) for cp in cross(*self._domains))
+    @property
+    def factor(self) -> Parameter:
+        """The factor to multiply each component with"""
+        return self._factor
+
+    @property
+    def width(self) -> Parameter:
+        """The width of each segment for the resulting variable"""
+        return self._width
+
+    @property
+    def component(self) -> Variable:
+        """The underlying segmented variable"""
+        return self._component
 
     @constraint
-    def matches(self):
+    def component_is_within_width(self) -> Quantified:
+        """Asserts that each component is below its width"""
+        for p in self._pieces:
+            for tp in cross(self._domains):
+                yield self._component(p, *tp) <= self._width(p)
+
+    @constraint
+    def component_total_matches_tensor(self) -> Quantified:
         """Asserts that the sum of the components matches the input tensor"""
-        for cp in cross(*self._domains):
-            yield sum(c(*cp) for _f, c in self._pieces) == self._tensor(*cp)
+        for tp in cross(self._domains):
+            yield total(
+                self._component(p, *tp) for p in self._pieces
+            ) == self._tensor(*tp)
+
+    def __call__(self, *subs: ExpressionLike) -> Expression:
+        return total(
+            self._component(p, *subs) * self._factor(p) for p in self._pieces
+        )
+
+    def total(self):
+        """Returns the fully quantified piecewise-linear sum"""
+        return total(
+            self._component(*tp) * self._factor(tp[0])
+            for tp in cross(self._pieces, self._domains)
+        )
 
 
 @method_decorator(require_call=True)
 def piecewise_linear(
-    piece_count: int,
     *quantifiables: Quantifiable,
     assume_convex=False,
+    pieces_name: Optional[str] = None,
+    piece_count_name: Optional[str] = None,
     component_name: Optional[str] = None,
     factor_name: Optional[str] = None,
     width_name: Optional[str] = None,
@@ -463,9 +485,10 @@ def piecewise_linear(
     def wrapper(fn):
         return PiecewiseLinear(
             fn,
-            piece_count,
             *quantifiables,
             assume_convex=assume_convex,
+            pieces_name=pieces_name,
+            piece_count_name=piece_count_name,
             component_name=component_name,
             factor_name=factor_name,
             width_name=width_name,
