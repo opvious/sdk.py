@@ -1,12 +1,13 @@
 import opvious
+from opvious.client.common import ClientSetting
 import opvious.executors
 import pytest
 
 
-TOKEN = opvious.ClientSetting.TOKEN.read()
+TOKEN = ClientSetting.TOKEN.read()
 
 
-ENDPOINT = opvious.ClientSetting.ENDPOINT.read()
+ENDPOINT = ClientSetting.ENDPOINT.read()
 
 
 @pytest.mark.skipif(not TOKEN, reason="No access token detected")

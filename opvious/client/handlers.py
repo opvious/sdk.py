@@ -91,27 +91,17 @@ class Client:
     @classmethod
     def default(
         cls,
-        token: Union[str, bool, None] = None,
-        endpoint: Optional[str] = None,
+        endpoint: str,
+        token: Optional[str] = None,
     ) -> Client:
         """
         Creates a client using the best :class:`.Executor` for the environment
 
         Args:
-            token: API token. If absent or `True`, defaults to the
-                `$OPVIOUS_TOKEN` environment variable. If `False`, no
-                authentication will be set.
-            endpoint: API endpoint. If absent, defaults to the
-                `$OPVIOUS_ENDPOINT` environment variable, falling back to the
-                cloud endpoint if neither is present.
+            endpoint: API endpoint.
+            token: Optional API token.
         """
-        authorization = None
-        if token is True or (not token and token is not False):
-            token = ClientSetting.TOKEN.read()
-        if token:
-            authorization = authorization_header(token.strip())
-        if not endpoint:
-            endpoint = ClientSetting.ENDPOINT.read()
+        authorization = authorization_header(token.strip()) if token else None
         return Client(
             executor=default_executor(
                 endpoint=endpoint,
@@ -120,22 +110,27 @@ class Client:
         )
 
     @classmethod
-    def from_token(cls, token: str, endpoint: Optional[str] = None) -> Client:
-        return Client.default(token=token, endpoint=endpoint)
-
-    @classmethod
     def from_environment(
-        cls, env: Optional[dict[str, str]] = None, require_authenticated=False
-    ) -> Client:
-        token = ClientSetting.TOKEN.read(env).strip()
-        if not token and require_authenticated:
-            raise Exception(
-                f"Missing or empty {ClientSetting.TOKEN.value} "
-                "environment variable"
-            )
+        cls, env: Optional[dict[str, str]] = None
+    ) -> Optional[Client]:
+        """
+        Creates a client configured via environment variables
+
+        Args:
+            env: Environment, defaults to `os.environ`. The following two keys
+                are used: `OPVIOUS_ENDPOINT` (pointing to the Opvious API), and
+                `OPVIOUS_TOKEN` (containing a corresponding authorization
+                token).
+
+        This method returns nothing if the `OPVIOUS_ENDPOINT` environment
+        variable is unset or empty.
+        """
+        endpoint = ClientSetting.ENDPOINT.read(env)
+        if not endpoint:
+            return None
         return Client.default(
-            token=token,
-            endpoint=ClientSetting.ENDPOINT.read(env),
+            endpoint=endpoint,
+            token=ClientSetting.TOKEN.read(env).strip(),
         )
 
     @property

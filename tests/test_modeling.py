@@ -3,7 +3,7 @@ import pytest
 
 
 om = opvious.modeling
-client = opvious.Client.default()
+client = opvious.Client.from_environment()
 
 
 class SetCover(om.Model):
@@ -287,9 +287,7 @@ class JobShopScheduling(om.Model):
         return self.horizon()
 
 
-@pytest.mark.skipif(
-    not client.authenticated, reason="No access token detected"
-)
+@pytest.mark.skipif(not client, reason="No client")
 class TestModeling:
     _models = [
         SetCover(),

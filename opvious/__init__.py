@@ -1,6 +1,6 @@
 import logging
 
-from .client import Client, ClientSetting, Problem
+from .client import Client, DEMO_ENDPOINT, Problem
 from .common import __version__, Annotation
 from .data.outcomes import (
     AbortedOutcome,
@@ -51,7 +51,7 @@ from . import transformations
 __all__ = [
     # Client
     "Client",
-    "ClientSetting",
+    "DEMO_ENDPOINT",
     # Executors
     "executors",
     # Specifications

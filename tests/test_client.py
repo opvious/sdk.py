@@ -2,12 +2,10 @@ import opvious
 import pytest
 
 
-client = opvious.Client.default()
+client = opvious.Client.from_environment()
 
 
-@pytest.mark.skipif(
-    not client.authenticated, reason="No access token detected"
-)
+@pytest.mark.skipif(not client, reason="No client")
 class TestClient:
     @pytest.mark.asyncio
     async def test_queue_bounded_feasible_solve(self):
