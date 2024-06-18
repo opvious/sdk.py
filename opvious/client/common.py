@@ -21,14 +21,14 @@ from ..transformations import (
 )
 
 
-DEFAULT_ENDPOINT = "https://api.cloud.opvious.io"
+DEMO_ENDPOINT = "https://api.cloud.opvious.io"
 
 
 class ClientSetting(enum.Enum):
     """Client configuration environment variables"""
 
-    TOKEN = ("OPVIOUS_TOKEN", "")
-    ENDPOINT = ("OPVIOUS_ENDPOINT", DEFAULT_ENDPOINT)
+    ENDPOINT = "OPVIOUS_ENDPOINT"
+    TOKEN = "OPVIOUS_TOKEN"
 
     def read(self, env: Optional[dict[str, str]] = None) -> str:
         """Read the setting's current value or default if missing
@@ -38,8 +38,7 @@ class ClientSetting(enum.Enum):
         """
         if env is None:
             env = cast(Any, os.environ)
-        name, default_value = self.value
-        return env.get(name) or default_value
+        return env.get(self.value, "").strip()
 
 
 def log_progress(logger: logging.Logger, progress: Json) -> None:

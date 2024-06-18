@@ -105,9 +105,10 @@ def _default_name(path: str) -> str:
 
 
 async def _run(args: Mapping[str, Any]) -> None:
-    handler = _SpecificationHandler(
-        Client.default(), args["--tags"], args["--dry-run"]
-    )
+    client = Client.from_environment()
+    if not client:
+        raise Exception("Missing OPVIOUS_ENDPOINT environment variable")
+    handler = _SpecificationHandler(client, args["--tags"], args["--dry-run"])
     if args["register-notebook"]:
         await handler.handle_notebook(
             args["PATH"],

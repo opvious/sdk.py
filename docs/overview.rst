@@ -15,22 +15,22 @@ Creating a client
 *****************
 
 First, make sure you've :ref:`installed the SDK <Getting started>`. Once that's 
-done, the recommended way to create clients is via :meth:`.Client.default`. This 
-will automatically authenticate the client using the `OPVIOUS_TOKEN` environment 
-variable, if available:
+done, the recommended way to create clients is via :meth:`.Client.default`.
 
 .. code-block:: python
 
-  client = opvious.Client.default()  # Using environment defaults
-  client = opvious.Client.default(token="...")  # Using an explicit token
+  client = opvious.Client.default("http://localhost:8080") # Local API server
+  client = opvious.Client.default(opvious.DEMO_ENDPOINT) # Demo cloud endpoint
 
-By default clients connect to the Opvious cloud API, you can pass in an explicit
-`endpoint` argument to use a different one. For example when using a self-hosted 
-`API server <https://hub.docker.com/r/opvious/api-server>`_:
+The first argument, `endpoint`, determines the client's underlying API. For 
+example the address of a self-hosted `API server 
+<https://hub.docker.com/r/opvious/api-server>`_. As a convenience, we also 
+provide :meth:`.Client.from_environment` which creates a client from the 
+`OPVIOUS_ENDPOINT` and `OPVIOUS_TOKEN` environment variables:
 
 .. code-block:: python
 
-  client = opvious.Client.default(endpoint="http://localhost:8080")
+  client = opvious.Client.from_environment()
 
 
 Formulating problems

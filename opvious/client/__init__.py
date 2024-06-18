@@ -1,8 +1,8 @@
 from .common import Problem
-from .handlers import Client, ClientSetting
+from .handlers import Client, DEMO_ENDPOINT
 
 __all__ = [
     "Client",
-    "ClientSetting",
+    "DEMO_ENDPOINT",
     "Problem",
 ]
