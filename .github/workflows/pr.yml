@@ -10,49 +10,14 @@ jobs:
     name: Test
     timeout-minutes: 4
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_DB: default_db
-          POSTGRES_USER: default_user
-          POSTGRES_PASSWORD: default_pass
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      redis:
-        image: redis
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-      server:
-        image: opvious/api-server
-        env:
-          DB_URL: postgres://default_user:default_pass@postgres/default_db
-          OPVIOUS_API_IMAGE_EULA: accepted
-          REDIS_URL: redis://redis
-          STATIC_TOKENS: test@opvious.io=testing
-        ports:
-          - 8080:8080
-    env:
-      OPVIOUS_ENDPOINT: http://localhost:8080
-      OPVIOUS_TOKEN: static:testing
     steps:
       - name: Check out
         uses: actions/checkout@v2
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Setup poetry
+      - name: Set up poetry
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: '1.2.2'
@@ -65,6 +30,10 @@ jobs:
           poetry run black . --check
           poetry run flake8
           poetry run mypy .
+      - name: Set up API server
+        uses: opvious/api-server-action@main
+        with:
+          license-key: ${{ secrets.OPVIOUS_LICENSE_KEY }}
       - name: Register specifications
         run: ./scripts/specifications.sh register
       - name: Test
