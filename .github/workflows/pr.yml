@@ -31,7 +31,7 @@ jobs:
           poetry run flake8
           poetry run mypy .
       - name: Set up API server
-        uses: opvious/api-server-action@main
+        uses: opvious/api-server-action@v0.2.0
         with:
           license-key: ${{ secrets.OPVIOUS_LICENSE_KEY }}
       - name: Register specifications
