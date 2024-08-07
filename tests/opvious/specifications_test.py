@@ -25,7 +25,7 @@ class TestSpecifications:
 
     @pytest.mark.asyncio
     async def test_inline_sources(self):
-        spec = LocalSpecification.globs("tests/sources/bounded.md")
+        spec = LocalSpecification.globs("sources/bounded.md", root=__file__)
         assert len(spec.sources) == 1
         assert "greaterThanBound" in spec.sources[0].text
 
