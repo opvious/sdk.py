@@ -2,6 +2,9 @@
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[mypy]
+disable_error_code = import-untyped
+
 [tool.poetry]
 name = "opvious"
 version = "0.21.0rc1"
