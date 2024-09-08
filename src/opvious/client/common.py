@@ -4,7 +4,6 @@ import dataclasses
 import enum
 import json
 import logging
-import lru
 import os
 from typing import Any, Dict, Mapping, Optional, cast
 
@@ -145,7 +144,12 @@ class ProblemOutlineCache:
 
     def __init__(self, executor: Executor) -> None:
         self._executor = executor
-        self._by_solve: lru.LRU[Uuid, ProblemOutline] = lru.LRU(100)
+        try:
+            import lru
+        except ImportError:
+            self._by_solve: dict[Uuid, ProblemOutline] = {}
+        else:
+            self._by_solve = lru.LRU(100)
 
     async def get_solve_outline(self, uuid: Uuid) -> ProblemOutline:
         cached = self._by_solve.get(uuid)
