@@ -32,14 +32,14 @@ jobs:
           poetry run black . --check
           poetry run flake8
           poetry run mypy .
+      - name: Set up API server
+        uses: opvious/api-server-action@v0.2.0
+        with:
+          license-key: ${{ secrets.OPVIOUS_LICENSE_KEY }}
       - name: Register specifications
         run: ./scripts/specifications.sh register
-        env:
-          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_TOKEN }}
       - name: Test
         run: poetry run pytest
-        env:
-          OPVIOUS_TOKEN: ${{ secrets.OPVIOUS_TOKEN }}
       - name: Publish
         run: poetry publish --build
         env:
