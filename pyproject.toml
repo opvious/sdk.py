@@ -2,7 +2,7 @@
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[mypy]
+[tool.mypy]
 disable_error_code = "import-untyped"
 
 [tool.poetry]
