@@ -132,7 +132,7 @@ class Client:
                 environment.
 
         This method returns nothing if the `OPVIOUS_ENDPOINT` environment
-        variable is unset or empty.
+        variable is unset or empty and no default endpoint was set.
         """
         endpoint = ClientSetting.ENDPOINT.read(env) or default_endpoint
         if not endpoint:
