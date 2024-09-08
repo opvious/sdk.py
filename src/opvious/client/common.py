@@ -21,7 +21,7 @@ from ..transformations import (
 )
 
 
-DEMO_ENDPOINT = "https://api.cloud.opvious.io"
+DEMO_ENDPOINT = "https://api.try.opvious.io"
 
 
 class ClientSetting(enum.Enum):
@@ -29,8 +29,9 @@ class ClientSetting(enum.Enum):
 
     ENDPOINT = "OPVIOUS_ENDPOINT"
     TOKEN = "OPVIOUS_TOKEN"
+    EXECUTOR = "OPVIOUS_EXECUTOR"
 
-    def read(self, env: Optional[dict[str, str]] = None) -> str:
+    def read(self, env: Optional[Mapping[str, str]] = None) -> str:
         """Read the setting's current value or default if missing
 
         Args:
