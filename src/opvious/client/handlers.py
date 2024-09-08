@@ -6,6 +6,7 @@ import logging
 from typing import (
     AsyncIterator,
     Iterable,
+    Mapping,
     Optional,
     Sequence,
     Union,
@@ -51,8 +52,11 @@ from ..executors import (
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
+    aiohttp_executor,
     authorization_header,
     default_executor,
+    pyodide_executor,
+    urllib_executor,
 )
 from ..specifications import (
     FormulationSpecification,
@@ -111,27 +115,43 @@ class Client:
 
     @classmethod
     def from_environment(
-        cls, env: Optional[dict[str, str]] = None
+        cls,
+        env: Optional[Mapping[str, str]] = None,
+        default_endpoint: Optional[str] = None,
     ) -> Optional[Client]:
         """
         Creates a client configured via environment variables
 
         Args:
-            env: Environment, defaults to `os.environ`. The following two keys
-                are used: `OPVIOUS_ENDPOINT` (pointing to the Opvious API), and
+            env: Environment, defaults to `os.environ`. The following keys
+                are used: `OPVIOUS_ENDPOINT` (pointing to the Opvious API),
                 `OPVIOUS_TOKEN` (containing a corresponding authorization
-                token).
+                token), and `OPVIOUS_EXECUTOR` (forcing the use of a particular
+                executor.
+            default_endpoint: Endpoint to use if none was specified in the
+                environment.
 
         This method returns nothing if the `OPVIOUS_ENDPOINT` environment
         variable is unset or empty.
         """
-        endpoint = ClientSetting.ENDPOINT.read(env)
+        endpoint = ClientSetting.ENDPOINT.read(env) or default_endpoint
         if not endpoint:
             return None
-        return Client.default(
-            endpoint=endpoint,
-            token=ClientSetting.TOKEN.read(env).strip(),
-        )
+
+        token = ClientSetting.TOKEN.read(env).strip()
+        authorization = authorization_header(token) if token else None
+        executor_key = ClientSetting.EXECUTOR.read(env)
+        if not executor_key:
+            executor = default_executor(endpoint, authorization)
+        elif executor_key == "aiohttp":
+            executor = aiohttp_executor(endpoint, authorization)
+        elif executor_key == "pyodide":
+            executor = pyodide_executor(endpoint, authorization)
+        elif executor_key == "urllib":
+            executor = urllib_executor(endpoint, authorization)
+        else:
+            raise ValueError(f"Unknown executor: {executor_key}")
+        return Client(executor)
 
     @property
     def executor(self) -> Executor:
