@@ -4,9 +4,8 @@ import dataclasses
 import enum
 import json
 import logging
-import lru
 import os
-from typing import Any, Dict, Mapping, Optional, cast
+from typing import Any, Dict, Mapping, MutableMapping, Optional, cast
 
 from ..common import Json, Uuid, format_percent, json_dict
 from ..data.outcomes import FeasibleOutcome
@@ -145,7 +144,13 @@ class ProblemOutlineCache:
 
     def __init__(self, executor: Executor) -> None:
         self._executor = executor
-        self._by_solve: lru.LRU[Uuid, ProblemOutline] = lru.LRU(100)
+
+        try:
+            import lru
+        except ImportError:
+            self._by_solve: MutableMapping[Uuid, ProblemOutline] = {}
+        else:
+            self._by_solve = cast(Any, lru.LRU(100))
 
     async def get_solve_outline(self, uuid: Uuid) -> ProblemOutline:
         cached = self._by_solve.get(uuid)
