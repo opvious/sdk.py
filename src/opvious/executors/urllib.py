@@ -5,6 +5,7 @@ import urllib.request
 from typing import AsyncIterator, Optional
 
 from .common import (
+    BinaryExecutorResult,
     CONTENT_TYPE_HEADER,
     Headers,
     Executor,
@@ -54,6 +55,8 @@ class UrllibExecutor(Executor):
             yield PlainTextExecutorResult(
                 status=status, trace=trace, reader=res
             )
+        elif BinaryExecutorResult.is_eligible(ctype):
+            yield BinaryExecutorResult(status=status, trace=trace, reader=res)
         else:
             raise ExecutorError(
                 status=status,

@@ -5,6 +5,7 @@ import sys
 from typing import Optional
 
 from .common import (
+    BinaryExecutorResult,
     Executor,
     ExecutorError,
     ExecutorResult,
@@ -24,6 +25,7 @@ __all__ = [
     "Executor",
     "ExecutorError",
     "ExecutorResult",
+    "BinaryExecutorResult",
     "JsonExecutorResult",
     "JsonSeqExecutorResult",
     "PlainTextExecutorResult",

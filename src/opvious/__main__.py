@@ -6,9 +6,8 @@ import os.path
 import sys
 from typing import Any, Mapping, Optional
 
-from .common import __version__
-from .client import Client
-from .specifications import load_notebook_models, LocalSpecification
+from . import __version__, Client, LocalSpecification, load_notebook_models
+from .modeling import Model
 
 _COMMAND = "python -m opvious"
 
@@ -23,6 +22,7 @@ Usage:
     {_COMMAND} register-notebook PATH [MODEL]
         [-dn NAME] [-t TAGS] [--allow-empty]
     {_COMMAND} register-sources GLOB [-dn NAME] [-t TAGS]
+    {_COMMAND} export-notebook-model PATH [MODEL] [-o PATH]
     {_COMMAND} (-h | --help)
     {_COMMAND} --version
 
@@ -33,6 +33,7 @@ Options:
                         server
     -n, --name NAME     Formulation name. By default this name is inferred
                         from the file's name, omitting the extension
+    -o, --out PATH      Path where to store the exported model.
     -t, --tags TAGS     Comma-separated list of tags. By default only the
                         `latest` tag is added
     --version           Show SDK version
@@ -80,18 +81,11 @@ class _SpecificationHandler:
         name: Optional[str],
         allow_empty: bool,
     ) -> None:
-        sn = load_notebook_models(path, allow_empty=allow_empty)
-        if model_name is None:
-            model_names = list(sn.__dict__.keys())
-            if not self._dry_run and len(model_names) != 1:
-                raise Exception(f"Notebook has 0 or 2+ models ({model_names})")
-        else:
-            model_names = [model_name]
-        if name is None:
-            name = _default_name(path)
-        for model_name in model_names:
-            model = getattr(sn, model_name)
-            await self._handle(model.specification(), name)
+        models = _load_notebook_models(path, model_name)
+        if self._dry_run:
+            return
+        _name, model = _singleton_model(models)
+        await self._handle(model.specification(), name or _default_name(path))
 
     async def handle_sources(self, glob: str, name: Optional[str]) -> None:
         if name is None:
@@ -104,10 +98,53 @@ def _default_name(path: str) -> str:
     return os.path.splitext(os.path.basename(path))[0]
 
 
+def _load_notebook_models(
+    path: str,
+    model_name: Optional[str],
+) -> dict[str, Model]:
+    sn = load_notebook_models(path, allow_empty=True)
+    if model_name is None:
+        return {k: v for k, v in sn.__dict__.items() if isinstance(v, Model)}
+    return {model_name: getattr(sn, model_name)}
+
+
+def _singleton_model(models: dict[str, Model]) -> tuple[str, Model]:
+    if len(models) != 1:
+        raise Exception(
+            "Notebook has 0 or 2+ models, please specify a model "
+            "name to select one"
+        )
+    return next(iter(models.items()))
+
+
+async def _export_notebook_model(
+    client: Client,
+    notebook_path: str,
+    model_name: Optional[str] = None,
+    export_path: Optional[str] = None,
+) -> None:
+    models = _load_notebook_models(notebook_path, model_name)
+    name, model = _singleton_model(models)
+    if not export_path:
+        export_path = f"{name}.proto"
+    with open(export_path, "bw+") as writer:
+        await client.export_specification(model.specification(), writer)
+
+
 async def _run(args: Mapping[str, Any]) -> None:
     client = Client.from_environment()
     if not client:
         raise Exception("Missing OPVIOUS_ENDPOINT environment variable")
+
+    if args["export-notebook-model"]:
+        await _export_notebook_model(
+            client,
+            notebook_path=args["PATH"],
+            model_name=args["MODEL"],
+            export_path=args["--out"],
+        )
+        return
+
     handler = _SpecificationHandler(client, args["--tags"], args["--dry-run"])
     if args["register-notebook"]:
         await handler.handle_notebook(
