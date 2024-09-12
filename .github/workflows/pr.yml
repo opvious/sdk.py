@@ -38,3 +38,6 @@ jobs:
         run: ./scripts/specifications.sh register
       - name: Test
         run: poetry run pytest
+      - name: Show API logs
+        if: failure()
+        run: opvious api logs

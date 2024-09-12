@@ -34,13 +34,13 @@ Options:
     -d, --dry-run             Validate the specification but do not store it on
                               the server. When this option is enabled,
                               notebooks can have more than one model.
+    -h, --help                Show this message.
     -n, --name NAME           Formulation name. By default this name is
                               inferred from the file's name, omitting the
                               extension.
     -t, --tags TAGS           Comma-separated list of tags. By default only the
                               `latest` tag is added.
-    --version                 Show SDK version
-    -h, --help                Show this message
+    --version                 Show SDK version.
 """
 
 
@@ -126,6 +126,7 @@ async def _export_notebook_model(
     model_name: Optional[str] = None,
     export_path: Optional[str] = None,
 ) -> None:
+    # TODO: Support transformations by accepting an additional variable name.
     models = _load_notebook_models(notebook_path, model_name)
     name, model = _singleton_model(models)
     if not export_path:
