@@ -5,6 +5,7 @@ import json
 import logging
 from typing import (
     AsyncIterator,
+    BinaryIO,
     Iterable,
     Mapping,
     Optional,
@@ -48,6 +49,7 @@ from ..data.solves import (
     solve_strategy_to_json,
 )
 from ..executors import (
+    BinaryExecutorResult,
     Executor,
     JsonExecutorResult,
     JsonSeqExecutorResult,
@@ -69,6 +71,7 @@ from .common import (
     Problem,
     ProblemOutlineCache,
     ProblemOutlineGenerator,
+    ProblemTransformation,
     SolveInputsBuilder,
     feasible_outcome_details,
     log_progress,
@@ -192,6 +195,42 @@ class Client:
                 if not e["code"] in codes
             ]
         return specification.annotated(issues)
+
+    async def export_specification(
+        self,
+        specification: LocalSpecification,
+        writer: BinaryIO,
+        transformations: Optional[list[ProblemTransformation]] = None,
+    ) -> None:
+        """Exports a specification to its canonical representation
+
+        Args:
+            specification: The specification to export
+            transformations: Transformations to apply to the specification
+        """
+        sources = [s.text for s in specification.sources]
+
+        if transformations:
+            outline_generator = await ProblemOutlineGenerator.sources(
+                executor=self._executor, sources=sources
+            )
+            for tf in transformations or []:
+                outline_generator.add_transformation(tf)
+            _outline, transformation_data = await outline_generator.generate()
+        else:
+            transformation_data = []
+
+        async with self._executor.execute(
+            result_type=BinaryExecutorResult,
+            url="/sources/assemble",
+            method="POST",
+            json_data=json_dict(
+                sources=sources,
+                transformations=transformation_data,
+            ),
+        ) as res:
+            async for chunk in res.bytes():
+                writer.write(chunk)
 
     async def register_specification(
         self,

@@ -5,6 +5,7 @@ import logging
 from typing import AsyncIterator, Optional
 
 from .common import (
+    BinaryExecutorResult,
     CONTENT_TYPE_HEADER,
     Executor,
     ExecutorError,
@@ -85,6 +86,12 @@ class AiohttpExecutor(Executor):
                         )
                     elif PlainTextExecutorResult.is_eligible(ctype):
                         yield PlainTextExecutorResult(
+                            status=status,
+                            trace=trace,
+                            reader=res.content,
+                        )
+                    elif BinaryExecutorResult.is_eligible(ctype):
+                        yield BinaryExecutorResult(
                             status=status,
                             trace=trace,
                             reader=res.content,

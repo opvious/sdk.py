@@ -34,7 +34,11 @@ jobs:
         uses: opvious/api-server-action@v0.2.0
         with:
           license-key: ${{ secrets.OPVIOUS_LICENSE_KEY }}
+          log-level: debug
       - name: Register specifications
         run: ./scripts/specifications.sh register
       - name: Test
         run: poetry run pytest
+      - name: Show API logs
+        if: failure()
+        run: opvious api logs

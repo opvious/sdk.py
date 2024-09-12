@@ -154,6 +154,34 @@ class _LineSplitter:
 
 
 @dataclasses.dataclass
+class BinaryExecutorResult(ExecutorResult):
+    """Binary execution result"""
+
+    content_type = "application/octet-stream"
+    reader: Any = dataclasses.field(repr=False)
+
+    async def bytes(
+        self, assert_status: Optional[int] = 200
+    ) -> AsyncIterator[bytes]:
+        if assert_status:
+            self._assert_status(assert_status)
+
+        # Non-streaming
+        if isinstance(self.reader, bytes):
+            yield self.reader
+
+        # Streaming
+        if hasattr(self.reader, "__aiter__"):
+            async for chunk in self.reader:
+                yield chunk
+        elif hasattr(self.reader, "__iter__"):
+            for chunk in self.reader:
+                yield chunk
+        else:
+            raise Exception(f"Non-iterable reader: {self.reader}")
+
+
+@dataclasses.dataclass
 class JsonExecutorResult(ExecutorResult):
     """Unary JSON execution result"""
 
@@ -256,6 +284,8 @@ class Executor:
             accept = "application/json-seq;q=1, text/plain;q=0.1"
         elif result_type == PlainTextExecutorResult:
             accept = "text/plain"
+        elif result_type == BinaryExecutorResult:
+            accept = "application/octet-stream;q=1, text/plain;q=0.1"
         else:
             raise Exception(f"Unsupported result type: {result_type}")
         all_headers["accept"] = accept

@@ -4,6 +4,7 @@ from pyodide.http import pyfetch  # type: ignore
 from typing import AsyncIterator, Optional
 
 from .common import (
+    BinaryExecutorResult,
     CONTENT_TYPE_HEADER,
     Executor,
     ExecutorError,
@@ -48,6 +49,9 @@ class PyodideExecutor(Executor):
             yield PlainTextExecutorResult(
                 status=status, trace=trace, reader=text
             )
+        elif BinaryExecutorResult.is_eligible(ctype):
+            data = await res.js_response.bytes()
+            yield BinaryExecutorResult(status=status, trace=trace, reader=data)
         else:
             text = await res.js_response.text()
             raise ExecutorError(status=status, trace=trace, reason=text)
