@@ -347,6 +347,21 @@ class TestClient:
         assert len(deficit) == 1
 
     @pytest.mark.asyncio
+    async def test_format_inline_problem(self):
+        spec = opvious.LocalSpecification.inline(
+            r"""
+            $\S^{v}_{target}: \alpha \in \{0,1\}$
+            $\S^{p}_{bound}: b \in \mathbb{R}_+$
+            $\S^{c}_{greaterThanBound}: \alpha \geq b$
+            $\S^o_{maximize}: \max 2 \alpha$
+            """
+        )
+        instructions = await client.format_problem(
+            opvious.Problem(specification=spec, parameters={"bound": 30})
+        )
+        assert "greaterThanBound" in instructions
+
+    @pytest.mark.asyncio
     async def test_format_problem(self):
         instructions = await client.format_problem(
             opvious.Problem(
