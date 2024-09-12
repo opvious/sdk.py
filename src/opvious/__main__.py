@@ -22,22 +22,25 @@ Usage:
     {_COMMAND} register-notebook PATH [MODEL]
         [-dn NAME] [-t TAGS] [--allow-empty]
     {_COMMAND} register-sources GLOB [-dn NAME] [-t TAGS]
-    {_COMMAND} export-notebook-model PATH [MODEL] [-o PATH]
+    {_COMMAND} export-notebook-model PATH [MODEL] [-a PATH]
     {_COMMAND} (-h | --help)
     {_COMMAND} --version
 
 Options:
-    --allow-empty       Do not throw an error if no models were found in a
-                        notebook
-    -d, --dry-run       Validate the specification but do not store it on the
-                        server
-    -n, --name NAME     Formulation name. By default this name is inferred
-                        from the file's name, omitting the extension
-    -o, --out PATH      Path where to store the exported model.
-    -t, --tags TAGS     Comma-separated list of tags. By default only the
-                        `latest` tag is added
-    --version           Show SDK version
-    -h, --help          Show this message
+    --allow-empty             Do not throw an error if no models were found in
+                              a notebook. Requires `--dry-run` to be set.
+    -a, --assembly-path PATH  Path where to store the exported model. Defaults
+                              to the model's name with a `.proto` extension.
+    -d, --dry-run             Validate the specification but do not store it on
+                              the server. When this option is enabled,
+                              notebooks can have more than one model.
+    -n, --name NAME           Formulation name. By default this name is
+                              inferred from the file's name, omitting the
+                              extension.
+    -t, --tags TAGS           Comma-separated list of tags. By default only the
+                              `latest` tag is added.
+    --version                 Show SDK version
+    -h, --help                Show this message
 """
 
 
@@ -141,7 +144,7 @@ async def _run(args: Mapping[str, Any]) -> None:
             client,
             notebook_path=args["PATH"],
             model_name=args["MODEL"],
-            export_path=args["--out"],
+            export_path=args["--assembly-path"],
         )
         return
 
