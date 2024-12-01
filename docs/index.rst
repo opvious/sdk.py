@@ -33,10 +33,6 @@ First install the SDK, for example using `pip`:
   be omitted for compatibility with `Pyodide`_ environments, for example in 
   `JupyterLite`_ kernels.
 
-We recommend you generate an `API access token`_ and set it as `OPVIOUS_TOKEN` 
-environment variable. This optional step allows you to optimize larger datasets 
-and increases rate limits.
-
 You are now ready to hop on over to the :ref:`Overview` section!
 
 
@@ -57,7 +53,6 @@ External resources
 ------------------
 
 + `Examples repository`_
-+ `Platform documentation`_
 + `GitHub repository`_
 + `PyPI entry`_
 
@@ -70,4 +65,3 @@ External resources
 .. _PyPI entry: https://pypi.python.org/pypi/opvious/
 .. _GitHub repository: https://github.com/opvious/sdk.py
 .. _Examples repository: https://github.com/opvious/examples
-.. _Platform documentation: https://docs.opvious.io

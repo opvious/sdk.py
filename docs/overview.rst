@@ -19,14 +19,14 @@ done, the recommended way to create clients is via :meth:`.Client.default`.
 
 .. code-block:: python
 
-  client = opvious.Client.default("http://localhost:8080") # Local API server
   client = opvious.Client.default(opvious.DEMO_ENDPOINT) # Demo cloud endpoint
+  client = opvious.Client.default("http://localhost:8080") # Local API server
 
 The first argument, `endpoint`, determines the client's underlying API. For 
 example the address of a self-hosted `API server 
-<https://hub.docker.com/r/opvious/api-server>`_. As a convenience, we also 
-provide :meth:`.Client.from_environment` which creates a client from the 
-`OPVIOUS_ENDPOINT` and `OPVIOUS_TOKEN` environment variables:
+<https://hub.docker.com/r/opvious/api-server>`_. The SDK also provides 
+:meth:`.Client.from_environment` to create clients from the `OPVIOUS_ENDPOINT` 
+and `OPVIOUS_TOKEN` environment variables:
 
 .. code-block:: python
 
@@ -110,12 +110,6 @@ and highlight any errors:
 
 Specifications
 --------------
-
-.. note::
-  Refer to the `platform documentation <https://docs.opvious.io>`_ for 
-  information on how to write a specification directly. You can also find 
-  various sample sources in our `example repository 
-  <https://github.com/opvious/examples/tree/main/sources>`_.
 
 This SDK provides utilities for loading specifications from various locations, 
 listed below.

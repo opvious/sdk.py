@@ -29,4 +29,4 @@
 
 ## Licensing
 
-The SDK is licensed under Apache 2.0. The Opvious platform is available both as a managed cloud service (free on small datasets) and self-hosted (free for non-commercial projects). See our [plans page](https://www.opvious.io/plans) for more information.
+The SDK is licensed under Apache 2.0. The Opvious platform is available as a self-hosted service, free for small projects. See our [plans page](https://www.opvious.io/plans) for more information.
