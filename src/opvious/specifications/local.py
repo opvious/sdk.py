@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import enum
 import glob
 import logging
 import os
-from typing import Iterable, Literal, Mapping, Optional, Sequence
+from typing import Iterable, Mapping, Optional, Sequence
 
 from ..common import Json
 
@@ -193,7 +194,7 @@ class _Renderer:
         raise NotImplementedError()
 
 
-class _SimpleRenderer(_Renderer):
+class _MarkdownParagraphsRenderer(_Renderer):
     def render(self, spec: LocalSpecification) -> str:
         return "\n".join(self.render_source(s) for s in spec.sources)
 
@@ -221,7 +222,7 @@ class _HtmlDetailsRenderer(_Renderer):
         else:
             issues = {}
         contents = "\n---\n".join(
-            self.render_source(s, issues.get(i) or [], i == 0)
+            self.render_source(s, issues.get(i) or [], i != 0)
             for i, s in enumerate(spec.sources)
         )
         return f'<div style="{_SPECIFICATION_STYLE}">{contents}</div>'
@@ -249,28 +250,28 @@ class _HtmlDetailsRenderer(_Renderer):
         )
 
 
-SpecificationStyle = Literal["SIMPLE", "HTML_DETAILS"]
-
-
-_renderers: Mapping[SpecificationStyle, _Renderer] = {
-    "SIMPLE": _SimpleRenderer(),
-    "HTML_DETAILS": _HtmlDetailsRenderer(),
-}
-
-
 _default_renderer: Optional[_Renderer] = None
 
 
-def set_specification_renderer(style: SpecificationStyle) -> None:
-    global _default_renderer
-    _default_renderer = _renderers[style]
+class SpecificationStyle(enum.Enum):
+    """Specification rendering style"""
+
+    MARKDOWN_PARAGRAPHS = _MarkdownParagraphsRenderer()
+    HTML_DETAILS = _HtmlDetailsRenderer()
+
+    def __init__(self, renderer) -> None:
+        self._renderer = renderer
+
+    def enable(self) -> None:
+        global _default_renderer
+        _default_renderer = self._renderer
 
 
 def _get_renderer() -> _Renderer:
     if _default_renderer:
         return _default_renderer
     if "VSCODE_CWD" in os.environ:
-        return _SimpleRenderer()
+        return _MarkdownParagraphsRenderer()
     return _HtmlDetailsRenderer()
 
 
