@@ -4,6 +4,7 @@ from .local import (
     LocalSpecification,
     LocalSpecificationIssue,
     LocalSpecificationSource,
+    LocalSpecificationStyle,
     local_specification_issue_from_json,
 )
 from .external import FormulationSpecification, RemoteSpecification
@@ -22,6 +23,7 @@ __all__ = [
     "LocalSpecification",
     "LocalSpecificationIssue",
     "LocalSpecificationSource",
+    "LocalSpecificationStyle",
     "RemoteSpecification",
     "Specification",
     "local_specification_issue_from_json",

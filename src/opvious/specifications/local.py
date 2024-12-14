@@ -253,18 +253,25 @@ class _HtmlDetailsRenderer(_Renderer):
 _default_renderer: Optional[_Renderer] = None
 
 
-class SpecificationStyle(enum.Enum):
+class LocalSpecificationStyle(enum.Enum):
     """Specification rendering style"""
 
     MARKDOWN_PARAGRAPHS = _MarkdownParagraphsRenderer()
     HTML_DETAILS = _HtmlDetailsRenderer()
 
-    def __init__(self, renderer) -> None:
+    def __init__(self, renderer: _Renderer) -> None:
         self._renderer = renderer
 
     def enable(self) -> None:
+        """Use this rendering style for all specifications"""
         global _default_renderer
         _default_renderer = self._renderer
+
+    @staticmethod
+    def reset(cls):
+        """Clear any rendering style override"""
+        global _default_renderer
+        _default_renderer = None
 
 
 def _get_renderer() -> _Renderer:
