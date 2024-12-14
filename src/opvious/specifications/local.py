@@ -5,7 +5,7 @@ import dataclasses
 import glob
 import logging
 import os
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Iterable, Literal, Mapping, Optional, Sequence
 
 from ..common import Json
 
@@ -32,7 +32,7 @@ class LocalSpecificationSource:
     """A title used to easily identify the source"""
 
     def _repr_markdown_(self) -> str:
-        return _source_details(self, [], True)
+        return _get_renderer().render_source(self)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -177,45 +177,101 @@ class LocalSpecification:
         return dataclasses.replace(self, annotation=annotation)
 
     def _repr_markdown_(self) -> str:
-        if self.annotation:
-            issues = self.annotation.issues
+        return _get_renderer().render(self)
+
+
+class _Renderer:
+    def render(self, spec: LocalSpecification) -> str:
+        raise NotImplementedError()
+
+    def render_source(
+        self,
+        source: LocalSpecificationSource,
+        issues: Sequence[LocalSpecificationIssue] = (),
+        collapse=False,
+    ) -> str:
+        raise NotImplementedError()
+
+
+class _SimpleRenderer(_Renderer):
+    def render(self, spec: LocalSpecification) -> str:
+        return "\n".join(self.render_source(s) for s in spec.sources)
+
+    def render_source(
+        self,
+        source: LocalSpecificationSource,
+        issues: Sequence[LocalSpecificationIssue] = (),
+        collapse=False,
+    ) -> str:
+        return source.text
+
+
+class _HtmlDetailsRenderer(_Renderer):
+    def render(self, spec: LocalSpecification) -> str:
+        if spec.annotation:
+            issues = spec.annotation.issues
             for index, group in issues.items():
                 messages = [f"\t* {i.message} [{i.code}]" for i in group]
                 _logger.error(
                     "%s issue(s) in specification '%s':\n%s",
                     len(group),
-                    self.sources[index].title,
+                    spec.sources[index].title,
                     "\n".join(messages),
                 )
         else:
             issues = {}
         contents = "\n---\n".join(
-            _source_details(s, issues.get(i) or [], i == 0)
-            for i, s in enumerate(self.sources)
+            self.render_source(s, issues.get(i) or [], i == 0)
+            for i, s in enumerate(spec.sources)
         )
         return f'<div style="{_SPECIFICATION_STYLE}">{contents}</div>'
 
+    def render_source(
+        self,
+        source: LocalSpecificationSource,
+        issues: Sequence[LocalSpecificationIssue] = (),
+        collapse=False,
+    ) -> str:
+        summary = source.title
+        if issues:
+            summary += " &#9888;"
+        return "\n".join(
+            [
+                "",
+                "<details>" if collapse else "<details open>",
+                f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
+                '<div style="margin-top: 1em;">',
+                _colorize(source.text, issues),
+                "</div>",
+                "</details>",
+                "",
+            ]
+        )
 
-def _source_details(
-    source: LocalSpecificationSource,
-    issues: Sequence[LocalSpecificationIssue],
-    start_open=False,
-) -> str:
-    summary = source.title
-    if issues:
-        summary += " &#9888;"
-    return "\n".join(
-        [
-            "",
-            "<details open>" if start_open else "<details>",
-            f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
-            '<div style="margin-top: 1em;">',
-            _colorize(source.text, issues),
-            "</div>",
-            "</details>",
-            "",
-        ]
-    )
+
+SpecificationStyle = Literal["SIMPLE", "HTML_DETAILS"]
+
+
+_renderers: Mapping[SpecificationStyle, _Renderer] = {
+    "SIMPLE": _SimpleRenderer(),
+    "HTML_DETAILS": _HtmlDetailsRenderer(),
+}
+
+
+_default_renderer: Optional[_Renderer] = None
+
+
+def set_specification_renderer(style: SpecificationStyle) -> None:
+    global _default_renderer
+    _default_renderer = _renderers[style]
+
+
+def _get_renderer() -> _Renderer:
+    if _default_renderer:
+        return _default_renderer
+    if "VSCODE_CWD" in os.environ:
+        return _SimpleRenderer()
+    return _HtmlDetailsRenderer()
 
 
 def _colorize(text: str, issues: Sequence[LocalSpecificationIssue]) -> str:
