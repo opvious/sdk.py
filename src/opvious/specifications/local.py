@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import enum
 import glob
 import logging
 import os
@@ -32,7 +33,7 @@ class LocalSpecificationSource:
     """A title used to easily identify the source"""
 
     def _repr_markdown_(self) -> str:
-        return _source_details(self, [], True)
+        return _get_renderer().render_source(self)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -177,45 +178,108 @@ class LocalSpecification:
         return dataclasses.replace(self, annotation=annotation)
 
     def _repr_markdown_(self) -> str:
-        if self.annotation:
-            issues = self.annotation.issues
+        return _get_renderer().render(self)
+
+
+class _Renderer:
+    def render(self, spec: LocalSpecification) -> str:
+        raise NotImplementedError()
+
+    def render_source(
+        self,
+        source: LocalSpecificationSource,
+        issues: Sequence[LocalSpecificationIssue] = (),
+        collapse=False,
+    ) -> str:
+        raise NotImplementedError()
+
+
+class _MarkdownParagraphsRenderer(_Renderer):
+    def render(self, spec: LocalSpecification) -> str:
+        return "\n".join(self.render_source(s) for s in spec.sources)
+
+    def render_source(
+        self,
+        source: LocalSpecificationSource,
+        issues: Sequence[LocalSpecificationIssue] = (),
+        collapse=False,
+    ) -> str:
+        return source.text
+
+
+class _HtmlDetailsRenderer(_Renderer):
+    def render(self, spec: LocalSpecification) -> str:
+        if spec.annotation:
+            issues = spec.annotation.issues
             for index, group in issues.items():
                 messages = [f"\t* {i.message} [{i.code}]" for i in group]
                 _logger.error(
                     "%s issue(s) in specification '%s':\n%s",
                     len(group),
-                    self.sources[index].title,
+                    spec.sources[index].title,
                     "\n".join(messages),
                 )
         else:
             issues = {}
         contents = "\n---\n".join(
-            _source_details(s, issues.get(i) or [], i == 0)
-            for i, s in enumerate(self.sources)
+            self.render_source(s, issues.get(i) or [], i != 0)
+            for i, s in enumerate(spec.sources)
         )
         return f'<div style="{_SPECIFICATION_STYLE}">{contents}</div>'
 
+    def render_source(
+        self,
+        source: LocalSpecificationSource,
+        issues: Sequence[LocalSpecificationIssue] = (),
+        collapse=False,
+    ) -> str:
+        summary = source.title
+        if issues:
+            summary += " &#9888;"
+        return "\n".join(
+            [
+                "",
+                "<details>" if collapse else "<details open>",
+                f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
+                '<div style="margin-top: 1em;">',
+                _colorize(source.text, issues),
+                "</div>",
+                "</details>",
+                "",
+            ]
+        )
 
-def _source_details(
-    source: LocalSpecificationSource,
-    issues: Sequence[LocalSpecificationIssue],
-    start_open=False,
-) -> str:
-    summary = source.title
-    if issues:
-        summary += " &#9888;"
-    return "\n".join(
-        [
-            "",
-            "<details open>" if start_open else "<details>",
-            f'<summary style="{_SUMMARY_STYLE}">{summary}</summary>',
-            '<div style="margin-top: 1em;">',
-            _colorize(source.text, issues),
-            "</div>",
-            "</details>",
-            "",
-        ]
-    )
+
+_default_renderer: Optional[_Renderer] = None
+
+
+class LocalSpecificationStyle(enum.Enum):
+    """Specification rendering style"""
+
+    MARKDOWN_PARAGRAPHS = _MarkdownParagraphsRenderer()
+    HTML_DETAILS = _HtmlDetailsRenderer()
+
+    def __init__(self, renderer: _Renderer) -> None:
+        self._renderer = renderer
+
+    def enable(self) -> None:
+        """Use this rendering style for all specifications"""
+        global _default_renderer
+        _default_renderer = self._renderer
+
+    @staticmethod
+    def reset(cls):
+        """Clear any rendering style override"""
+        global _default_renderer
+        _default_renderer = None
+
+
+def _get_renderer() -> _Renderer:
+    if _default_renderer:
+        return _default_renderer
+    if "VSCODE_CWD" in os.environ:
+        return _MarkdownParagraphsRenderer()
+    return _HtmlDetailsRenderer()
 
 
 def _colorize(text: str, issues: Sequence[LocalSpecificationIssue]) -> str:
