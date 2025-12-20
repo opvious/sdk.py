@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 import contextvars
 import dataclasses
 import itertools
-from typing import Any, Iterator, Tuple, TypeVar
+from typing import Any, Tuple, TypeVar
 
 
 _V = TypeVar("_V")

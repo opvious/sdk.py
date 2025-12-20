@@ -1,6 +1,6 @@
 import os
-import pytest
 
+import pytest
 
 from opvious.modeling import Model
 from opvious.specifications import (

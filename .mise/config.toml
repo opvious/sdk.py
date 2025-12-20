@@ -1,0 +1,4 @@
+[tools]
+poetry = "2.2.1"
+pre-commit = "4.3.0"
+shellcheck = "latest"

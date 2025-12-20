@@ -1,5 +1,6 @@
 from typing import Union
 
+from .external import FormulationSpecification, RemoteSpecification
 from .local import (
     LocalSpecification,
     LocalSpecificationIssue,
@@ -7,7 +8,6 @@ from .local import (
     LocalSpecificationStyle,
     local_specification_issue_from_json,
 )
-from .external import FormulationSpecification, RemoteSpecification
 from .notebook import load_notebook_models
 
 
@@ -26,6 +26,6 @@ __all__ = [
     "LocalSpecificationStyle",
     "RemoteSpecification",
     "Specification",
-    "local_specification_issue_from_json",
     "load_notebook_models",
+    "local_specification_issue_from_json",
 ]

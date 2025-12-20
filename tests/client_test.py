@@ -1,5 +1,6 @@
-import opvious
 import pytest
+
+import opvious
 
 
 client = opvious.Client.from_environment()
@@ -386,7 +387,7 @@ class TestClient:
         solution = await client.solve(
             opvious.Problem(
                 specification=opvious.RemoteSpecification(
-                    "https://gist.githubusercontent.com/mtth/82a21baacba4827bc1710b7526775315/raw/4e2b17c1509dfd40595f47167e8d859fa4ec8334/sudoku.md"  # noqa
+                    "https://gist.githubusercontent.com/mtth/82a21baacba4827bc1710b7526775315/raw/4e2b17c1509dfd40595f47167e8d859fa4ec8334/sudoku.md"
                 ),
                 parameters={"input": [(0, 0, 3)]},
             )

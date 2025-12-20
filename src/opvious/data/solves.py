@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Mapping, Sequence
 import dataclasses
 import math
+from typing import Any, Optional, Union, cast
+
 import numpy as np
 import pandas as pd
-from typing import Any, cast, Mapping, Optional, Sequence, Union
 
-from ..common import decode_extended_float, Json, json_dict
+from ..common import Json, decode_extended_float, json_dict
 from .outcomes import (
     AbortedOutcome,
     FeasibleOutcome,
@@ -50,10 +52,8 @@ def problem_summary_from_json(data: Json) -> ProblemSummary:
         column_count=sum(v["columnCount"] for v in data["variables"]),
         row_count=sum(c["rowCount"] for c in data["constraints"]),
         dimensions=_labeled_dataframe(
-            (
-                {"label": c["label"], "item_count": c["itemCount"]}
-                for c in data["dimensions"]
-            )
+            {"label": c["label"], "item_count": c["itemCount"]}
+            for c in data["dimensions"]
         ),
         parameters=_labeled_dataframe(
             (

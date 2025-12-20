@@ -1,20 +1,22 @@
-import aiohttp
-import brotli  # type: ignore
+from collections.abc import AsyncIterator
 import contextlib
 import logging
-from typing import AsyncIterator, Optional
+from typing import Optional
+
+import aiohttp
+import brotli  # type: ignore
 
 from .common import (
-    BinaryExecutorResult,
     CONTENT_TYPE_HEADER,
+    TRACE_HEADER,
+    BinaryExecutorResult,
     Executor,
     ExecutorError,
     ExecutorResult,
+    Headers,
     JsonExecutorResult,
     JsonSeqExecutorResult,
     PlainTextExecutorResult,
-    Headers,
-    TRACE_HEADER,
 )
 
 
@@ -60,47 +62,49 @@ class AiohttpExecutor(Executor):
             )
             body = compressed_body
         try:
-            async with aiohttp.ClientSession(
-                headers=headers,
-                read_bufsize=_READ_BUFFER_SIZE,
-                timeout=aiohttp.ClientTimeout(total=_REQUEST_TIMEOUT_SECONDS),
-            ) as session:
-                async with session.request(
-                    url=url, method=method, data=body
-                ) as res:
-                    status = res.status
-                    trace = res.headers.get(TRACE_HEADER)
-                    ctype = res.headers.get(CONTENT_TYPE_HEADER)
-                    if JsonExecutorResult.is_eligible(ctype):
-                        text = await res.text()
-                        yield JsonExecutorResult(
-                            status=status,
-                            trace=trace,
-                            text=text,
-                        )
-                    elif JsonSeqExecutorResult.is_eligible(ctype):
-                        yield JsonSeqExecutorResult(
-                            status=status,
-                            trace=trace,
-                            reader=res.content,
-                        )
-                    elif PlainTextExecutorResult.is_eligible(ctype):
-                        yield PlainTextExecutorResult(
-                            status=status,
-                            trace=trace,
-                            reader=res.content,
-                        )
-                    elif BinaryExecutorResult.is_eligible(ctype):
-                        yield BinaryExecutorResult(
-                            status=status,
-                            trace=trace,
-                            reader=res.content,
-                        )
-                    else:
-                        text = await res.text()
-                        raise ExecutorError(
-                            status=status, trace=trace, reason=text
-                        )
+            async with (
+                aiohttp.ClientSession(
+                    headers=headers,
+                    read_bufsize=_READ_BUFFER_SIZE,
+                    timeout=aiohttp.ClientTimeout(
+                        total=_REQUEST_TIMEOUT_SECONDS
+                    ),
+                ) as session,
+                session.request(url=url, method=method, data=body) as res,
+            ):
+                status = res.status
+                trace = res.headers.get(TRACE_HEADER)
+                ctype = res.headers.get(CONTENT_TYPE_HEADER)
+                if JsonExecutorResult.is_eligible(ctype):
+                    text = await res.text()
+                    yield JsonExecutorResult(
+                        status=status,
+                        trace=trace,
+                        text=text,
+                    )
+                elif JsonSeqExecutorResult.is_eligible(ctype):
+                    yield JsonSeqExecutorResult(
+                        status=status,
+                        trace=trace,
+                        reader=res.content,
+                    )
+                elif PlainTextExecutorResult.is_eligible(ctype):
+                    yield PlainTextExecutorResult(
+                        status=status,
+                        trace=trace,
+                        reader=res.content,
+                    )
+                elif BinaryExecutorResult.is_eligible(ctype):
+                    yield BinaryExecutorResult(
+                        status=status,
+                        trace=trace,
+                        reader=res.content,
+                    )
+                else:
+                    text = await res.text()
+                    raise ExecutorError(
+                        status=status, trace=trace, reason=text
+                    )
         except aiohttp.ClientResponseError as err:
             trace = None
             if isinstance(err.headers, list):

@@ -1,7 +1,8 @@
 import logging
 
-from .client import Client, DEMO_ENDPOINT, Problem
-from .common import __version__, Annotation
+from . import executors, modeling, transformations
+from .client import DEMO_ENDPOINT, Client, Problem
+from .common import Annotation, __version__
 from .data.outcomes import (
     AbortedOutcome,
     FailedOutcome,
@@ -17,11 +18,11 @@ from .data.outlines import Label, ProblemOutline
 from .data.queued_solves import QueuedSolve, SolveNotification
 from .data.solves import (
     EpsilonConstraint,
+    ProblemSummary,
     Solution,
     SolveInputs,
     SolveOptions,
     SolveOutputs,
-    ProblemSummary,
     SolveStrategy,
     Target,
 )
@@ -34,8 +35,6 @@ from .data.tensors import (
     TensorArgument,
     Value,
 )
-from . import executors
-from . import modeling
 from .specifications import (
     FormulationSpecification,
     LocalSpecification,
@@ -46,7 +45,6 @@ from .specifications import (
     Specification,
     load_notebook_models,
 )
-from . import transformations
 
 
 __all__ = [

@@ -1,8 +1,9 @@
+from collections.abc import Iterable
 from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any, Callable, Iterable, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 import urllib.parse
 import weakref
 
@@ -177,7 +178,6 @@ def method_decorator(require_call=False):
         def wrapped_decorator(*args, **kwargs):
             arg = args[0] if args else None
             if callable(arg):
-
                 if _is_lambda(arg):
                     # Lazy decorator constructor
                     if len(args) > 1 or kwargs:
@@ -224,7 +224,7 @@ class Bindable:
         if not binding:
             binding = self._apply(owner)
             while isinstance(binding, Bindable):
-                binding = binding._apply(owner, False)
+                binding = binding._apply(owner, False)  # noqa
             self._bindings[owner] = binding
         return binding
 

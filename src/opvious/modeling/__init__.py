@@ -38,6 +38,7 @@ from .definitions import (
 from .model import Definition, Model, ModelFragment, Statement, relabel
 from .quantified import Quantified
 
+
 __all__ = [
     "Model",
     "ModelFragment",

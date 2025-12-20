@@ -1,13 +1,16 @@
 import asyncio
+from collections.abc import Mapping
 import dataclasses
-import docopt
 import json
 import os.path
 import sys
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
-from . import __version__, Client, LocalSpecification, load_notebook_models
+import docopt
+
+from . import Client, LocalSpecification, __version__, load_notebook_models
 from .modeling import Model
+
 
 _COMMAND = "python -m opvious"
 
@@ -84,7 +87,7 @@ class _SpecificationHandler:
         name: Optional[str],
         allow_empty: bool,
     ) -> None:
-        models = _load_notebook_models(path, model_name)
+        models = _load_notebook_models(path, model_name, allow_empty)
         if self._dry_run:
             return
         _name, model = _singleton_model(models)
@@ -104,8 +107,9 @@ def _default_name(path: str) -> str:
 def _load_notebook_models(
     path: str,
     model_name: Optional[str],
+    allow_empty: bool,
 ) -> dict[str, Model]:
-    sn = load_notebook_models(path, allow_empty=True)
+    sn = load_notebook_models(path, allow_empty=allow_empty)
     if model_name is None:
         return {k: v for k, v in sn.__dict__.items() if isinstance(v, Model)}
     return {model_name: getattr(sn, model_name)}
@@ -127,7 +131,9 @@ async def _export_notebook_model(
     export_path: Optional[str] = None,
 ) -> None:
     # TODO: Support transformations by accepting an additional variable name.
-    models = _load_notebook_models(notebook_path, model_name)
+    models = _load_notebook_models(
+        notebook_path, model_name, allow_empty=False
+    )
     name, model = _singleton_model(models)
     if not export_path:
         export_path = f"{name}.proto"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator, Sequence
 import dataclasses
 import functools
 import inspect
@@ -9,11 +10,8 @@ import math
 from typing import (
     Any,
     Callable,
-    Iterable,
-    Iterator,
     Literal,
     Optional,
-    Sequence,
     Type,
     TypeVar,
     Union,
@@ -668,8 +666,7 @@ class Constraint(Definition):
 
 
 @overload
-def constraint(method: ConstraintMethod) -> Constraint:
-    ...
+def constraint(method: ConstraintMethod) -> Constraint: ...
 
 
 @overload
@@ -678,15 +675,13 @@ def constraint(
     label: Optional[Label] = None,
     qualifiers: Optional[Sequence[Label]] = None,
     disabled=False,
-) -> Callable[[ConstraintMethod], Optional[Constraint]]:
-    ...
+) -> Callable[[ConstraintMethod], Optional[Constraint]]: ...
 
 
 @overload
 def constraint(
-    new: Callable[..., Any]
-) -> Callable[[ConstraintMethod], Constraint]:
-    ...
+    new: Callable[..., Any],
+) -> Callable[[ConstraintMethod], Constraint]: ...
 
 
 @method_decorator()
@@ -795,8 +790,7 @@ class Objective(Definition):
 
 
 @overload
-def objective(method: ObjectiveMethod) -> Objective:
-    ...
+def objective(method: ObjectiveMethod) -> Objective: ...
 
 
 @overload
@@ -805,15 +799,13 @@ def objective(
     sense: Optional[ObjectiveSense] = None,
     label: Optional[Label] = None,
     disabled=False,
-) -> Callable[[ObjectiveMethod], Objective]:
-    ...
+) -> Callable[[ObjectiveMethod], Objective]: ...
 
 
 @overload
 def objective(
-    new: Callable[..., Any]
-) -> Callable[[ObjectiveMethod], Objective]:
-    ...
+    new: Callable[..., Any],
+) -> Callable[[ObjectiveMethod], Objective]: ...
 
 
 @method_decorator()

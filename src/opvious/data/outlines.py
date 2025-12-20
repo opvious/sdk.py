@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 import dataclasses
-from typing import Literal, Mapping, Optional
+from typing import Literal, Optional
 
-from ..common import decode_extended_float, Json
-from .tensors import is_value, Value
+from ..common import Json, decode_extended_float
+from .tensors import Value, is_value
 
 
 #: Model name
