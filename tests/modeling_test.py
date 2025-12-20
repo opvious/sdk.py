@@ -711,3 +711,53 @@ class TestModeling:
         text = spec.sources[0].text
         assert r"\chi^\mathrm{value} \in \mathbb{R}_+^{" in text
         assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_activated_variable(self):
+        class _Model(om.Model):
+            products = om.Dimension()
+            count = om.Variable.non_negative(products)
+            did_build = om.Variable.indicator(products, name=r"\delta")
+            build = om.fragments.ActivatedVariable(count, indicator=did_build)
+
+            @om.objective
+            def maximize_build(self):
+                return om.total(self.build(p) for p in self.products)
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\beta \in \mathbb{R}_+^{P}" in text
+        assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_activated_variable_decorator(self):
+        class _Model(om.Model):
+            colors = om.Dimension()
+            products = om.Dimension()
+            build = om.Variable.natural(products)
+            did_build = om.Variable.indicator(colors, name=r"\delta")
+
+            @om.fragments.activated_variable(
+                colors,
+                products,
+                indicator=did_build,
+                indicator_projection=0b1,
+                upper_bound=100,
+                name=r"\alpha",
+            )
+            def active_build(self, _c, p):
+                return self.build(p)
+
+            @om.objective
+            def maximize_build(self):
+                return om.total(
+                    self.active_build(c, p)
+                    for c, p in self.colors * self.products
+                )
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\alpha \in [0, 100]^{C \times P} " in text
+        assert spec.annotation.issue_count == 0

@@ -10,7 +10,15 @@ from collections.abc import Iterable
 from typing import Any, Callable, Optional, Union
 
 from ..common import method_decorator, untuple
-from .ast import Projection, Quantifiable, cross, domain, lift, total
+from .ast import (
+    Projection,
+    Quantifiable,
+    Quantification,
+    cross,
+    domain,
+    lift,
+    total,
+)
 from .definitions import (
     Constraint,
     Expression,
@@ -493,6 +501,130 @@ def piecewise_linear(
             component_name=component_name,
             factor_name=factor_name,
             width_name=width_name,
+        )
+
+    return wrapper
+
+
+class ActivatedVariable(ModelFragment):
+    """Product of a tensor with an indicator variable
+
+    This derived variable is useful to linearize a product of two variables,
+    one of them being an indicator, for use in a constraint. Be aware that this
+    may make problems harder to solve.
+
+    Args:
+        tensor: Non-negative tensor-like
+        quantifiables: Quantification
+        indicator: Indicator tensor
+        indicator_projection: Projection used to compute `indicator`'s
+            subscripts
+        upper_bound: Tensor upper bound, can be omitted if `tensor` is a
+            :class:`Tensor` instance
+        negate: Negate the input indicator
+        force_activation: Add constraint to ensure that the derived variable is
+            at least equal to `tensor` when `indicator` is non-zero. You may
+            choose to omit this if the variable is already pushed up via other
+            constraints
+        force_deactivation: Add constraint to ensure that the derived variable
+            is equal to 0 when the indicator is zero. You may choose to omit
+            this if the variable is already pushed down via other constraints
+    """
+
+    default_definition = "value"
+
+    def __init__(
+        self,
+        tensor: TensorLike,
+        *quantifiables: Quantifiable,
+        indicator: Tensor,
+        indicator_projection: Projection = -1,
+        upper_bound: Union[ExpressionLike, None] = None,
+        force_activation: bool = True,
+        force_deactivation: bool = True,
+        negate: bool = False,
+        name: Optional[Name] = None,
+    ) -> None:
+        self._tensor = tensor
+        self._indicator = indicator
+        self._indicator_projection = indicator_projection
+        self._negate = negate
+        self._force_activation = force_activation
+        self._force_deactivation = force_deactivation
+
+        if upper_bound is None:
+            assert isinstance(tensor, Tensor)
+            upper_bound = tensor.image.upper_bound
+        self._upper_bound = upper_bound
+
+        if not quantifiables and isinstance(tensor, Tensor):
+            quantifiables = tensor.quantifiables()
+        self._domains = tuple(domain(q) for q in quantifiables)
+
+        self.value = Variable.non_negative(
+            cross(*self._domains), upper_bound=upper_bound, name=name
+        )
+
+    def __call__(self, *subs: ExpressionLike) -> Expression:
+        return self.value(*subs)
+
+    def _quantification(self) -> Quantification:
+        return cross(
+            *self._domains, projection=self._indicator_projection, lift=True
+        )
+
+    @constraint
+    def is_at_most_tensor(self) -> Quantified:
+        for cp in self._quantification():
+            yield self.value(*cp.lifted) <= self._tensor(*cp.lifted)
+
+    @constraint(lambda init, self: init(disabled=not self._force_deactivation))
+    def deactivates(self) -> Quantified:
+        for cp in self._quantification():
+            toggle = (
+                1 - self._indicator(*cp)
+                if self._negate
+                else self._indicator(*cp)
+            )
+            yield self.value(*cp.lifted) <= self._upper_bound * toggle
+
+    @constraint(lambda init, self: init(disabled=not self._force_activation))
+    def activates(self) -> Quantified:
+        for cp in self._quantification():
+            toggle = (
+                self._indicator(*cp)
+                if self._negate
+                else 1 - self._indicator(*cp)
+            )
+            yield (
+                self.value(*cp.lifted)
+                >= self._tensor(*cp.lifted) - self._upper_bound * toggle
+            )
+
+
+@method_decorator(require_call=True)
+def activated_variable(
+    *quantifiables: Quantifiable,
+    indicator: Tensor,
+    indicator_projection: Projection = -1,
+    upper_bound: Union[ExpressionLike, TensorLike, None] = None,
+    negate: bool = False,
+    name: Optional[Name] = None,
+) -> Callable[[Callable[..., TensorLike]], ActivationVariable]:
+    """Wraps a method into an :class:`ActivatedVariable` fragment
+
+    See :class:`ActivatedVariable` for argument documentation.
+    """
+
+    def wrapper(fn):
+        return ActivatedVariable(
+            fn,
+            *quantifiables,
+            indicator=indicator,
+            indicator_projection=indicator_projection,
+            upper_bound=upper_bound,
+            negate=negate,
+            name=name,
         )
 
     return wrapper

@@ -14,7 +14,7 @@ requires = ['poetry-core']
 build-backend = 'poetry.core.masonry.api'
 
 [tool.poetry]
-version = '0.23.0rc1'
+version = '0.23.1rc1'
 packages = [{include = 'opvious', from = 'src'}]
 
 [tool.poetry.dependencies]
