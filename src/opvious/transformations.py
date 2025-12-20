@@ -180,7 +180,7 @@ class DensifyVariables(ProblemTransformation):
     """
 
     async def register(self, _context: ProblemTransformationContext) -> None:
-        raise NotImplementedError()  # TODO
+        raise NotImplementedError()  # TODO: Implement
 
 
 @dataclasses.dataclass(frozen=True)
@@ -249,4 +249,4 @@ class ConstrainObjective(ProblemTransformation):
     """The objective's maximum allowed value"""
 
     async def register(self, _context: ProblemTransformationContext) -> None:
-        raise NotImplementedError()  # TODO
+        raise NotImplementedError()  # TODO: Implement

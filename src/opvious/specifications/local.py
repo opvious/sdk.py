@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 import dataclasses
 import enum
 import glob
+import itertools
 import logging
 import os
 from typing import Optional
@@ -98,7 +99,7 @@ class LocalSpecification:
     Note that this type of specification cannot be used to queue solves.
 
     .. _rich display capabilities: https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
-    """  # noqa
+    """
 
     sources: Sequence[LocalSpecificationSource]
     """The model's mathematical source definitions"""
@@ -304,7 +305,9 @@ def _colorize(text: str, issues: Sequence[LocalSpecificationIssue]) -> str:
     cutoffs.append(len(text))
 
     ret: list[str] = []
-    for i, piece in enumerate(text[m:n] for m, n in zip(cutoffs, cutoffs[1:])):
+    for i, piece in enumerate(
+        text[m:n] for m, n in itertools.pairwise(cutoffs)
+    ):
         is_error = i % 2 == 1
         if is_error:
             ret.append(f"\\color{{orange}}{{{piece}}}")
