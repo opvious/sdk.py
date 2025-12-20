@@ -25,4 +25,5 @@ class TestSolveOutputs:
             raw_constraints=[],
         )
         df = outputs.variable("foo")
+        assert df.columns.tolist() == ["value"]
         assert len(df["value"]) == 0

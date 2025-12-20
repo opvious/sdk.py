@@ -260,7 +260,7 @@ def _output_dataframe(
         index=_entry_index(entries, bindings),
     )
     if df["dual_value"].isnull().all():
-        df.drop("dual_value", axis=1)
+        df.drop("dual_value", axis=1, inplace=True)
     df.fillna(0, inplace=True)
     return df
 
