@@ -3839,4 +3839,4 @@ cli = ["docopt"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4"
-content-hash = "90afd1aabba998be3e92703e3ccc5f93eb019102a783c200da43163392910131"
+content-hash = "45c44e6a113155df60835be8d32f19c5dd65a764cad65493789da8d0263342d0"

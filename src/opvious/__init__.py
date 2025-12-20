@@ -35,6 +35,7 @@ from .data.tensors import (
     TensorArgument,
     Value,
 )
+from .notebooks import load_notebook_models
 from .specifications import (
     FormulationSpecification,
     LocalSpecification,
@@ -43,7 +44,6 @@ from .specifications import (
     LocalSpecificationStyle,
     RemoteSpecification,
     Specification,
-    load_notebook_models,
 )
 
 

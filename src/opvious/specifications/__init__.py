@@ -8,7 +8,6 @@ from .local import (
     LocalSpecificationStyle,
     local_specification_issue_from_json,
 )
-from .notebook import load_notebook_models
 
 
 Specification = Union[

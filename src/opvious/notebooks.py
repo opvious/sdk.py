@@ -6,7 +6,7 @@ import types
 from typing import Optional
 import warnings
 
-from ..modeling import Model
+from .modeling import Model
 
 
 _logger = logging.getLogger(__name__)
