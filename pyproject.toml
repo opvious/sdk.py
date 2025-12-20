@@ -14,7 +14,7 @@ requires = ['poetry-core']
 build-backend = 'poetry.core.masonry.api'
 
 [tool.poetry]
-version = '0.22.2rc1'
+version = '0.23.0rc1'
 packages = [{include = 'opvious', from = 'src'}]
 
 [tool.poetry.dependencies]
@@ -43,7 +43,7 @@ types-docopt = '^0.6.11.3'
 
 [tool.poetry.extras]
 aio = ['aiohttp', 'Brotli', 'lru-dict']
-cli = ['docopt']
+cli = ['docopt-ng']
 
 # Poe
 
