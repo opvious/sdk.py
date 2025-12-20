@@ -1,9 +1,9 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any
 import urllib.parse
 import weakref
 
@@ -17,21 +17,17 @@ except metadata.PackageNotFoundError:
 del metadata
 
 
-Uuid = str
+type Uuid = str
 
 
-_V = TypeVar("_V", contravariant=True)
-_R = TypeVar("_R", covariant=True)
-
-
-def if_present(arg: Optional[_V], fn: Callable[[_V], _R]) -> Optional[_R]:
+def if_present[V, R](arg: V | None, fn: Callable[[V], R]) -> R | None:
     return None if arg is None else fn(arg)
 
 
 # Formatting
 
 
-Label = str
+type Label = str
 
 
 def format_percent(val):
@@ -66,10 +62,10 @@ def untuple(t: Iterable[Any]) -> Any:
 # JSON utilities
 
 
-Json = Any
+type Json = Any
 
 
-ExtendedFloat = Union[float, str]
+type ExtendedFloat = float | str
 
 
 def encode_extended_float(val: ExtendedFloat) -> Json:
@@ -102,7 +98,7 @@ def json_dict(**kwargs) -> Json:
     return data
 
 
-Annotation = Union[str, tuple[str, str]]
+type Annotation = str | tuple[str, str]
 
 
 def encode_annotations(annots: list[Annotation]) -> Json:

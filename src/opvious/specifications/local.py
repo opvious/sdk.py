@@ -8,7 +8,6 @@ import glob
 import itertools
 import logging
 import os
-from typing import Optional
 
 from ..common import Json
 
@@ -104,10 +103,10 @@ class LocalSpecification:
     sources: Sequence[LocalSpecificationSource]
     """The model's mathematical source definitions"""
 
-    description: Optional[str] = None
+    description: str | None = None
     """Optional description"""
 
-    annotation: Optional[LocalSpecificationAnnotation] = None
+    annotation: LocalSpecificationAnnotation | None = None
     """API-issued annotation
 
     This field is generated automatically by clients'
@@ -116,7 +115,7 @@ class LocalSpecification:
     any errors.
     """
 
-    def source(self, title: Optional[str] = None) -> LocalSpecificationSource:
+    def source(self, title: str | None = None) -> LocalSpecificationSource:
         """Returns the first source, optionally matching a given title"""
         if title is None:
             return self.sources[0]
@@ -132,9 +131,7 @@ class LocalSpecification:
         return LocalSpecification(sources)
 
     @classmethod
-    def globs(
-        cls, *likes: str, root: Optional[str] = None
-    ) -> LocalSpecification:
+    def globs(cls, *likes: str, root: str | None = None) -> LocalSpecification:
         """Creates a local specification from LaTeX definition files
 
         Args:
@@ -251,7 +248,7 @@ class _HtmlDetailsRenderer(_Renderer):
         )
 
 
-_default_renderer: Optional[_Renderer] = None
+_default_renderer: _Renderer | None = None
 
 
 class LocalSpecificationStyle(enum.Enum):

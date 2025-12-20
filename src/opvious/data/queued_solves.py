@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime, timedelta
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from ..common import (
     Annotation,
@@ -35,19 +35,19 @@ class QueuedSolve:
     annotations: list[Annotation]
     """Annotation metadata"""
 
-    outcome: Optional[SolveOutcome]
+    outcome: SolveOutcome | None
     """Final solve outcome, if available"""
 
     enqueued_at: datetime
     """The time the solve was created"""
 
-    dequeued_at: Optional[datetime]
+    dequeued_at: datetime | None
     """The time the solve started running"""
 
-    completed_at: Optional[datetime]
+    completed_at: datetime | None
     """The time the solve completed"""
 
-    problem_summary: Optional[ProblemSummary] = dataclasses.field(repr=False)
+    problem_summary: ProblemSummary | None = dataclasses.field(repr=False)
     """Summary information about the solved problem"""
 
     options: Json = dataclasses.field(repr=False)
@@ -55,7 +55,7 @@ class QueuedSolve:
     strategy: Json = dataclasses.field(repr=False)
 
     @property
-    def duration(self) -> Optional[timedelta]:
+    def duration(self) -> timedelta | None:
         """The solve's runtime, if it is complete"""
         return (
             self.completed_at - self.enqueued_at if self.completed_at else None
@@ -63,7 +63,7 @@ class QueuedSolve:
 
 
 def queued_solve_from_graphql(
-    data: Json, attempt_data: Optional[Json] = None
+    data: Json, attempt_data: Json | None = None
 ) -> QueuedSolve:
     attempt_data = attempt_data or data["attempt"]
 
@@ -99,13 +99,13 @@ class SolveNotification:
     dequeued: bool
     """Whether the solve has already been dequeued"""
 
-    relative_gap: Optional[Value]
+    relative_gap: Value | None
     """The latest relative gap"""
 
-    lp_iteration_count: Optional[int]
+    lp_iteration_count: int | None
     """The latest LP iteration count"""
 
-    cut_count: Optional[int]
+    cut_count: int | None
     """The latest cut count"""
 
 

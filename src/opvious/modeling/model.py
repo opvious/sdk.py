@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 import dataclasses
 import logging
 import os
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -22,7 +22,7 @@ from .identifiers import (
 _logger = logging.getLogger(__name__)
 
 
-DefinitionCategory = Literal[
+type DefinitionCategory = Literal[
     "ALIAS",
     "CONSTRAINT",
     "DIMENSION",
@@ -53,14 +53,14 @@ class Definition:
         raise NotImplementedError()
 
     @property
-    def label(self) -> Optional[Label]:
+    def label(self) -> Label | None:
         raise NotImplementedError()
 
     @property
-    def identifier(self) -> Optional[GlobalIdentifier]:
+    def identifier(self) -> GlobalIdentifier | None:
         raise NotImplementedError()
 
-    def render_statement(self, label: Label) -> Optional[str]:
+    def render_statement(self, label: Label) -> str | None:
         raise NotImplementedError()
 
 
@@ -73,7 +73,7 @@ class ModelFragment:
     """
 
     @property
-    def default_definition(self) -> Optional[Label]:
+    def default_definition(self) -> Label | None:
         """Optional label that will be used as the fragment's default.
 
         The matching definition's final label will be shortened to the
@@ -95,7 +95,7 @@ class Statement:
     label: Label
     """The definition's label"""
 
-    name: Optional[Name]
+    name: Name | None
     """The definition's name, if applicable"""
 
     text: str
@@ -108,7 +108,7 @@ class _Candidate:
     definition: Definition
     model: Model
 
-    def render_statement(self) -> Optional[Statement]:
+    def render_statement(self) -> Statement | None:
         d = self.definition
         text = d.render_statement(self.label)
         if text is None:
@@ -155,7 +155,7 @@ class _ModelVisitor:
     def _visit_owner(
         self,
         model: Model,
-        fragment: Optional[ModelFragment],
+        fragment: ModelFragment | None,
         prefix: Sequence[str],
     ) -> None:
         owner = fragment or model
@@ -195,23 +195,21 @@ class _ModelVisitor:
                 )
 
 
-def _unwrap_value(
-    value: Any, owner: Any
-) -> Union[None, ModelFragment, Definition]:
+def _unwrap_value(value: Any, owner: Any) -> None | ModelFragment | Definition:
     is_property = isinstance(value, property)
     if is_property:
         value = value.fget
     is_bindable = isinstance(value, Bindable)
     if is_bindable:
         value = value.bound_to(owner)
-    if isinstance(value, (ModelFragment, Definition)):
+    if isinstance(value, ModelFragment | Definition):
         return value
     if callable(value):
         if is_bindable:
             value = value()
         elif is_property:
             value = value(owner)
-    return value if isinstance(value, (ModelFragment, Definition)) else None
+    return value if isinstance(value, ModelFragment | Definition) else None
 
 
 class Model:
@@ -226,15 +224,15 @@ class Model:
             :class:`.LocalSpecification`
     """
 
-    __dependencies: Optional[Sequence[Model]] = None
-    __prefix: Optional[Sequence[str]] = None
-    __title: Optional[str] = None
+    __dependencies: Sequence[Model] | None = None
+    __prefix: Sequence[str] | None = None
+    __title: str | None = None
 
     def __init__(
         self,
-        dependencies: Optional[Iterable[Model]] = None,
-        prefix: Optional[Sequence[str]] = None,
-        title: Optional[str] = None,
+        dependencies: Iterable[Model] | None = None,
+        prefix: Sequence[str] | None = None,
+        title: str | None = None,
     ):
         self.__dependencies = list(dependencies) if dependencies else None
         self.__prefix = prefix
@@ -297,9 +295,7 @@ class Model:
         grouped: Any = df.groupby(["title", "category"])["text"].count()
         return grouped.unstack(["category"]).fillna(0).astype(int)
 
-    def specification(
-        self, align: Optional[bool] = None
-    ) -> LocalSpecification:
+    def specification(self, align: bool | None = None) -> LocalSpecification:
         """Generates the model's specification
 
         This specification can be used to interact with :class:`.Client`

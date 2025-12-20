@@ -14,7 +14,7 @@ requires = ['poetry-core']
 build-backend = 'poetry.core.masonry.api'
 
 [tool.poetry]
-version = '0.23.3rc2'
+version = '0.23.3rc3'
 packages = [{include = 'opvious', from = 'src'}]
 
 [tool.poetry.dependencies]
@@ -112,7 +112,7 @@ select = [
   "SLF",
   "T20",
   "TD",
-  # "UP",
+  "UP",
   "W"
 ]
 ignore = [

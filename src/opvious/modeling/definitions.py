@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 import dataclasses
 import functools
 import inspect
@@ -9,12 +9,7 @@ import logging
 import math
 from typing import (
     Any,
-    Callable,
     Literal,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
     overload,
 )
 
@@ -89,8 +84,8 @@ class Dimension(Definition, ScalarSpace):
     def __init__(
         self,
         *,
-        label: Optional[Label] = None,
-        name: Optional[Name] = None,
+        label: Label | None = None,
+        name: Name | None = None,
         is_numeric: bool = False,
     ):
         self._identifier = DimensionIdentifier(name=name)
@@ -98,17 +93,17 @@ class Dimension(Definition, ScalarSpace):
         self._is_numeric = is_numeric
 
     @property
-    def identifier(self) -> Optional[GlobalIdentifier]:
+    def identifier(self) -> GlobalIdentifier | None:
         return self._identifier
 
     @property
-    def label(self) -> Optional[Label]:
+    def label(self) -> Label | None:
         return self._label
 
     def render(self) -> str:
         return self._identifier.format()
 
-    def render_statement(self, label: Label) -> Optional[str]:
+    def render_statement(self, label: Label) -> str | None:
         _logger.debug("Rendering dimension %s...", label)
         s = f"\\S^d_\\mathrm{{{label}}}&: {self._identifier.format()}"
         if self._is_numeric:
@@ -140,7 +135,7 @@ _integers = _Interval(literal(-math.inf), literal(math.inf))
 def interval(
     lower_bound: ExpressionLike,
     upper_bound: ExpressionLike,
-    name: Optional[Name] = None,
+    name: Name | None = None,
 ) -> IterableSpace[Quantifier]:
     """A range of values
 
@@ -194,10 +189,7 @@ class Image:
         return f"[{lb.render()}, {ub.render()}]"
 
 
-TensorLike = Callable[..., Expression]
-
-
-_T = TypeVar("_T", bound="Tensor")
+type TensorLike = Callable[..., Expression]
 
 
 class Tensor(Definition):
@@ -226,9 +218,9 @@ class Tensor(Definition):
         self,
         image: Image,
         *quantifiables: Quantifiable,
-        name: Optional[Name] = None,
-        label: Optional[Label] = None,
-        qualifiers: Optional[Sequence[Label]] = None,
+        name: Name | None = None,
+        label: Label | None = None,
+        qualifiers: Sequence[Label] | None = None,
     ):
         if not isinstance(image, Image):
             raise TypeError(f"Unexpected image: {image}")
@@ -244,56 +236,56 @@ class Tensor(Definition):
         self.qualifiers = qualifiers
 
     @classmethod
-    def continuous(
-        cls: Type[_T],
+    def continuous[T: Tensor](
+        cls: type[T],
         *quantifiables,
         lower_bound: ExpressionLike = -math.inf,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with real image"""
         image = Image(lower_bound=lower_bound, upper_bound=upper_bound)
         return cls(image, *quantifiables, **kwargs)
 
     @classmethod
-    def non_negative(
-        cls: Type[_T],
+    def non_negative[T: Tensor](
+        cls: type[T],
         *quantifiables,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with non-negative real image"""
         return cls.continuous(
             *quantifiables, lower_bound=0, upper_bound=upper_bound, **kwargs
         )
 
     @classmethod
-    def non_positive(
-        cls: Type[_T],
+    def non_positive[T: Tensor](
+        cls: type[T],
         *quantifiables,
         lower_bound: ExpressionLike = -math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with non-positive real image"""
         return cls.continuous(
             *quantifiables, lower_bound=lower_bound, upper_bound=0, **kwargs
         )
 
     @classmethod
-    def unit(cls: Type[_T], *quantifiables, **kwargs) -> _T:
+    def unit[T: Tensor](cls: type[T], *quantifiables, **kwargs) -> T:
         """Returns a tensor with `[0, 1]` real image"""
         return cls.continuous(
             *quantifiables, lower_bound=0, upper_bound=1, **kwargs
         )
 
     @classmethod
-    def discrete(
-        cls: Type[_T],
+    def discrete[T: Tensor](
+        cls: type[T],
         *quantifiables,
         lower_bound: ExpressionLike = -math.inf,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with integral image"""
         image = Image(
             is_integral=True, lower_bound=lower_bound, upper_bound=upper_bound
@@ -301,30 +293,30 @@ class Tensor(Definition):
         return cls(image, *quantifiables, **kwargs)
 
     @classmethod
-    def natural(
-        cls: Type[_T],
+    def natural[T: Tensor](
+        cls: type[T],
         *quantifiables,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with non-negative integral image"""
         return cls.discrete(
             *quantifiables, lower_bound=0, upper_bound=upper_bound, **kwargs
         )
 
     @classmethod
-    def indicator(cls: Type[_T], *quantifiables, **kwargs) -> _T:
+    def indicator[T: Tensor](cls: type[T], *quantifiables, **kwargs) -> T:
         """Returns a tensor with `{0, 1}` integral image"""
         return cls.discrete(
             *quantifiables, lower_bound=0, upper_bound=1, **kwargs
         )
 
     @property
-    def identifier(self) -> Optional[GlobalIdentifier]:
+    def identifier(self) -> GlobalIdentifier | None:
         return self._identifier
 
     @property
-    def label(self) -> Optional[Label]:
+    def label(self) -> Label | None:
         return self._label
 
     @property
@@ -361,7 +353,7 @@ class Tensor(Definition):
             abs(self(*q)) if absolute else self(*q) for q in self.space()
         )
 
-    def render_statement(self, label: Label) -> Optional[str]:
+    def render_statement(self, label: Label) -> str | None:
         _logger.debug("Rendering tensor %s...", label)
         c = self.category[0].lower()
         s = f"\\S^{c}_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
@@ -396,7 +388,7 @@ def _is_simple_domain(d: Domain) -> bool:
     return True
 
 
-def _render_label(label: Label, qualifiers: Optional[Sequence[Label]]) -> str:
+def _render_label(label: Label, qualifiers: Sequence[Label] | None) -> str:
     s = label
     if qualifiers:
         s += f"[{','.join(qualifiers)}]"
@@ -457,15 +449,13 @@ class Variable(Tensor):
     category = "VARIABLE"
 
 
-_Aliasable = Callable[..., Any]
+type _Aliasable = Callable[..., Any]
 
 
 @dataclasses.dataclass(frozen=True)
 class _Aliased:
     quantifiable: Quantifiable
-    quantifiers: Union[
-        None, QuantifierIdentifier, tuple[QuantifierIdentifier, ...]
-    ]
+    quantifiers: None | QuantifierIdentifier | tuple[QuantifierIdentifier, ...]
 
 
 class _Alias(Definition):
@@ -477,20 +467,20 @@ class _Alias(Definition):
         aliasable: _Aliasable,
         quantifiable: tuple[Quantifiable],
         name: Name,
-        quantifier_names: Optional[Iterable[Name]] = None,
+        quantifier_names: Iterable[Name] | None = None,
     ):
         super().__init__()
         self._identifier = AliasIdentifier(name=name)
         self._quantifier_names = quantifier_names
         self._aliasable = aliasable
-        self._aliased: Optional[_Aliased] = None
+        self._aliased: _Aliased | None = None
         self._quantifiable = quantifiable
 
     @property
-    def identifier(self) -> Optional[GlobalIdentifier]:
+    def identifier(self) -> GlobalIdentifier | None:
         return self._identifier
 
-    def render_statement(self, _label: Label) -> Optional[str]:
+    def render_statement(self, _label: Label) -> str | None:
         if self._aliased is None:
             _logger.debug("Skipping alias named %s.", self._identifier.name)
             return None  # Not used
@@ -562,18 +552,12 @@ def _quantifier_identifier(arg: Any) -> QuantifierIdentifier:
     return arg.identifier
 
 
-_M = TypeVar("_M", bound=Union[Model, ModelFragment], contravariant=True)
-
-
-_F = TypeVar("_F", bound=Callable[..., Union[Expression, Quantifiable]])
-
-
 @method_decorator()
-def alias(
-    name: Optional[Name],
+def alias[F: Callable[..., Expression | Quantifiable]](
+    name: Name | None,
     *quantifiables: Quantifiable,
-    quantifier_names: Optional[Iterable[Name]] = None,
-) -> Callable[[_F], _F]:  # TODO: Tighten argument type
+    quantifier_names: Iterable[Name] | None = None,
+) -> Callable[[F], F]:  # TODO: Tighten argument type
     """Decorator promoting a :class:`.Model` method to a named alias
 
     Args:
@@ -615,7 +599,9 @@ def alias(
     return wrapper
 
 
-ConstraintMethod = Callable[[_M], Quantified[Predicate]]
+type ConstraintMethod[M: Model | ModelFragment] = Callable[
+    [M], Quantified[Predicate]
+]
 
 
 class Constraint(Definition):
@@ -641,8 +627,8 @@ class Constraint(Definition):
     def __init__(
         self,
         body: Callable[[], Quantified[Predicate]],
-        label: Optional[Label] = None,
-        qualifiers: Optional[Sequence[Label]] = None,
+        label: Label | None = None,
+        qualifiers: Sequence[Label] | None = None,
     ):
         super().__init__()
         self._body = body
@@ -653,7 +639,7 @@ class Constraint(Definition):
     def label(self):
         return self._label
 
-    def render_statement(self, label: Label) -> Optional[str]:
+    def render_statement(self, label: Label) -> str | None:
         _logger.debug("Rendering constraint %s...", label)
 
         s = f"\\S^c_\\mathrm{{{_render_label(label, self.qualifiers)}}}&: "
@@ -672,10 +658,10 @@ def constraint(method: ConstraintMethod) -> Constraint: ...
 @overload
 def constraint(
     *,
-    label: Optional[Label] = None,
-    qualifiers: Optional[Sequence[Label]] = None,
+    label: Label | None = None,
+    qualifiers: Sequence[Label] | None = None,
     disabled=False,
-) -> Callable[[ConstraintMethod], Optional[Constraint]]: ...
+) -> Callable[[ConstraintMethod], Constraint | None]: ...
 
 
 @overload
@@ -686,8 +672,8 @@ def constraint(
 
 @method_decorator()
 def constraint(
-    label: Optional[Label] = None,
-    qualifiers: Optional[Sequence[Label]] = None,
+    label: Label | None = None,
+    qualifiers: Sequence[Label] | None = None,
     disabled=False,
 ) -> Any:
     """Decorator promoting a :class:`.Model` method to a :class:`.Constraint`
@@ -729,11 +715,11 @@ def constraint(
     return wrapper
 
 
-ObjectiveSense = Literal["max", "min"]
+type ObjectiveSense = Literal["max", "min"]
 """Optimization direction"""
 
 
-ObjectiveMethod = Callable[[_M], Expression]
+type ObjectiveMethod[M: Model | ModelFragment] = Callable[[M], Expression]
 """Optimization target expression"""
 
 
@@ -762,7 +748,7 @@ class Objective(Definition):
         self,
         body: Callable[[], Expression],
         sense: ObjectiveSense,
-        label: Optional[Label] = None,
+        label: Label | None = None,
     ):
         super().__init__()
         self._body = body
@@ -770,10 +756,10 @@ class Objective(Definition):
         self._label = label
 
     @property
-    def label(self) -> Optional[Label]:
+    def label(self) -> Label | None:
         return self._label
 
-    def render_statement(self, label: Label) -> Optional[str]:
+    def render_statement(self, label: Label) -> str | None:
         _logger.debug("Rendering objective %s...", label)
 
         sense = self._sense
@@ -796,8 +782,8 @@ def objective(method: ObjectiveMethod) -> Objective: ...
 @overload
 def objective(
     *,
-    sense: Optional[ObjectiveSense] = None,
-    label: Optional[Label] = None,
+    sense: ObjectiveSense | None = None,
+    label: Label | None = None,
     disabled=False,
 ) -> Callable[[ObjectiveMethod], Objective]: ...
 
@@ -810,8 +796,8 @@ def objective(
 
 @method_decorator()
 def objective(
-    sense: Optional[ObjectiveSense] = None,
-    label: Optional[Label] = None,
+    sense: ObjectiveSense | None = None,
+    label: Label | None = None,
     disabled=False,
 ) -> Any:
     """Decorator promoting a method to an :class:`.Objective`

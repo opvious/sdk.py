@@ -5,15 +5,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 import dataclasses
 import itertools
 import math
-from typing import (
-    Any,
-    Optional,
-    Protocol,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import Any, Protocol, cast, overload
 
 from ..common import untuple
 from .identifiers import (
@@ -134,12 +126,12 @@ class Expression:
         return _ComparisonPredicate("\\leq", self, to_expression(other))
 
     def __eq__(self, other: object) -> Predicate:  # type: ignore[override]
-        if not isinstance(other, (Expression, float, int)):
+        if not isinstance(other, Expression | float | int):
             return NotImplemented
         return _ComparisonPredicate("=", self, to_expression(other))
 
     def __ne__(self, other: object) -> Predicate:  # type: ignore[override]
-        if not isinstance(other, (Expression, float, int)):
+        if not isinstance(other, Expression | float | int):
             return NotImplemented
         return _ComparisonPredicate("\\neq", self, to_expression(other))
 
@@ -156,7 +148,7 @@ class Expression:
         raise NotImplementedError()
 
 
-ExpressionLike = Union[Expression, float, int]
+type ExpressionLike = Expression | float | int
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
@@ -172,7 +164,7 @@ class _LiteralExpression(Expression):
             return str(self.value)
 
 
-def literal(val: Union[float, int]) -> Expression:
+def literal(val: float | int) -> Expression:
     """Wraps a literal value into an expression
 
     Arg:
@@ -181,12 +173,12 @@ def literal(val: Union[float, int]) -> Expression:
     In general you will not need to use this method as expression operators
     automatically call this under the hood.
     """
-    if not isinstance(val, (float, int)):
+    if not isinstance(val, float | int):
         raise TypeError("Unexpected literal value")
     return _LiteralExpression(val)
 
 
-def is_literal(expr: ExpressionLike, val: Union[float, int]) -> bool:
+def is_literal(expr: ExpressionLike, val: float | int) -> bool:
     if not isinstance(expr, Expression):
         return expr == val
     return isinstance(expr, _LiteralExpression) and expr.value == val
@@ -195,7 +187,7 @@ def is_literal(expr: ExpressionLike, val: Union[float, int]) -> bool:
 def to_expression(val: ExpressionLike) -> Expression:
     if isinstance(val, Expression):
         return val
-    if isinstance(val, (float, int)):
+    if isinstance(val, float | int):
         return literal(val)
     raise TypeError(f"Unexpected expression: {val}")
 
@@ -273,7 +265,7 @@ class Domain:
     """Quantification source"""
 
     quantifiers: tuple[QuantifierIdentifier, ...]
-    mask: Optional[Predicate] = None
+    mask: Predicate | None = None
 
     def render(self) -> str:
         groups = []
@@ -303,7 +295,7 @@ class Domain:
 
 def _quantifier_grouping_key(
     q: QuantifierIdentifier,
-) -> tuple[int, Union[ScalarSpace, QuantifierGroup]]:
+) -> tuple[int, ScalarSpace | QuantifierGroup]:
     # We add the ID to prevent `__eq__` from being called on equations
     sp = q.space
     if not isinstance(sp, ScalarSpace):
@@ -348,7 +340,7 @@ class _CardinalityExpression(Expression):
 @dataclasses.dataclass(frozen=True)
 class _SwitchCase:
     expression: Expression
-    predicate: Optional[Predicate] = None
+    predicate: Predicate | None = None
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
@@ -422,12 +414,7 @@ class Quantifier(Expression):
         return self.identifier.format()
 
 
-_Q = TypeVar(
-    "_Q", bound=Union[Quantifier, Sequence[Quantifier]], covariant=True
-)
-
-
-class IterableSpace(Protocol[_Q]):
+class IterableSpace[Q: Quantifier | Sequence[Quantifier]](Protocol):
     """Base protocol for spaces which can also be directly iterated on
 
     It is exposed mostly as a typing convenience for typing model fragments.
@@ -441,11 +428,11 @@ class IterableSpace(Protocol[_Q]):
     def __rmul__(self, other: Quantifiable) -> Quantification:
         raise NotImplementedError()
 
-    def __iter__(self) -> Iterator[_Q]:
+    def __iter__(self) -> Iterator[Q]:
         raise NotImplementedError()
 
 
-def expression_space(expr: Expression) -> Optional[ScalarSpace]:
+def expression_space(expr: Expression) -> ScalarSpace | None:
     """Returns the underlying scalar quantifiable for an expression if any
 
     Args:
@@ -546,21 +533,18 @@ class _BinaryPredicate(Predicate):
         return rendered
 
 
-Quantifiable = Union[
-    Iterable[Union[Quantifier, Sequence[Quantifier]]],  # Includes quantified
-    Space,
-    Domain,
-    tuple["Quantifiable", ...],
-]
+type Quantifiable = (
+    Iterable[Quantifier | Sequence[Quantifier]]  # Includes quantified
+    | Space
+    | Domain
+    | tuple["Quantifiable", ...]
+)
 
 
-_V = TypeVar("_V")
-
-
-def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
+def within_domain[V](quantified: Quantified[V]) -> tuple[V, Domain]:
     value, declarations = unquantify(quantified)
     quantifiers: list[QuantifierIdentifier] = []
-    mask: Optional[Predicate] = None
+    mask: Predicate | None = None
     for declaration in declarations:
         if isinstance(declaration, Predicate):
             if mask is None:
@@ -577,14 +561,14 @@ def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
 
 def domain(
     quantifiable: Quantifiable,
-    names: Optional[Iterable[Name]] = None,
+    names: Iterable[Name] | None = None,
 ) -> Domain:
     """Creates a domain from a quantifiable"""
     return _domain_from_quantified(iter(cross(quantifiable, names=names)))
 
 
 def _domain_from_quantified(
-    quantified: Quantified[Union[Quantifier, Iterable[Quantifier]]],
+    quantified: Quantified[Quantifier | Iterable[Quantifier]],
 ) -> Domain:
     qs, domain = within_domain(quantified)
     if isinstance(qs, Quantifier):
@@ -604,7 +588,7 @@ def _isomorphic(
     return collections.Counter(qs1) == collections.Counter(qs2)
 
 
-Projection = int
+type Projection = int
 
 
 @dataclasses.dataclass(frozen=True)
@@ -612,7 +596,7 @@ class Cross(Sequence[Quantifier]):
     """Cross-product result"""
 
     _quantifiers: tuple[Quantifier, ...]
-    _lifted: Optional[tuple[Quantifier, ...]]
+    _lifted: tuple[Quantifier, ...] | None
 
     @property
     def lifted(self) -> tuple[Quantifier, ...]:
@@ -688,7 +672,7 @@ def lift(
 
 def cross(
     *quantifiables: Quantifiable,
-    names: Optional[Iterable[Name]] = None,
+    names: Iterable[Name] | None = None,
     projection: Projection = -1,
     lift=False,
 ) -> Quantification:
@@ -754,7 +738,7 @@ def size(quantifiable: Quantifiable) -> Expression:
 
 
 def switch(
-    *cases: Union[tuple[Predicate, ExpressionLike], ExpressionLike],
+    *cases: tuple[Predicate, ExpressionLike] | ExpressionLike,
 ) -> Expression:
     """Returns an expression allowing branching between different values
 

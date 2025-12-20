@@ -5,8 +5,6 @@ import json
 import logging
 from typing import (
     BinaryIO,
-    Optional,
-    Union,
 )
 
 import backoff
@@ -97,7 +95,7 @@ class Client:
     def default(
         cls,
         endpoint: str,
-        token: Optional[str] = None,
+        token: str | None = None,
     ) -> Client:
         """Creates a client using the best available :class:`.Executor`
 
@@ -116,9 +114,9 @@ class Client:
     @classmethod
     def from_environment(
         cls,
-        env: Optional[Mapping[str, str]] = None,
-        default_endpoint: Optional[str] = None,
-    ) -> Optional[Client]:
+        env: Mapping[str, str] | None = None,
+        default_endpoint: str | None = None,
+    ) -> Client | None:
         """Creates a client configured via environment variables
 
         Args:
@@ -165,7 +163,7 @@ class Client:
     async def annotate_specification(
         self,
         specification: LocalSpecification,
-        ignore_codes: Optional[Iterable[str]] = None,
+        ignore_codes: Iterable[str] | None = None,
     ) -> LocalSpecification:
         """Validates a specification, annotating it with any issues
 
@@ -196,7 +194,7 @@ class Client:
         self,
         specification: LocalSpecification,
         writer: BinaryIO,
-        transformations: Optional[list[ProblemTransformation]] = None,
+        transformations: list[ProblemTransformation] | None = None,
     ) -> None:
         """Exports a specification to its canonical representation
 
@@ -233,7 +231,7 @@ class Client:
         self,
         specification: LocalSpecification,
         formulation_name: str,
-        tag_names: Optional[Sequence[str]] = None,
+        tag_names: Sequence[str] | None = None,
     ) -> FormulationSpecification:
         """Saves a local specification within a remote formulation
 
@@ -533,7 +531,7 @@ class Client:
         return solution
 
     async def queue_solve(
-        self, problem: Problem, annotations: Optional[list[Annotation]] = None
+        self, problem: Problem, annotations: list[Annotation] | None = None
     ) -> Uuid:
         """Queues a solve for asynchronous processing
 
@@ -612,9 +610,7 @@ class Client:
         )
         _logger.info("Cancelled solve. [uuid=%s]", uuid)
 
-    async def poll_solve(
-        self, uuid: Uuid
-    ) -> Union[SolveNotification, SolveOutcome]:
+    async def poll_solve(self, uuid: Uuid) -> SolveNotification | SolveOutcome:
         """Polls a solve for its outcome or latest progress notification
 
         Args:
@@ -653,7 +649,7 @@ class Client:
         max_value=90,
         logger=None,
     )
-    async def _track_solve(self, uuid: Uuid) -> Optional[SolveOutcome]:
+    async def _track_solve(self, uuid: Uuid) -> SolveOutcome | None:
         ret = await self.poll_solve(uuid)
         if isinstance(ret, SolveNotification):
             if ret.dequeued:
@@ -756,7 +752,7 @@ class Client:
 
     async def paginate_solves(
         self,
-        annotations: Optional[list[Annotation]] = None,
+        annotations: list[Annotation] | None = None,
         limit: int = 25,
     ) -> AsyncIterator[QueuedSolve]:
         """Lists recent queued solves
@@ -805,7 +801,7 @@ class Client:
     async def paginate_formulation_solves(
         self,
         name: str,
-        annotations: Optional[list[Annotation]] = None,
+        annotations: list[Annotation] | None = None,
         limit: int = 25,
     ) -> AsyncIterator[QueuedSolve]:
         """Lists queued solves for a given formulation

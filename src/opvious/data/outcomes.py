@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Literal, Optional, Union, cast
+from typing import Any, Literal, cast
 
 from .tensors import Value
 
 
-SolveStatus = Literal[
+type SolveStatus = Literal[
     "ABORTED",
     "FEASIBLE",
     "INFEASIBLE",
@@ -31,7 +31,7 @@ class FailedOutcome:
     message: str
     """The underlying error's message"""
 
-    code: Optional[str] = None
+    code: str | None = None
     """The underlying error's error code"""
 
     tags: Any = None
@@ -55,10 +55,10 @@ class FeasibleOutcome:
     optimal: bool
     """Whether this solution was optimal (within gap thresholds)"""
 
-    objective_value: Optional[Value]
+    objective_value: Value | None
     """The solution's objective value"""
 
-    relative_gap: Optional[Value]
+    relative_gap: Value | None
     """The solution's relative gap (0.1 is 10%)"""
 
 
@@ -72,13 +72,13 @@ class UnboundedOutcome:
     """No bounded optimal solution exists"""
 
 
-SolveOutcome = Union[
-    AbortedOutcome,
-    FailedOutcome,
-    FeasibleOutcome,
-    InfeasibleOutcome,
-    UnboundedOutcome,
-]
+type SolveOutcome = (
+    AbortedOutcome
+    | FailedOutcome
+    | FeasibleOutcome
+    | InfeasibleOutcome
+    | UnboundedOutcome
+)
 
 
 def solve_outcome_from_graphql(data: Any) -> SolveOutcome:

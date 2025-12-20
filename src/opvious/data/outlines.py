@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import dataclasses
-from typing import Literal, Optional
+from typing import Literal
 
 from ..common import Json, decode_extended_float
 from .tensors import Value, is_value
 
 
 #: Model name
-Label = str
+type Label = str
 """Model component name"""
 
 
@@ -17,10 +17,10 @@ Label = str
 class SourceBinding:
     """Parameter key item binding"""
 
-    dimension_label: Optional[Label]
+    dimension_label: Label | None
     """The label of the dimension if the key item corresponds to one"""
 
-    qualifier: Optional[Label]
+    qualifier: Label | None
     """The binding's qualifier, if any"""
 
 
@@ -31,7 +31,7 @@ def _source_binding_from_json(data: Json) -> SourceBinding:
     )
 
 
-ObjectiveSense = Literal[
+type ObjectiveSense = Literal[
     "MAXIMIZE",
     "MINIMIZE",
 ]
@@ -82,10 +82,10 @@ class TensorOutline:
     label: Label
     """The tensor's unique label"""
 
-    lower_bound: Optional[Value]
+    lower_bound: Value | None
     """The tensor's lower bound if it is statically known"""
 
-    upper_bound: Optional[Value]
+    upper_bound: Value | None
     """The tensor's upper bound if it is statically known"""
 
     is_integral: bool
@@ -94,7 +94,7 @@ class TensorOutline:
     bindings: list[SourceBinding]
     """Key bindings"""
 
-    derivation_kind: Optional[str]
+    derivation_kind: str | None
     """Derived tensor kind if applicable"""
 
     @property

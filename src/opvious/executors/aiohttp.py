@@ -1,7 +1,6 @@
 from collections.abc import AsyncIterator
 import contextlib
 import logging
-from typing import Optional
 
 import aiohttp
 import brotli  # type: ignore
@@ -38,7 +37,7 @@ _REQUEST_TIMEOUT_SECONDS = 900  # 15 minutes
 class AiohttpExecutor(Executor):
     """`aiohttp`-powered executor"""
 
-    def __init__(self, endpoint: str, authorization: Optional[str] = None):
+    def __init__(self, endpoint: str, authorization: str | None = None):
         super().__init__(
             variant="aiohttp",
             endpoint=endpoint,
@@ -48,7 +47,7 @@ class AiohttpExecutor(Executor):
 
     @contextlib.asynccontextmanager
     async def _send(
-        self, url: str, method: str, headers: Headers, body: Optional[bytes]
+        self, url: str, method: str, headers: Headers, body: bytes | None
     ) -> AsyncIterator[ExecutorResult]:
         if body and len(body) > _COMPRESSION_THRESHOLD:
             headers["content-encoding"] = "br"

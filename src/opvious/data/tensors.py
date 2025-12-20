@@ -3,41 +3,41 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 import dataclasses
 import math
-from typing import Any, Tuple, Union
+from typing import Any
 
 import pandas as pd
 
 from ..common import ExtendedFloat, encode_extended_float
 
 
-KeyItem = Union[float, int, str]
+type KeyItem = float | int | str
 
 
-Key = Union[Tuple[KeyItem, ...], KeyItem]
+type Key = tuple[KeyItem, ...] | KeyItem
 
 
-Value = Union[float, int]
+type Value = float | int
 
 
 def is_value(arg: Any) -> bool:
-    return isinstance(arg, (float, int))
+    return isinstance(arg, float | int)
 
 
-DimensionArgument = Iterable[KeyItem]
+type DimensionArgument = Iterable[KeyItem]
 
 
-SparseTensorArgument = Union[
-    Mapping[Key, Value],
-    pd.Series,
-    pd.DataFrame,  # For indicator parameters
-    Iterable[Key],  # For indicator parameters
-]
+type SparseTensorArgument = (
+    Mapping[Key, Value]
+    | pd.Series
+    | pd.DataFrame  # For indicator parameters
+    | Iterable[Key]  # For indicator parameters
+)
 
 
 #: Input tensor creation argument
-TensorArgument = Union[
-    Value, SparseTensorArgument, Tuple[SparseTensorArgument, Value]
-]
+type TensorArgument = (
+    Value | SparseTensorArgument | tuple[SparseTensorArgument, Value]
+)
 
 
 @dataclasses.dataclass
@@ -135,7 +135,7 @@ class _Keyifier:
         self.rank = rank
 
     def keyify(self, key):
-        tup = tuple(key) if isinstance(key, (list, tuple)) else (key,)
+        tup = tuple(key) if isinstance(key, list | tuple) else (key,)
         if len(tup) != self.rank:
             raise Exception(f"Invalid key rank: {len(tup)} != {self.rank}")
         return tup

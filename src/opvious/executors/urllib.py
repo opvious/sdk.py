@@ -1,7 +1,6 @@
 from collections.abc import AsyncIterator
 import contextlib
 import logging
-from typing import Optional
 import urllib.error
 import urllib.request
 
@@ -27,14 +26,14 @@ class UrllibExecutor(Executor):
     When possible, prefer using the `aiohttp` equivalent.
     """
 
-    def __init__(self, endpoint: str, authorization: Optional[str] = None):
+    def __init__(self, endpoint: str, authorization: str | None = None):
         super().__init__(
             variant="urllib", endpoint=endpoint, authorization=authorization
         )
 
     @contextlib.asynccontextmanager
     async def _send(
-        self, url: str, method: str, headers: Headers, body: Optional[bytes]
+        self, url: str, method: str, headers: Headers, body: bytes | None
     ) -> AsyncIterator[ExecutorResult]:
         req = urllib.request.Request(
             url=url,
