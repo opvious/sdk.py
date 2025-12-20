@@ -87,7 +87,7 @@ class Dimension(Definition, ScalarSpace):
         label: Label | None = None,
         name: Name | None = None,
         is_numeric: bool = False,
-    ):
+    ) -> None:
         self._identifier = DimensionIdentifier(name=name)
         self._label = label
         self._is_numeric = is_numeric
@@ -152,7 +152,7 @@ def interval(
     class _Fragment(ModelFragment, Space):
         @property
         @alias(name)
-        def interval(self):
+        def interval(self) -> ScalarSpace:
             return interval
 
         def __iter__(self) -> Iterator[Quantifier]:
@@ -221,7 +221,7 @@ class Tensor(Definition):
         name: Name | None = None,
         label: Label | None = None,
         qualifiers: Sequence[Label] | None = None,
-    ):
+    ) -> None:
         if not isinstance(image, Image):
             raise TypeError(f"Unexpected image: {image}")
         self._identifier = TensorIdentifier(
@@ -238,7 +238,7 @@ class Tensor(Definition):
     @classmethod
     def continuous[T: Tensor](
         cls: type[T],
-        *quantifiables,
+        *quantifiables: Quantifiable,
         lower_bound: ExpressionLike = -math.inf,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
@@ -250,7 +250,7 @@ class Tensor(Definition):
     @classmethod
     def non_negative[T: Tensor](
         cls: type[T],
-        *quantifiables,
+        *quantifiables: Quantifiable,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
     ) -> T:
@@ -262,7 +262,7 @@ class Tensor(Definition):
     @classmethod
     def non_positive[T: Tensor](
         cls: type[T],
-        *quantifiables,
+        *quantifiables: Quantifiable,
         lower_bound: ExpressionLike = -math.inf,
         **kwargs,
     ) -> T:
@@ -272,7 +272,9 @@ class Tensor(Definition):
         )
 
     @classmethod
-    def unit[T: Tensor](cls: type[T], *quantifiables, **kwargs) -> T:
+    def unit[T: Tensor](
+        cls: type[T], *quantifiables: Quantifiable, **kwargs: Any
+    ) -> T:
         """Returns a tensor with `[0, 1]` real image"""
         return cls.continuous(
             *quantifiables, lower_bound=0, upper_bound=1, **kwargs
@@ -281,7 +283,7 @@ class Tensor(Definition):
     @classmethod
     def discrete[T: Tensor](
         cls: type[T],
-        *quantifiables,
+        *quantifiables: Quantifiable,
         lower_bound: ExpressionLike = -math.inf,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
@@ -295,7 +297,7 @@ class Tensor(Definition):
     @classmethod
     def natural[T: Tensor](
         cls: type[T],
-        *quantifiables,
+        *quantifiables: Quantifiable,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
     ) -> T:
@@ -305,7 +307,11 @@ class Tensor(Definition):
         )
 
     @classmethod
-    def indicator[T: Tensor](cls: type[T], *quantifiables, **kwargs) -> T:
+    def indicator[T: Tensor](
+        cls: type[T],
+        *quantifiables: Quantifiable,
+        **kwargs: Any
+    ) -> T:
         """Returns a tensor with `{0, 1}` integral image"""
         return cls.discrete(
             *quantifiables, lower_bound=0, upper_bound=1, **kwargs
@@ -342,7 +348,7 @@ class Tensor(Definition):
             self._identifier, tuple(to_expression(s) for s in subscripts)
         )
 
-    def total(self, absolute=False) -> Expression:
+    def total(self, absolute: bool=False) -> Expression:
         """The tensor's total summed value
 
         Args:
@@ -465,10 +471,10 @@ class _Alias(Definition):
     def __init__(
         self,
         aliasable: _Aliasable,
-        quantifiable: tuple[Quantifiable],
+        quantifiable: tuple[Quantifiable, ...],
         name: Name,
         quantifier_names: Iterable[Name] | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self._identifier = AliasIdentifier(name=name)
         self._quantifier_names = quantifier_names
@@ -586,7 +592,7 @@ def alias[F: Callable[..., Expression | Quantifiable]](
                 return total(self.count(p) for p in self.products)
     """
 
-    def wrapper(fn):
+    def wrapper(fn: Any) -> Any:
         if name is None:
             return fn
         return _Alias(
@@ -629,14 +635,14 @@ class Constraint(Definition):
         body: Callable[[], Quantified[Predicate]],
         label: Label | None = None,
         qualifiers: Sequence[Label] | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self._body = body
         self._label = label
         self.qualifiers = qualifiers
 
     @property
-    def label(self):
+    def label(self) -> Label | None:
         return self._label
 
     def render_statement(self, label: Label) -> str | None:
@@ -660,7 +666,7 @@ def constraint(
     *,
     label: Label | None = None,
     qualifiers: Sequence[Label] | None = None,
-    disabled=False,
+    disabled: bool=False,
 ) -> Callable[[ConstraintMethod], Constraint | None]: ...
 
 
@@ -705,7 +711,7 @@ def constraint(
                 # ...
     """
 
-    def wrapper(fn):
+    def wrapper(fn: Callable[..., Any]) -> Constraint | None:
         if not inspect.isgeneratorfunction(fn):
             raise TypeError(f"Non-generator constraint function: {fn}")
         if disabled:
@@ -749,7 +755,7 @@ class Objective(Definition):
         body: Callable[[], Expression],
         sense: ObjectiveSense,
         label: Label | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self._body = body
         self._sense = sense
@@ -784,7 +790,7 @@ def objective(
     *,
     sense: ObjectiveSense | None = None,
     label: Label | None = None,
-    disabled=False,
+    disabled: bool=False,
 ) -> Callable[[ObjectiveMethod], Objective]: ...
 
 
@@ -835,7 +841,7 @@ def objective(
                 return total(self.count(p) for p in self.products)
     """
 
-    def wrapper(fn):
+    def wrapper(fn: Callable[..., Any]) -> Objective | None:
         if disabled:
             return None
         method_sense = sense or _objective_sense(fn)

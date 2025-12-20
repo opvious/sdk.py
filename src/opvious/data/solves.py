@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import collections
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 import dataclasses
 import math
-from typing import Any, cast
+from typing import Any, Self, cast
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from .outcomes import (
     SolveStatus,
     UnboundedOutcome,
 )
-from .outlines import Label, ObjectiveSense, ProblemOutline
+from .outlines import Label, ObjectiveSense, ProblemOutline, SourceBinding
 
 
 @dataclasses.dataclass(frozen=True)
@@ -153,7 +153,9 @@ def _value_profile(prefix: str, profile: Json) -> Mapping[str, float]:
     }
 
 
-def _entry_index(entries, bindings):
+def _entry_index(
+    entries: Sequence[Json], bindings: Sequence[SourceBinding]
+) -> pd.Index | pd.MultiIndex | None:
     if not bindings:
         return None
     if len(bindings) == 1:
@@ -247,8 +249,8 @@ class SolveOutputs:
 
 
 def _output_dataframe(
-    entries: Iterator[Any],
-    bindings,
+    entries: Sequence[Json],
+    bindings: Sequence[SourceBinding],
     value_name: str = "value",
 ) -> pd.DataFrame:
     df = pd.DataFrame(
@@ -265,7 +267,7 @@ def _output_dataframe(
     return df
 
 
-def _outputs_from_json(data, outline: ProblemOutline) -> SolveOutputs:
+def _outputs_from_json(data: Json, outline: ProblemOutline) -> SolveOutputs:
     return SolveOutputs(
         problem_outline=outline,
         raw_variables=data["variables"],
@@ -434,9 +436,9 @@ class SolveStrategy:
     """All epsilon-constraints to apply"""
 
     @classmethod
-    def equally_weighted_sum(cls, sense: ObjectiveSense | None = None):
+    def equally_weighted_sum(cls, sense: ObjectiveSense | None = None) -> Self:
         """Returns a strategy optimizing the sum of all objectives"""
-        return SolveStrategy(
+        return cls(
             target=collections.defaultdict(lambda: 1), sense=sense
         )
 

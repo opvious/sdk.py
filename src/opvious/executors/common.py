@@ -61,7 +61,7 @@ class ExecutorResult:
     trace: str | None
     """Request trace ID"""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         _logger.debug(
             "Got executor result. [status=%s, trace=%s]",
             self.status,
@@ -127,7 +127,7 @@ class PlainTextExecutorResult(ExecutorResult):
 
 
 class _LineSplitter:
-    def __init__(self):
+    def __init__(self) -> None:
         self._buffer = ""
 
     def push(self, chunk: bytes) -> list[str]:
@@ -228,8 +228,8 @@ class Executor:
         variant: str,
         endpoint: str,
         authorization: str | None = None,
-        supports_streaming=False,
-    ):
+        supports_streaming: bool=False,
+    ) -> None:
         self._variant = variant
         self._endpoint = endpoint
         self._root_headers = _default_headers(variant)
@@ -244,7 +244,7 @@ class Executor:
         return self._endpoint
 
     @property
-    def authenticated(self):
+    def authenticated(self) -> bool:
         """Whether requests use an API authorization header"""
         return AUTHORIZATION_HEADER in self._root_headers
 

@@ -23,7 +23,9 @@ _logger = logging.getLogger(__name__)
 class PyodideExecutor(Executor):
     """`pyodide`-powered executor"""
 
-    def __init__(self, endpoint: str, authorization: str | None = None):
+    def __init__(
+        self, endpoint: str, authorization: str | None = None
+    ) -> None:
         super().__init__(
             variant="pyodide", endpoint=endpoint, authorization=authorization
         )

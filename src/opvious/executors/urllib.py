@@ -26,7 +26,9 @@ class UrllibExecutor(Executor):
     When possible, prefer using the `aiohttp` equivalent.
     """
 
-    def __init__(self, endpoint: str, authorization: str | None = None):
+    def __init__(
+        self, endpoint: str, authorization: str | None = None
+    ) -> None:
         super().__init__(
             variant="urllib", endpoint=endpoint, authorization=authorization
         )

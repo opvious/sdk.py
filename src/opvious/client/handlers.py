@@ -3,9 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
 import json
 import logging
-from typing import (
-    BinaryIO,
-)
+from typing import Any, BinaryIO
 
 import backoff
 
@@ -80,7 +78,7 @@ _logger = logging.getLogger(__name__)
 class Client:
     """Opvious API client"""
 
-    def __init__(self, executor: Executor):
+    def __init__(self, executor: Executor) -> None:
         self._executor = executor
         self._problem_outline_cache = ProblemOutlineCache(executor)
 
@@ -347,7 +345,7 @@ class Client:
             return problem_summary_from_json(res.json_data())
 
     async def format_problem(
-        self, problem: Problem, include_line_comments=False
+        self, problem: Problem, include_line_comments: bool=False
     ) -> str:
         r"""Returns the problem's annotated representation in `LP format`_
 
@@ -400,8 +398,8 @@ class Client:
     async def solve(
         self,
         problem: Problem,
-        assert_feasible=False,
-        prefer_streaming=True,
+        assert_feasible: bool=False,
+        prefer_streaming: bool=True,
     ) -> Solution:
         """Solves an optimization problem remotely
 
@@ -672,7 +670,7 @@ class Client:
     async def wait_for_solve_outcome(
         self,
         uuid: Uuid,
-        assert_feasible=False,
+        assert_feasible: bool=False,
     ) -> SolveOutcome:
         """Waits for the solve to complete and returns its outcome
 
@@ -707,14 +705,14 @@ class Client:
             uuid: The target queued solve's UUID
         """
 
-        async def _data():
+        async def _data() -> Any:
             async with self._executor.execute(
                 result_type=JsonExecutorResult,
                 url=f"/queued-solves/{uuid}/inputs",
             ) as res:
                 return res.json_data()
 
-        async def _outline():
+        async def _outline() -> ProblemOutline:
             return await self._problem_outline_cache.get_solve_outline(uuid)
 
         data, outline = await gather(_data(), _outline())
@@ -733,14 +731,14 @@ class Client:
             uuid: The target queued solve's UUID
         """
 
-        async def _data():
+        async def _data() -> Any:
             async with self._executor.execute(
                 result_type=JsonExecutorResult,
                 url=f"/queued-solves/{uuid}/outputs",
             ) as res:
                 return res.json_data()
 
-        async def _outline():
+        async def _outline() -> ProblemOutline:
             return await self._problem_outline_cache.get_solve_outline(uuid)
 
         data, outline = await gather(_data(), _outline())

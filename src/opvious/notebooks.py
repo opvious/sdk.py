@@ -3,6 +3,7 @@ import logging
 import os
 import threading
 import types
+from typing import Any
 import warnings
 
 from .modeling import Model
@@ -14,8 +15,8 @@ _logger = logging.getLogger(__name__)
 def load_notebook_models(
     path: str,
     root: str | None = None,
-    allow_empty=False,
-    include_classes=False,
+    allow_empty: bool=False,
+    include_classes: bool=False,
     include_symbols: Sequence[str] = (),
 ) -> types.SimpleNamespace:
     """Loads all models from a notebook
@@ -54,14 +55,14 @@ class _ImportThread(threading.Thread):
 
     _exception = None
 
-    def run(self):
+    def run(self) -> None:
         try:
             super().run()
         except Exception as e:
             self._exception = e
 
-    def join(self):
-        super().join()
+    def join(self, timeout: float | None = None) -> None:
+        super().join(timeout=timeout)
         if self._exception:
             raise Exception("Notebook import failed") from self._exception
 
@@ -86,7 +87,7 @@ def _populate_notebook_namespace(
         import importnb  # type: ignore
 
     class _Notebook(importnb.Notebook):
-        def code(self, raw):
+        def code(self, raw: str) -> Any:
             # We skip magic cells (this is done manually since the default
             # `no_magic` option only skips cells starting with 2 %).
             if raw.startswith("%"):

@@ -65,7 +65,7 @@ def log_progress(logger: logging.Logger, progress: Json) -> None:
 class SolveInputsBuilder:
     """Convenience class for building :class:`SolveInputs`"""
 
-    def __init__(self, outline: ProblemOutline):
+    def __init__(self, outline: ProblemOutline) -> None:
         self._outline = outline
         self._dimensions: dict[Label, Any] = {}
         self._parameters: dict[Label, Any] = {}
@@ -179,7 +179,7 @@ class ProblemOutlineCache:
 class ProblemOutlineGenerator:
     """Generates outlines from a formulation and transformations"""
 
-    def __init__(self, executor: Executor, outline_data: Json):
+    def __init__(self, executor: Executor, outline_data: Json) -> None:
         self._executor = executor
         self._pristine_outline_data = outline_data
         self._transformations = cast(list[ProblemTransformation], [])

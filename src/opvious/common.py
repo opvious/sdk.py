@@ -3,7 +3,7 @@ from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any
+from typing import Any, Literal
 import urllib.parse
 import weakref
 
@@ -30,7 +30,7 @@ def if_present[V, R](arg: V | None, fn: Callable[[V], R]) -> R | None:
 type Label = str
 
 
-def format_percent(val):
+def format_percent(val: float | Literal["Infinity"]) -> str:
     if val == "Infinity":
         return "inf"
     return f"{int(val * 10_000) / 100}%"
@@ -127,7 +127,7 @@ def decode_datetime(iso: str) -> datetime:
 # Async
 
 
-async def gather(*futures) -> list[Any]:
+async def gather(*futures: Any) -> list[Any]:
     """Compatibility shim for asyncio.gather
 
     It is useful to work in environments which do not support asyncio.
@@ -154,24 +154,24 @@ def _is_lambda(fn: Callable[..., Any]) -> bool:
 
 
 def capturing_instance(wrapper: Callable[..., Any]) -> Any:
-    def wrap(fn):
+    def wrap(fn: Callable[..., Any]) -> Bindable:
         return Bindable(fn, wrapper)
 
     return wrap
 
 
 def with_instance(consumer: Callable[..., Any]) -> Any:
-    def wrap(fn):
+    def wrap(fn: Callable[..., Any]) -> Bindable:
         return Bindable(fn, consumer, lazy=True)
 
     return wrap
 
 
-def method_decorator(require_call=False):
+def method_decorator(require_call: bool = False) -> Any:
     """Transforms a decorator into a method-friendly equivalent"""
 
     def wrap_decorator(decorator: Callable[..., Any]) -> Any:
-        def wrapped_decorator(*args, **kwargs):
+        def wrapped_decorator(*args: Any, **kwargs: Any) -> Any:
             arg = args[0] if args else None
             if callable(arg):
                 if _is_lambda(arg):
@@ -179,7 +179,7 @@ def method_decorator(require_call=False):
                     if len(args) > 1 or kwargs:
                         raise Exception("Unexpected tail arguments")
 
-                    def wrap_method(meth):
+                    def wrap_method(meth: Any) -> Bindable:
                         return Bindable(
                             meth, lambda self: arg(decorator, self), lazy=True
                         )
@@ -188,14 +188,13 @@ def method_decorator(require_call=False):
                 elif not require_call and len(args) == 1 and not kwargs:
                     # No argument decorator
                     return Bindable(arg, decorator())
-
+            else:
             # Standard decorator creation
 
-            def wrap_method(meth):
-                return Bindable(meth, decorator(*args, **kwargs))
+                def wrap_method(meth: Any) -> Bindable:
+                    return Bindable(meth, decorator(*args, **kwargs))
 
-            return wrap_method
-
+                return wrap_method
         return wrapped_decorator
 
     return wrap_decorator
@@ -205,14 +204,17 @@ class Bindable:
     """Container for decorated instance attributes"""
 
     def __init__(
-        self, body: Callable[..., Any], wrapper: Callable[..., Any], lazy=False
+        self,
+        body: Callable[..., Any],
+        wrapper: Callable[..., Any],
+        lazy: bool = False,
     ) -> None:
         self._body = body
         self._wrapper = wrapper
         self._lazy = lazy
         self._bindings: Any = weakref.WeakKeyDictionary()
 
-    def _apply(self, owner: Any, bind=True) -> Any:
+    def _apply(self, owner: Any, bind: bool = True) -> Any:
         wrapper = self._wrapper(owner) if self._lazy else self._wrapper
         body = functools.partial(self._body, owner) if bind else self._body
         return wrapper(body)
@@ -226,9 +228,9 @@ class Bindable:
             self._bindings[owner] = binding
         return binding
 
-    def __get__(self, owner: Any, _objtype=None) -> Any:
+    def __get__(self, owner: Any, _objtype: Any = None) -> Any:
         return self.bound_to(owner)
 
-    def __call__(self, owner, *args, **kwargs) -> Any:
+    def __call__(self, owner: Any, *args: Any, **kwargs: Any) -> Any:
         # Needed for property calls and direct calls
         return self.bound_to(owner)(*args, **kwargs)

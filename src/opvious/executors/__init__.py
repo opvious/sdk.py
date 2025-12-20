@@ -61,7 +61,7 @@ def urllib_executor(
     return UrllibExecutor(endpoint=endpoint, authorization=authorization)
 
 
-def _is_using_pyodide():
+def _is_using_pyodide() -> bool:
     # https://pyodide.org/en/stable/usage/faq.html#how-to-detect-that-code-is-run-with-pyodide
     return "pyodide" in sys.modules
 
