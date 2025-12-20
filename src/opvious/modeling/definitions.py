@@ -190,7 +190,7 @@ class Image:
         return f"[{lb.render()}, {ub.render()}]"
 
 
-TensorLike = Callable[..., Expression]
+type TensorLike = Callable[..., Expression]
 
 
 _T = TypeVar("_T", bound="Tensor")
@@ -453,7 +453,7 @@ class Variable(Tensor):
     category = "VARIABLE"
 
 
-_Aliasable = Callable[..., Any]
+type _Aliasable = Callable[..., Any]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -609,7 +609,7 @@ def alias(
     return wrapper
 
 
-ConstraintMethod = Callable[[_M], Quantified[Predicate]]
+type ConstraintMethod = Callable[[_M], Quantified[Predicate]]
 
 
 class Constraint(Definition):
@@ -723,11 +723,11 @@ def constraint(
     return wrapper
 
 
-ObjectiveSense = Literal["max", "min"]
+type ObjectiveSense = Literal["max", "min"]
 """Optimization direction"""
 
 
-ObjectiveMethod = Callable[[_M], Expression]
+type ObjectiveMethod = Callable[[_M], Expression]
 """Optimization target expression"""
 
 

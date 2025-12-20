@@ -22,7 +22,7 @@ from .identifiers import (
 _logger = logging.getLogger(__name__)
 
 
-DefinitionCategory = Literal[
+type DefinitionCategory = Literal[
     "ALIAS",
     "CONSTRAINT",
     "DIMENSION",

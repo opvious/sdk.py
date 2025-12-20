@@ -10,7 +10,7 @@ from typing import Any, TypeVar
 _V = TypeVar("_V")
 
 
-Quantified = Iterator[_V]
+type Quantified = Iterator[_V]
 
 
 def _run_quantified(quantified: Quantified[_V]) -> _V:

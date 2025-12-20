@@ -12,10 +12,10 @@ from typing import (
 from ..common import Label
 
 
-Name = str
+type Name = str
 
 
-Environment = KeysView[Name]
+type Environment = KeysView[Name]
 
 
 @dataclasses.dataclass(eq=False, frozen=True)

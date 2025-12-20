@@ -8,7 +8,7 @@ from .local import (
 )
 
 
-Specification = (
+type Specification = (
     LocalSpecification | RemoteSpecification | FormulationSpecification
 )
 
