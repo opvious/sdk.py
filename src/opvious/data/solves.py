@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import collections
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 import dataclasses
 import math
 from typing import Any, Optional, Union, cast
@@ -217,46 +217,52 @@ class SolveOutputs:
     def variable(self, label: Label) -> pd.DataFrame:
         """Returns variable results for a given label
 
-        The returned dataframe has two columns: `value` and `dual_value`.
+        The returned dataframe always has a `value` column with the variable's
+        values (0 values may be omitted). If applicable, it will also have a
+        `dual_value` column.
         """
         for res in self.raw_variables:
             if res["label"] == label:
-                entries = res["entries"]
-                bindings = self.problem_outline.variables[label].bindings
-                df = pd.DataFrame(
-                    data=(
-                        {
-                            "value": decode_extended_float(e["value"]),
-                            "dual_value": e.get("dualValue"),
-                        }
-                        for e in entries
-                    ),
-                    index=_entry_index(entries, bindings),
+                return _output_dataframe(
+                    res["entries"],
+                    self.problem_outline.variables[label].bindings,
                 )
-                return df.dropna(axis=1, how="all").fillna(0)
         raise Exception(f"Unknown variable {label}")
 
     def constraint(self, label: Label) -> pd.DataFrame:
         """Returns constraint results for a given label.
 
-        The returned dataframe has two columsn: `slack` and `dual_value`.
+        The returned dataframe always has a `slack` column with the
+        constraint's slack (0 values may be omitted). If applicable, it will
+        also have a `dual_value` column.
         """
         for res in self.raw_constraints:
             if res["label"] == label:
-                entries = res["entries"]
-                outline = self.problem_outline.constraints[label]
-                df = pd.DataFrame(
-                    data=(
-                        {
-                            "slack": e["value"],
-                            "dual_value": e.get("dualValue"),
-                        }
-                        for e in entries
-                    ),
-                    index=_entry_index(entries, outline.bindings),
+                return _output_dataframe(
+                    res["entries"],
+                    self.problem_outline.constraints[label].bindings,
+                    value_name="slack",
                 )
-                return df.dropna(axis=1, how="all").fillna(0)
         raise Exception(f"Unknown constraint {label}")
+
+
+def _output_dataframe(
+    entries: Iterator[Any],
+    bindings,
+    value_name: str = "value",
+) -> pd.DataFrame:
+    df = pd.DataFrame(
+        data=(
+            (decode_extended_float(e["value"]), e.get("dualValue"))
+            for e in entries
+        ),
+        columns=[value_name, "dual_value"],
+        index=_entry_index(entries, bindings),
+    )
+    if df["dual_value"].isnull().all():
+        df.drop("dual_value", axis=1)
+    df.fillna(0, inplace=True)
+    return df
 
 
 def _outputs_from_json(data, outline: ProblemOutline) -> SolveOutputs:
