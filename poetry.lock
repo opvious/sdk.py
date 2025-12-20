@@ -778,15 +778,15 @@ files = [
 ]
 
 [[package]]
-name = "docopt"
-version = "0.6.2"
-description = "Pythonic argument parser, that will make you smile"
+name = "docopt-ng"
+version = "0.9.0"
+description = "Jazzband-maintained fork of docopt, the humane command line arguments parser."
 optional = true
-python-versions = "*"
+python-versions = ">=3.7"
 groups = ["main"]
-markers = "extra == \"cli\""
 files = [
-    {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
+    {file = "docopt_ng-0.9.0-py3-none-any.whl", hash = "sha256:bfe4c8b03f9fca424c24ee0b4ffa84bf7391cb18c29ce0f6a8227a3b01b81ff9"},
+    {file = "docopt_ng-0.9.0.tar.gz", hash = "sha256:91c6da10b5bb6f2e9e25345829fb8278c78af019f6fc40887ad49b060483b1d7"},
 ]
 
 [[package]]
@@ -3834,9 +3834,9 @@ multidict = ">=4.0"
 
 [extras]
 aio = ["aiohttp", "brotli", "lru-dict"]
-cli = ["docopt"]
+cli = []
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<4"
-content-hash = "45c44e6a113155df60835be8d32f19c5dd65a764cad65493789da8d0263342d0"
+content-hash = "2b4589178e9325ae07211886649d15c0d78b9a2fc7a93df0ab1cce0897a4edb9"
