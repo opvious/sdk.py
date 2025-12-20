@@ -1,7 +1,6 @@
 import base64
 import io
 import sys
-from typing import Optional
 
 import pandas as pd
 
@@ -36,7 +35,7 @@ __all__ = [
 
 
 def aiohttp_executor(
-    endpoint: str, authorization: Optional[str] = None
+    endpoint: str, authorization: str | None = None
 ) -> Executor:
     """Returns an `aiohttp`-powered executor"""
     from .aiohttp import AiohttpExecutor
@@ -45,7 +44,7 @@ def aiohttp_executor(
 
 
 def pyodide_executor(
-    endpoint: str, authorization: Optional[str] = None
+    endpoint: str, authorization: str | None = None
 ) -> Executor:
     """Returns a Pyodide-compatible executor"""
     from .pyodide import PyodideExecutor
@@ -54,7 +53,7 @@ def pyodide_executor(
 
 
 def urllib_executor(
-    endpoint: str, authorization: Optional[str] = None
+    endpoint: str, authorization: str | None = None
 ) -> Executor:
     """Returns a native `urllib` executor"""
     from .urllib import UrllibExecutor
@@ -68,7 +67,7 @@ def _is_using_pyodide():
 
 
 def default_executor(
-    endpoint: str, authorization: Optional[str] = None
+    endpoint: str, authorization: str | None = None
 ) -> Executor:
     """Infers the best executor for the current environment"""
     if _is_using_pyodide():

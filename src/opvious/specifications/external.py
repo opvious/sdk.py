@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Optional
 
 from ..executors import Executor, PlainTextExecutorResult
 
@@ -36,7 +35,7 @@ class FormulationSpecification:
     formulation_name: str
     """The corresponding formulation's name"""
 
-    tag_name: Optional[str] = None
+    tag_name: str | None = None
     """The matching tag's name
 
     If absent, the formulation's default will be used.

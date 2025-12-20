@@ -6,7 +6,7 @@ import enum
 import json
 import logging
 import os
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 
 from ..common import Json, Uuid, format_percent, json_dict
 from ..data.outcomes import FeasibleOutcome
@@ -31,7 +31,7 @@ class ClientSetting(enum.Enum):
     TOKEN = "OPVIOUS_TOKEN"
     EXECUTOR = "OPVIOUS_EXECUTOR"
 
-    def read(self, env: Optional[Mapping[str, str]] = None) -> str:
+    def read(self, env: Mapping[str, str] | None = None) -> str:
         """Read the setting's current value or default if missing
 
         Args:
@@ -67,8 +67,8 @@ class SolveInputsBuilder:
 
     def __init__(self, outline: ProblemOutline):
         self._outline = outline
-        self._dimensions: Dict[Label, Any] = {}
-        self._parameters: Dict[Label, Any] = {}
+        self._dimensions: dict[Label, Any] = {}
+        self._parameters: dict[Label, Any] = {}
         self.parameter_entry_count = 0
 
     def set_dimension(self, label: Label, arg: DimensionArgument) -> None:
@@ -249,7 +249,7 @@ class ProblemOutlineGenerator:
         return outline, context.get_json()
 
 
-def feasible_outcome_details(outcome: FeasibleOutcome) -> Optional[str]:
+def feasible_outcome_details(outcome: FeasibleOutcome) -> str | None:
     details = []
     if outcome.objective_value:
         details.append(f"objective={outcome.objective_value}")
@@ -265,27 +265,27 @@ class Problem:
     specification: Specification
     """Model :ref:`specification <specifications>`"""
 
-    parameters: Optional[Mapping[Label, TensorArgument]] = None
+    parameters: Mapping[Label, TensorArgument] | None = None
     """Input data, keyed by parameter label
 
     Values may be any value accepted by :meth:`.Tensor.from_argument` and must
     match the corresponding parameter's definition.
     """
 
-    dimensions: Optional[Mapping[Label, DimensionArgument]] = None
+    dimensions: Mapping[Label, DimensionArgument] | None = None
     """Dimension items, keyed by dimension label
 
     If omitted, these will be automatically inferred from the parameters.
     """
 
-    transformations: Optional[list[ProblemTransformation]] = None
+    transformations: list[ProblemTransformation] | None = None
     """Optional :ref:`transformations <transformations>`"""
 
-    strategy: Optional[SolveStrategy] = None
+    strategy: SolveStrategy | None = None
     """Optional :ref:`multi-objective strategy <multi-objective strategies>`
 
     This argument is required if the problem has two or more objectives.
     """
 
-    options: Optional[SolveOptions] = None
+    options: SolveOptions | None = None
     """Optional solve options (gap thresholds, timeout, etc.)"""

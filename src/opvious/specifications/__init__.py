@@ -1,5 +1,3 @@
-from typing import Union
-
 from .external import FormulationSpecification, RemoteSpecification
 from .local import (
     LocalSpecification,
@@ -10,11 +8,9 @@ from .local import (
 )
 
 
-Specification = Union[
-    LocalSpecification,
-    RemoteSpecification,
-    FormulationSpecification,
-]
+Specification = (
+    LocalSpecification | RemoteSpecification | FormulationSpecification
+)
 
 
 __all__ = [

@@ -4,7 +4,7 @@ from collections.abc import Iterator
 import contextvars
 import dataclasses
 import itertools
-from typing import Any, Tuple, TypeVar
+from typing import Any, TypeVar
 
 
 _V = TypeVar("_V")
@@ -30,7 +30,7 @@ class _Scope:
 _active_scope: Any = contextvars.ContextVar("quantified_scope")
 
 
-def unquantify(quantified: Quantified[_V]) -> Tuple[_V, list[Any]]:
+def unquantify(quantified: Quantified[_V]) -> tuple[_V, list[Any]]:
     scope = _Scope([])
     token = _active_scope.set(scope)
     try:

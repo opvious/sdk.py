@@ -4,7 +4,7 @@ import dataclasses
 import json
 import os.path
 import sys
-from typing import Any, Optional
+from typing import Any
 
 import docopt
 
@@ -49,7 +49,7 @@ Options:
 
 class _SpecificationHandler:
     def __init__(
-        self, client: Client, tags: Optional[str] = None, dry_run=False
+        self, client: Client, tags: str | None = None, dry_run=False
     ) -> None:
         self._client = client
         self._tags = tags.split() if tags else None
@@ -83,8 +83,8 @@ class _SpecificationHandler:
     async def handle_notebook(
         self,
         path: str,
-        model_name: Optional[str],
-        name: Optional[str],
+        model_name: str | None,
+        name: str | None,
         allow_empty: bool,
     ) -> None:
         models = _load_notebook_models(path, model_name, allow_empty)
@@ -93,7 +93,7 @@ class _SpecificationHandler:
         _name, model = _singleton_model(models)
         await self._handle(model.specification(), name or _default_name(path))
 
-    async def handle_sources(self, glob: str, name: Optional[str]) -> None:
+    async def handle_sources(self, glob: str, name: str | None) -> None:
         if name is None:
             name = _default_name(glob)
         spec = LocalSpecification.globs(glob)
@@ -106,7 +106,7 @@ def _default_name(path: str) -> str:
 
 def _load_notebook_models(
     path: str,
-    model_name: Optional[str],
+    model_name: str | None,
     allow_empty: bool,
 ) -> dict[str, Model]:
     sn = load_notebook_models(path, allow_empty=allow_empty)
@@ -127,8 +127,8 @@ def _singleton_model(models: dict[str, Model]) -> tuple[str, Model]:
 async def _export_notebook_model(
     client: Client,
     notebook_path: str,
-    model_name: Optional[str] = None,
-    export_path: Optional[str] = None,
+    model_name: str | None = None,
+    export_path: str | None = None,
 ) -> None:
     # TODO: Support transformations by accepting an additional variable name.
     models = _load_notebook_models(

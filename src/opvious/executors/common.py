@@ -3,13 +3,7 @@ import contextlib
 import dataclasses
 import json
 import logging
-from typing import (
-    Any,
-    AsyncContextManager,
-    Optional,
-    Type,
-    TypeVar,
-)
+from typing import Any, TypeVar
 import urllib.parse
 
 from ..common import __version__
@@ -34,15 +28,15 @@ Headers = dict[str, str]
 class ExecutorError(Exception):
     """Local representation of an error during an executor's request"""
 
-    status: Optional[int]
-    trace: Optional[str]
-    reason: Optional[Any]
+    status: int | None
+    trace: str | None
+    reason: Any | None
 
     def __init__(
         self,
-        status: Optional[int] = None,
-        trace: Optional[str] = None,
-        reason: Optional[Any] = None,
+        status: int | None = None,
+        trace: str | None = None,
+        reason: Any | None = None,
     ) -> None:
         message = "Request errored"
         if status and status >= 400:
@@ -64,7 +58,7 @@ class ExecutorResult:
     status: int
     """Response HTTP status code"""
 
-    trace: Optional[str]
+    trace: str | None
     """Request trace ID"""
 
     def __post_init__(self):
@@ -82,13 +76,13 @@ class ExecutorResult:
     def content_type(self) -> str:
         raise NotImplementedError()
 
-    def _assert_status(self, status: int, text: Optional[str] = None) -> None:
+    def _assert_status(self, status: int, text: str | None = None) -> None:
         if self.status == status:
             return
         raise ExecutorError(status=self.status, trace=self.trace, reason=text)
 
     @classmethod
-    def is_eligible(cls, ctype: Optional[str]) -> bool:
+    def is_eligible(cls, ctype: str | None) -> bool:
         return bool(ctype and ctype.split(";")[0] == cls.content_type)
 
 
@@ -99,14 +93,14 @@ class PlainTextExecutorResult(ExecutorResult):
     content_type = "text/plain"
     reader: Any = dataclasses.field(repr=False)
 
-    async def text(self, assert_status: Optional[int] = None) -> str:
+    async def text(self, assert_status: int | None = None) -> str:
         lines = []
         async for line in self.lines(assert_status=assert_status):
             lines.append(line)
         return "".join(lines)
 
     async def lines(
-        self, assert_status: Optional[int] = 200
+        self, assert_status: int | None = 200
     ) -> AsyncIterator[str]:
         if assert_status:
             self._assert_status(assert_status)
@@ -160,7 +154,7 @@ class BinaryExecutorResult(ExecutorResult):
     reader: Any = dataclasses.field(repr=False)
 
     async def bytes(
-        self, assert_status: Optional[int] = 200
+        self, assert_status: int | None = 200
     ) -> AsyncIterator[bytes]:
         if assert_status:
             self._assert_status(assert_status)
@@ -233,7 +227,7 @@ class Executor:
         self,
         variant: str,
         endpoint: str,
-        authorization: Optional[str] = None,
+        authorization: str | None = None,
         supports_streaming=False,
     ):
         self._variant = variant
@@ -255,18 +249,18 @@ class Executor:
         return AUTHORIZATION_HEADER in self._root_headers
 
     def _send(
-        self, url: str, method: str, headers: Headers, body: Optional[bytes]
-    ) -> AsyncContextManager[ExecutorResult]:
+        self, url: str, method: str, headers: Headers, body: bytes | None
+    ) -> contextlib.AbstractAsyncContextManager[ExecutorResult]:
         raise NotImplementedError()
 
     @contextlib.asynccontextmanager
     async def execute(
         self,
-        result_type: Type[ExpectedExecutorResult],
+        result_type: type[ExpectedExecutorResult],
         url: str,
         method: str = "GET",
-        headers: Optional[Headers] = None,
-        json_data: Optional[Any] = None,
+        headers: Headers | None = None,
+        json_data: Any | None = None,
     ) -> AsyncIterator[ExpectedExecutorResult]:
         """Send a request"""
         full_url = urllib.parse.urljoin(self.endpoint, url)
@@ -322,7 +316,7 @@ class Executor:
     async def execute_graphql_query(
         self,
         query: str,
-        variables: Optional[Mapping[str, Any]] = None,
+        variables: Mapping[str, Any] | None = None,
     ) -> Any:
         """Send a GraphQL API request"""
         async with self.execute(

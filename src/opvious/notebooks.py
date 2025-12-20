@@ -3,7 +3,6 @@ import logging
 import os
 import threading
 import types
-from typing import Optional
 import warnings
 
 from .modeling import Model
@@ -14,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 def load_notebook_models(
     path: str,
-    root: Optional[str] = None,
+    root: str | None = None,
     allow_empty=False,
     include_classes=False,
     include_symbols: Sequence[str] = (),

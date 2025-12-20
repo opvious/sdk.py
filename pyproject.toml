@@ -112,7 +112,7 @@ select = [
   "SLF",
   "T20",
   "TD",
-  # "UP",
+  "UP",
   "W"
 ]
 ignore = [

@@ -7,7 +7,6 @@ import contextvars
 import dataclasses
 from typing import (
     Any,
-    Optional,
 )
 
 from ..common import Label
@@ -31,21 +30,21 @@ class Identifier:
 class GlobalIdentifier(Identifier):
     """Base class for non-local identifiers"""
 
-    name: Optional[Name]
+    name: Name | None
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class DimensionIdentifier(GlobalIdentifier):
     """Identifier pointing to a dimension"""
 
-    name: Optional[Name]
+    name: Name | None
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class TensorIdentifier(GlobalIdentifier):
     """Identifier pointing to a tensor"""
 
-    name: Optional[Name]
+    name: Name | None
     is_parameter: bool
 
 
@@ -74,7 +73,7 @@ class QuantifierIdentifier(Identifier):
 
     space: Any  # ScalarSpace
     groups: Sequence[QuantifierGroup]
-    name: Optional[Name]
+    name: Name | None
 
     @classmethod
     def base(cls, space: Any) -> QuantifierIdentifier:
@@ -85,13 +84,13 @@ class QuantifierIdentifier(Identifier):
             space=self.space, groups=[group, *self.groups]
         ).named(self.name)
 
-    def named(self, name: Optional[Name]) -> QuantifierIdentifier:
+    def named(self, name: Name | None) -> QuantifierIdentifier:
         if name is None or name == self.name:
             return self
         return _NamedQuantifierIdentifier(name=name, parent=self)
 
     @property
-    def outer_group(self) -> Optional[QuantifierGroup]:
+    def outer_group(self) -> QuantifierGroup | None:
         return self.groups[0] if self.groups else None
 
 
@@ -215,8 +214,8 @@ _active_scope: Any = contextvars.ContextVar("formatting_scope")
 @contextlib.contextmanager
 def global_formatting_scope(
     formatter: IdentifierFormatter,
-    reserved: Optional[Mapping[Name, GlobalIdentifier]] = None,
-) -> Generator[None, None, None]:
+    reserved: Mapping[Name, GlobalIdentifier] | None = None,
+) -> Generator[None]:
     scope = _active_scope.get(None)
     if scope:
         raise Exception("Identifier formatter already active")
@@ -236,7 +235,7 @@ def global_formatting_scope(
 @contextlib.contextmanager
 def local_formatting_scope(
     quantifiers: Iterable[QuantifierIdentifier],
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     scope = _active_scope.get(None)
     if not scope:
         raise Exception("Missing active formatter")
@@ -316,7 +315,7 @@ def _first_available(name: Name, env: Environment) -> Name:
     return name
 
 
-def _last_capital_index(label: Label) -> Optional[int]:
+def _last_capital_index(label: Label) -> int | None:
     j = None
     for i, c in enumerate(label):
         if c.isupper():

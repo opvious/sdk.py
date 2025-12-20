@@ -1,7 +1,6 @@
 from collections.abc import AsyncIterator
 import contextlib
 import logging
-from typing import Optional
 
 from pyodide.http import pyfetch  # type: ignore
 
@@ -24,14 +23,14 @@ _logger = logging.getLogger(__name__)
 class PyodideExecutor(Executor):
     """`pyodide`-powered executor"""
 
-    def __init__(self, endpoint: str, authorization: Optional[str] = None):
+    def __init__(self, endpoint: str, authorization: str | None = None):
         super().__init__(
             variant="pyodide", endpoint=endpoint, authorization=authorization
         )
 
     @contextlib.asynccontextmanager
     async def _send(
-        self, url: str, method: str, headers: Headers, body: Optional[bytes]
+        self, url: str, method: str, headers: Headers, body: bytes | None
     ) -> AsyncIterator[ExecutorResult]:
         res = await pyfetch(
             url=url,

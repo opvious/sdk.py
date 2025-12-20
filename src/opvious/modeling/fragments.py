@@ -6,8 +6,8 @@ common use-cases.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable, Iterable
+from typing import Any
 
 from ..common import method_decorator, untuple
 from .ast import (
@@ -48,7 +48,7 @@ class MaskedSubspace(ModelFragment):
     def __init__(
         self,
         *quantifiables: Quantifiable,
-        alias_name: Optional[Name] = None,
+        alias_name: Name | None = None,
     ) -> None:
         self._alias_name = alias_name
         self._quantifiables = quantifiables
@@ -91,7 +91,7 @@ class DerivedVariable(ModelFragment):
         self,
         body: Callable[..., Any],
         *quantifiables: Quantifiable,
-        name: Optional[Name] = None,
+        name: Name | None = None,
         image: Image = Image(),
     ) -> None:
         self._body = body
@@ -113,7 +113,7 @@ class DerivedVariable(ModelFragment):
 @method_decorator(require_call=True)
 def derived_variable(
     *quantifiables: Quantifiable,
-    name: Optional[Name] = None,
+    name: Name | None = None,
     image: Image = Image(),
 ) -> Callable[[TensorLike], DerivedVariable]:
     """Transforms a method into a :class:`DerivedVariable` fragment"""
@@ -147,8 +147,8 @@ class MagnitudeVariable(ModelFragment):
         self,
         tensor: TensorLike,
         *quantifiables: Quantifiable,
-        name: Optional[Name] = None,
-        image: Optional[Image] = None,
+        name: Name | None = None,
+        image: Image | None = None,
         projection: Projection = -1,
         lower_bound=True,
         upper_bound=True,
@@ -200,8 +200,8 @@ class MagnitudeVariable(ModelFragment):
 @method_decorator()
 def magnitude_variable(
     *quantifiables: Quantifiable,
-    name: Optional[Name] = None,
-    image: Optional[Image] = None,
+    name: Name | None = None,
+    image: Image | None = None,
     projection: Projection = -1,
     lower_bound=True,
     upper_bound=True,
@@ -256,9 +256,9 @@ class ActivationVariable(ModelFragment):
         cls,
         tensor: TensorLike,
         *quantifiables: Quantifiable,
-        upper_bound: Union[ExpressionLike, TensorLike, bool] = True,
-        lower_bound: Union[ExpressionLike, TensorLike, bool] = False,
-        name: Optional[Name] = None,
+        upper_bound: ExpressionLike | TensorLike | bool = True,
+        lower_bound: ExpressionLike | TensorLike | bool = False,
+        name: Name | None = None,
         negate=False,
         projection: Projection = -1,
     ) -> ActivationVariable:
@@ -328,7 +328,7 @@ class ActivationVariable(ModelFragment):
         raise NotImplementedError()
 
     @property
-    def activates(self) -> Optional[Constraint]:
+    def activates(self) -> Constraint | None:
         """Constraint ensuring that the activation variable activates
 
         This constraint enforces that the activation variable is set to 1 when
@@ -337,7 +337,7 @@ class ActivationVariable(ModelFragment):
         raise NotImplementedError()
 
     @property
-    def deactivates(self) -> Optional[Constraint]:
+    def deactivates(self) -> Constraint | None:
         """Constraint ensuring that the activation variable deactivates
 
         This constraint enforces that the activation variable is set to 0 when
@@ -353,9 +353,9 @@ class ActivationVariable(ModelFragment):
 @method_decorator(require_call=True)
 def activation_variable(
     *quantifiables: Quantifiable,
-    upper_bound: Union[ExpressionLike, TensorLike, bool] = True,
-    lower_bound: Union[ExpressionLike, TensorLike, bool] = False,
-    name: Optional[Name] = None,
+    upper_bound: ExpressionLike | TensorLike | bool = True,
+    lower_bound: ExpressionLike | TensorLike | bool = False,
+    name: Name | None = None,
     negate=False,
     projection: Projection = -1,
 ) -> Callable[[Callable[..., TensorLike]], ActivationVariable]:
@@ -400,11 +400,11 @@ class PiecewiseLinear(ModelFragment):
         tensor: TensorLike,
         *quantifiables: Quantifiable,
         assume_convex=False,
-        pieces_name: Optional[str] = None,
-        piece_count_name: Optional[str] = None,
-        component_name: Optional[str] = None,
-        factor_name: Optional[str] = None,
-        width_name: Optional[str] = None,
+        pieces_name: str | None = None,
+        piece_count_name: str | None = None,
+        component_name: str | None = None,
+        factor_name: str | None = None,
+        width_name: str | None = None,
     ) -> None:
         if not assume_convex:
             raise NotImplementedError()  # TODO: Implement.
@@ -480,11 +480,11 @@ class PiecewiseLinear(ModelFragment):
 def piecewise_linear(
     *quantifiables: Quantifiable,
     assume_convex=False,
-    pieces_name: Optional[str] = None,
-    piece_count_name: Optional[str] = None,
-    component_name: Optional[str] = None,
-    factor_name: Optional[str] = None,
-    width_name: Optional[str] = None,
+    pieces_name: str | None = None,
+    piece_count_name: str | None = None,
+    component_name: str | None = None,
+    factor_name: str | None = None,
+    width_name: str | None = None,
 ) -> Callable[[Callable[..., TensorLike]], PiecewiseLinear]:
     """Transforms a method into an :class:`PiecewiseLinear` fragment
 
@@ -539,11 +539,11 @@ class ActivatedVariable(ModelFragment):
         *quantifiables: Quantifiable,
         indicator: Tensor,
         indicator_projection: Projection = -1,
-        upper_bound: Union[ExpressionLike, None] = None,
+        upper_bound: ExpressionLike | None = None,
         force_activation: bool = True,
         force_deactivation: bool = True,
         negate: bool = False,
-        name: Optional[Name] = None,
+        name: Name | None = None,
     ) -> None:
         self._tensor = tensor
         self._indicator = indicator
@@ -607,9 +607,9 @@ def activated_variable(
     *quantifiables: Quantifiable,
     indicator: Tensor,
     indicator_projection: Projection = -1,
-    upper_bound: Union[ExpressionLike, TensorLike, None] = None,
+    upper_bound: ExpressionLike | TensorLike | None = None,
     negate: bool = False,
-    name: Optional[Name] = None,
+    name: Name | None = None,
 ) -> Callable[[Callable[..., TensorLike]], ActivationVariable]:
     """Wraps a method into an :class:`ActivatedVariable` fragment
 

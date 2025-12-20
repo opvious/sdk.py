@@ -4,7 +4,7 @@ import collections
 from collections.abc import Iterator, Mapping, Sequence
 import dataclasses
 import math
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -126,7 +126,7 @@ _SPARSITY = "sprs"
 
 
 def _labeled_dataframe(
-    gen: Any, multiplicities: Optional[Sequence[str]] = None
+    gen: Any, multiplicities: Sequence[str] | None = None
 ) -> pd.DataFrame:
     df = pd.DataFrame(gen)
     if not len(df):
@@ -178,7 +178,7 @@ class SolveInputs:
     raw_parameters: list[Any]
     """All parameters in raw format"""
 
-    raw_dimensions: Optional[list[Any]]
+    raw_dimensions: list[Any] | None
     """All dimensions in raw format"""
 
     def parameter(self, label: Label) -> pd.Series:
@@ -286,9 +286,7 @@ class Solution:
     problem_summary: ProblemSummary
     """Problem summary statistics"""
 
-    outputs: Optional[SolveOutputs] = dataclasses.field(
-        default=None, repr=False
-    )
+    outputs: SolveOutputs | None = dataclasses.field(default=None, repr=False)
     """Solution data, present iff the solution is feasible"""
 
     @property
@@ -300,7 +298,7 @@ class Solution:
 def solution_from_json(
     outline: ProblemOutline,
     response_json: Any,
-    problem_summary: Optional[ProblemSummary] = None,
+    problem_summary: ProblemSummary | None = None,
 ) -> Solution:
     outcome_json = response_json["outcome"]
     status = outcome_json["status"]
@@ -335,7 +333,7 @@ def solution_from_json(
 class SolveOptions:
     """Solving options"""
 
-    relative_gap_threshold: Optional[float] = None
+    relative_gap_threshold: float | None = None
     """Relative gap threshold below which a solution is considered optimal
 
     For example a value of 0.1 will cause a solution to be optimal when the
@@ -343,13 +341,13 @@ class SolveOptions:
     non-relative variant.
     """
 
-    absolute_gap_threshold: Optional[float] = None
+    absolute_gap_threshold: float | None = None
     """Absolute gap threshold below which a solution is considered optimal
 
     See also `relative_gap_threshold` for a relative variant.
     """
 
-    zero_value_threshold: Optional[float] = None
+    zero_value_threshold: float | None = None
     """Positive magnitude below which tensor values are assumed equal to zero
 
     This option is also used on solution results, causing values to be omitted
@@ -358,7 +356,7 @@ class SolveOptions:
     default is 1e-6.
     """
 
-    infinity_value_threshold: Optional[float] = None
+    infinity_value_threshold: float | None = None
     """Positive magnitude used to cap all input values
 
     It is illegal for the reified problem to include coefficients higher or
@@ -366,7 +364,7 @@ class SolveOptions:
     during reification. The default is 1e13.
     """
 
-    free_bound_threshold: Optional[float] = None
+    free_bound_threshold: float | None = None
     """Positive magnitude used to decide whether a bound is free
 
     This value should typically be slightly smaller to the infinity value
@@ -374,17 +372,17 @@ class SolveOptions:
     1e12.
     """
 
-    timeout_millis: Optional[float] = None
+    timeout_millis: float | None = None
     """Upper bound on solving time"""
 
 
-def solve_options_to_json(options: Optional[SolveOptions] = None) -> Json:
+def solve_options_to_json(options: SolveOptions | None = None) -> Json:
     if not options:
         return None
     return json_dict(**dataclasses.asdict(options or SolveOptions()))
 
 
-Target = Union[Label, Mapping[Label, float]]
+type Target = Label | Mapping[Label, float]
 """Target objective
 
 A single label is equivalent to optimizing just the objective with that label
@@ -413,10 +411,10 @@ class EpsilonConstraint:
     target: Target
     """Target objective"""
 
-    absolute_tolerance: Optional[float] = None
+    absolute_tolerance: float | None = None
     """Cap on the absolute value of the final solution vs optimal"""
 
-    relative_tolerance: Optional[float] = None
+    relative_tolerance: float | None = None
     """Cap on the relative value of the final solution vs optimal"""
 
 
@@ -427,7 +425,7 @@ class SolveStrategy:
     target: Target
     """Target objective"""
 
-    sense: Optional[ObjectiveSense] = None
+    sense: ObjectiveSense | None = None
     """Optimization sense"""
 
     epsilon_constraints: list[EpsilonConstraint] = dataclasses.field(
@@ -436,7 +434,7 @@ class SolveStrategy:
     """All epsilon-constraints to apply"""
 
     @classmethod
-    def equally_weighted_sum(cls, sense: Optional[ObjectiveSense] = None):
+    def equally_weighted_sum(cls, sense: ObjectiveSense | None = None):
         """Returns a strategy optimizing the sum of all objectives"""
         return SolveStrategy(
             target=collections.defaultdict(lambda: 1), sense=sense
@@ -444,7 +442,7 @@ class SolveStrategy:
 
 
 def solve_strategy_to_json(
-    strategy: Optional[SolveStrategy], outline: ProblemOutline
+    strategy: SolveStrategy | None, outline: ProblemOutline
 ) -> Json:
     if not strategy:
         return None
