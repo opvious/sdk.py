@@ -115,5 +115,5 @@ def solve_outcome_status(outcome: SolveOutcome) -> SolveStatus:
 class UnexpectedSolveOutcomeError(Exception):
     """The solve ended with an unexpected outcome"""
 
-    def __init__(self, outcome: SolveOutcome):
+    def __init__(self, outcome: SolveOutcome) -> None:
         self.outcome = outcome

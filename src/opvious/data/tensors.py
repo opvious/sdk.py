@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 import dataclasses
 import math
-from typing import Any
+from typing import Any, Self
 
 import pandas as pd
 
@@ -57,7 +57,7 @@ class Tensor:
         rank: int,
         is_indicator: bool = False,
         is_pin: bool = False,
-    ):
+    ) -> Self:
         """Creates a tensor from a variety of argument values
 
         In most cases you will not need to call this method directly: it is
@@ -127,14 +127,14 @@ class Tensor:
                 }
                 for key, value in data.items()
             ]
-        return Tensor(entries, encode_extended_float(default_value))
+        return cls(entries, encode_extended_float(default_value))
 
 
 class _Keyifier:
-    def __init__(self, rank: int):
+    def __init__(self, rank: int) -> None:
         self.rank = rank
 
-    def keyify(self, key):
+    def keyify(self, key: KeyItem | Key) -> Key:
         tup = tuple(key) if isinstance(key, list | tuple) else (key,)
         if len(tup) != self.rank:
             raise Exception(f"Invalid key rank: {len(tup)} != {self.rank}")

@@ -18,8 +18,8 @@ from .data.solves import Target
 class ProblemTransformationContext:
     """Context available to :class:`ProblemTransformation` instances"""
 
-    def __init__(self):
-        self._json = []
+    def __init__(self) -> None:
+        self._json = list[Json]()
 
     def add(self, kind: str, **kwargs) -> None:
         self.add_json(json_dict(kind=kind, **kwargs))

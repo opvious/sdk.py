@@ -187,7 +187,7 @@ class _Renderer:
         self,
         source: LocalSpecificationSource,
         _issues: Sequence[LocalSpecificationIssue] = (),
-        collapse=False,
+        collapse: bool=False,
     ) -> str:
         raise NotImplementedError()
 
@@ -229,7 +229,7 @@ class _HtmlDetailsRenderer(_Renderer):
         self,
         source: LocalSpecificationSource,
         issues: Sequence[LocalSpecificationIssue] = (),
-        collapse=False,
+        collapse: bool=False,
     ) -> str:
         summary = source.title
         if issues:
@@ -266,7 +266,7 @@ class LocalSpecificationStyle(enum.Enum):
         _default_renderer = self._renderer
 
     @staticmethod
-    def reset():
+    def reset() -> None:
         """Clear any rendering style override"""
         global _default_renderer  # noqa
         _default_renderer = None

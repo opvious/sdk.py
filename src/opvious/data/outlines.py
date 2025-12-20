@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 import dataclasses
-from typing import Literal
+from typing import Any, Literal
 
 from ..common import Json, decode_extended_float
 from .tensors import Value, is_value
@@ -170,5 +170,7 @@ def outline_from_json(data: Json) -> ProblemOutline:
     )
 
 
-def _map_outlines(from_json, data):
+def _map_outlines[O](
+    from_json: Callable[[Any], O], data: Any
+) -> Mapping[Label, O]:
     return {o["label"]: from_json(o) for o in data}

@@ -11,9 +11,11 @@ from typing import Any
 
 from ..common import method_decorator, untuple
 from .ast import (
+    IterableSpace,
     Projection,
     Quantifiable,
     Quantification,
+    Quantifier,
     cross,
     domain,
     lift,
@@ -89,7 +91,7 @@ class DerivedVariable(ModelFragment):
 
     def __init__(
         self,
-        body: Callable[..., Any],
+        body: TensorLike,
         *quantifiables: Quantifiable,
         name: Name | None = None,
         image: Image = Image(),
@@ -118,7 +120,7 @@ def derived_variable(
 ) -> Callable[[TensorLike], DerivedVariable]:
     """Transforms a method into a :class:`DerivedVariable` fragment"""
 
-    def wrapper(fn):
+    def wrapper(fn: TensorLike) -> DerivedVariable:
         return DerivedVariable(fn, quantifiables, name=name, image=image)
 
     return wrapper
@@ -150,8 +152,8 @@ class MagnitudeVariable(ModelFragment):
         name: Name | None = None,
         image: Image | None = None,
         projection: Projection = -1,
-        lower_bound=True,
-        upper_bound=True,
+        lower_bound: bool = True,
+        upper_bound: bool = True,
     ) -> None:
         if isinstance(tensor, Tensor):
             if not quantifiables:
@@ -173,7 +175,7 @@ class MagnitudeVariable(ModelFragment):
             name=name,
         )
 
-    def _quantification(self, lift=False):
+    def _quantification(self, lift: bool = False) -> Quantification:
         return cross(*self._domains, projection=self._projection, lift=lift)
 
     @property
@@ -203,16 +205,16 @@ def magnitude_variable(
     name: Name | None = None,
     image: Image | None = None,
     projection: Projection = -1,
-    lower_bound=True,
-    upper_bound=True,
-) -> Callable[[Callable[..., TensorLike]], MagnitudeVariable]:
+    lower_bound: bool = True,
+    upper_bound: bool = True,
+) -> Callable[[TensorLike], MagnitudeVariable]:
     """Transforms a method into a :class:`MagnitudeVariable` fragment
 
     Note that this method may alter the underlying method's call signature if a
     projection is specified.
     """
 
-    def wrapper(fn):
+    def wrapper(fn: TensorLike) -> MagnitudeVariable:
         return MagnitudeVariable(
             fn,
             *quantifiables,
@@ -259,17 +261,19 @@ class ActivationVariable(ModelFragment):
         upper_bound: ExpressionLike | TensorLike | bool = True,
         lower_bound: ExpressionLike | TensorLike | bool = False,
         name: Name | None = None,
-        negate=False,
+        negate: bool = False,
         projection: Projection = -1,
     ) -> ActivationVariable:
         if not quantifiables and isinstance(tensor, Tensor):
             quantifiables = tensor.quantifiables()
         domains = tuple(domain(q) for q in quantifiables)
 
-        def quantification(lift=False, projection=projection):
+        def quantification(
+            lift: bool=False, projection: Projection = projection
+        ) -> Quantification:
             return cross(*domains, projection=projection, lift=lift)
 
-        def tensor_image():
+        def tensor_image() -> Image:
             if not isinstance(tensor, Tensor):
                 raise ValueError(
                     f"Cannot infer bound for tensor-like {tensor}"
@@ -286,7 +290,7 @@ class ActivationVariable(ModelFragment):
                 return self.value(*subs)
 
             @constraint(disabled=upper_bound is False)
-            def activates(self):
+            def activates(self) -> Quantified:
                 bound = upper_bound
                 for cp in quantification(lift=True):
                     if callable(bound):
@@ -297,7 +301,7 @@ class ActivationVariable(ModelFragment):
                     yield bound * value >= tensor(*cp.lifted)
 
             @constraint(disabled=lower_bound is False)
-            def deactivates(self):
+            def deactivates(self) -> Quantified:
                 bound = lower_bound
                 for cp in quantification():
                     if projection >= 0:
@@ -356,9 +360,9 @@ def activation_variable(
     upper_bound: ExpressionLike | TensorLike | bool = True,
     lower_bound: ExpressionLike | TensorLike | bool = False,
     name: Name | None = None,
-    negate=False,
+    negate: bool=False,
     projection: Projection = -1,
-) -> Callable[[Callable[..., TensorLike]], ActivationVariable]:
+) -> Callable[[TensorLike], ActivationVariable]:
     """Transforms a method into an :class:`ActivationVariable` fragment
 
     Note that this method may alter the underlying method's call signature if a
@@ -366,7 +370,7 @@ def activation_variable(
     documentation.
     """
 
-    def wrapper(fn):
+    def wrapper(fn: TensorLike) -> ActivationVariable:
         return ActivationVariable(
             fn,
             *quantifiables,
@@ -399,7 +403,7 @@ class PiecewiseLinear(ModelFragment):
         self,
         tensor: TensorLike,
         *quantifiables: Quantifiable,
-        assume_convex=False,
+        assume_convex: bool=False,
         pieces_name: str | None = None,
         piece_count_name: str | None = None,
         component_name: str | None = None,
@@ -430,7 +434,7 @@ class PiecewiseLinear(ModelFragment):
         return self._piece_count
 
     @property
-    def pieces(self):
+    def pieces(self) -> IterableSpace[Quantifier]:
         return self._pieces
 
     @property
@@ -468,7 +472,7 @@ class PiecewiseLinear(ModelFragment):
             self._component(p, *subs) * self._factor(p) for p in self._pieces
         )
 
-    def total(self):
+    def total(self) -> Expression:
         """Returns the fully quantified piecewise-linear sum"""
         return total(
             self._component(*tp) * self._factor(tp[0])
@@ -479,19 +483,19 @@ class PiecewiseLinear(ModelFragment):
 @method_decorator(require_call=True)
 def piecewise_linear(
     *quantifiables: Quantifiable,
-    assume_convex=False,
+    assume_convex: bool=False,
     pieces_name: str | None = None,
     piece_count_name: str | None = None,
     component_name: str | None = None,
     factor_name: str | None = None,
     width_name: str | None = None,
-) -> Callable[[Callable[..., TensorLike]], PiecewiseLinear]:
+) -> Callable[[TensorLike], PiecewiseLinear]:
     """Transforms a method into an :class:`PiecewiseLinear` fragment
 
     See :class:`PiecewiseLinear` for argument documentation.
     """
 
-    def wrapper(fn):
+    def wrapper(fn: TensorLike) -> PiecewiseLinear:
         return PiecewiseLinear(
             fn,
             *quantifiables,
@@ -607,16 +611,16 @@ def activated_variable(
     *quantifiables: Quantifiable,
     indicator: Tensor,
     indicator_projection: Projection = -1,
-    upper_bound: ExpressionLike | TensorLike | None = None,
+    upper_bound: ExpressionLike | None = None,
     negate: bool = False,
     name: Name | None = None,
-) -> Callable[[Callable[..., TensorLike]], ActivationVariable]:
+) -> Callable[[TensorLike], ActivatedVariable]:
     """Wraps a method into an :class:`ActivatedVariable` fragment
 
     See :class:`ActivatedVariable` for argument documentation.
     """
 
-    def wrapper(fn):
+    def wrapper(fn: TensorLike) -> ActivatedVariable:
         return ActivatedVariable(
             fn,
             *quantifiables,

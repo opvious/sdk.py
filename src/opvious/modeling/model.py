@@ -233,7 +233,7 @@ class Model:
         dependencies: Iterable[Model] | None = None,
         prefix: Sequence[str] | None = None,
         title: str | None = None,
-    ):
+    ) -> None:
         self.__dependencies = list(dependencies) if dependencies else None
         self.__prefix = prefix
         self.__title = title
@@ -324,7 +324,7 @@ class Model:
         return LocalSpecification(sources=sources, description=self.__doc__)
 
 
-def _format_contents(contents, align):
+def _format_contents(contents: str, align: bool) -> str:
     if align:
         return f"$$\n\\begin{{align*}}\n{contents}\\end{{align*}}\n$$"
     return f"$$\n{contents.replace('&', '')}$$"
