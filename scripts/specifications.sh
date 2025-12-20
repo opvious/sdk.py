@@ -20,10 +20,10 @@ fail() { # MSG
 }
 
 register_specifications() {
-	for p in tests/opvious/notebooks/*.ipynb; do
+	for p in tests/notebooks/*.ipynb; do
 		poetry run python -m opvious register-notebook "$p"
 	done
-	for p in tests/opvious/sources/*.md; do
+	for p in tests/sources/*.md; do
 		poetry run python -m opvious register-sources "$p"
 	done
 }
