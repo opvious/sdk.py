@@ -522,6 +522,13 @@ class ActivatedVariable(ModelFragment):
         upper_bound: Tensor upper bound, can be omitted if `tensor` is a
             :class:`Tensor` instance
         negate: Negate the input indicator
+        force_activation: Add constraint to ensure that the derived variable is
+            at least equal to `tensor` when `indicator` is non-zero. You may
+            choose to omit this if the variable is already pushed up via other
+            constraints
+        force_deactivation: Add constraint to ensure that the derived variable
+            is equal to 0 when the indicator is zero. You may choose to omit
+            this if the variable is already pushed down via other constraints
     """
 
     default_definition = "value"
@@ -566,6 +573,11 @@ class ActivatedVariable(ModelFragment):
             *self._domains, projection=self._indicator_projection, lift=True
         )
 
+    @constraint
+    def is_at_most_tensor(self) -> Quantified:
+        for cp in self._quantification():
+            yield self.value(*cp.lifted) <= self._tensor(*cp.lifted)
+
     @constraint(lambda init, self: init(disabled=not self._force_deactivation))
     def deactivates(self) -> Quantified:
         for cp in self._quantification():
@@ -575,11 +587,6 @@ class ActivatedVariable(ModelFragment):
                 else self._indicator(*cp)
             )
             yield self.value(*cp.lifted) <= self._upper_bound * toggle
-
-    @constraint(lambda init, self: init(disabled=not self._force_deactivation))
-    def is_at_most_tensor(self) -> Quantified:
-        for cp in self._quantification():
-            yield self.value(*cp.lifted) <= self._tensor(*cp.lifted)
 
     @constraint(lambda init, self: init(disabled=not self._force_activation))
     def activates(self) -> Quantified:
