@@ -202,6 +202,7 @@ class Client:
 
         Args:
             specification: The specification to export
+            writer: Writable output
             transformations: Transformations to apply to the specification
         """
         sources = [s.text for s in specification.sources]
@@ -350,7 +351,7 @@ class Client:
     async def format_problem(
         self, problem: Problem, include_line_comments=False
     ) -> str:
-        """Returns the problem's annotated representation in `LP format`_
+        r"""Returns the problem's annotated representation in `LP format`_
 
         Args:
             problem: :class:`.Problem` instance to format
@@ -363,22 +364,22 @@ class Client:
         .. code-block::
 
             minimize
-              +1 inventory$1 \\ [day=0]
-              +1 inventory$2 \\ [day=1]
-              +1 inventory$3 \\ [day=2]
-              \\ ...
+              +1 inventory$1 \ [day=0]
+              +1 inventory$2 \ [day=1]
+              +1 inventory$3 \ [day=2]
+              \ ...
             subject to
-             inventoryPropagation$1: \\ [day=1]
-              +1 inventory$1 \\ [day=1]
-              -1 inventory$2 \\ [day=0]
-              -1 production$1 \\ [day=1]
+             inventoryPropagation$1: \ [day=1]
+              +1 inventory$1 \ [day=1]
+              -1 inventory$2 \ [day=0]
+              -1 production$1 \ [day=1]
               = -29
-             inventoryPropagation$2: \\ [day=2]
-              -1 inventory$1 \\ [day=1]
-              +1 inventory$3 \\ [day=2]
-              -1 production$2 \\ [day=2]
+             inventoryPropagation$2: \ [day=2]
+              -1 inventory$1 \ [day=1]
+              +1 inventory$3 \ [day=2]
+              -1 production$2 \ [day=2]
               = -36
-             \\ ...
+             \ ...
 
         .. _LP format: https://web.mit.edu/lpsolve/doc/CPLEX-format.htm
         """
@@ -542,6 +543,8 @@ class Client:
 
         Args:
             problem: :class:`.Problem` instance to solve
+            annotations: Optional annotations to tag the solve with. These can
+                be used later to filter solves
 
         The returned :class:`QueuedSolve` instance can be used to:
 

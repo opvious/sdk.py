@@ -63,6 +63,8 @@ def log_progress(logger: logging.Logger, progress: Json) -> None:
 
 
 class SolveInputsBuilder:
+    """Convenience class for building :class:`SolveInputs`"""
+
     def __init__(self, outline: ProblemOutline):
         self._outline = outline
         self._dimensions: Dict[Label, Any] = {}

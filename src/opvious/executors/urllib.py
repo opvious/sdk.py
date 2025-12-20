@@ -22,8 +22,9 @@ _logger = logging.getLogger(__name__)
 
 
 class UrllibExecutor(Executor):
-    """`urllib`-powered executor, used as fallback. When possible, prefer using
-    the `aiohttp` equivalent.
+    """`urllib`-powered executor, used as fallback
+
+    When possible, prefer using the `aiohttp` equivalent.
     """
 
     def __init__(self, endpoint: str, authorization: Optional[str] = None):

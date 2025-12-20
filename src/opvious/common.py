@@ -206,6 +206,8 @@ def method_decorator(require_call=False):
 
 
 class Bindable:
+    """Container for decorated instance attributes"""
+
     def __init__(
         self, body: Callable[..., Any], wrapper: Callable[..., Any], lazy=False
     ) -> None:

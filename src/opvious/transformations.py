@@ -16,6 +16,8 @@ from .data.solves import Target
 
 
 class ProblemTransformationContext:
+    """Context available to :class:`ProblemTransformation` instances"""
+
     def __init__(self):
         self._json = []
 

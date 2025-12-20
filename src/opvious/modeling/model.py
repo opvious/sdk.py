@@ -65,11 +65,11 @@ class Definition:
 
 
 class ModelFragment:
-    """Reusable model sub-component
+    r"""Reusable model sub-component
 
     Model fragments are useful to group related definitions together and expose
     them in a reusable way. See :ref:`the API reference
-    <\\`opvious.modeling.fragments\\`>` for the list of available fragments.
+    <\`opvious.modeling.fragments\`>` for the list of available fragments.
     """
 
     @property
