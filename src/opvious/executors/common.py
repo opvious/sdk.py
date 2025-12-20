@@ -21,7 +21,7 @@ AUTHORIZATION_HEADER = "authorization"
 CONTENT_TYPE_HEADER = "content-type"
 
 
-Headers = dict[str, str]
+type Headers = dict[str, str]
 
 
 @dataclasses.dataclass(init=False)

@@ -4,16 +4,13 @@ from collections.abc import Iterator
 import contextvars
 import dataclasses
 import itertools
-from typing import Any, TypeVar
+from typing import Any
 
 
-_V = TypeVar("_V")
+type Quantified[V] = Iterator[V]
 
 
-type Quantified = Iterator[_V]
-
-
-def _run_quantified(quantified: Quantified[_V]) -> _V:
+def _run_quantified[V](quantified: Quantified[V]) -> V:
     elems = list(itertools.islice(quantified, 2))
     if not elems:
         raise ValueError("Empty quantified")
@@ -30,7 +27,7 @@ class _Scope:
 _active_scope: Any = contextvars.ContextVar("quantified_scope")
 
 
-def unquantify(quantified: Quantified[_V]) -> tuple[_V, list[Any]]:
+def unquantify[V](quantified: Quantified[V]) -> tuple[V, list[Any]]:
     scope = _Scope([])
     token = _active_scope.set(scope)
     try:

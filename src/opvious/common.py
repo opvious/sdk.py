@@ -3,7 +3,7 @@ from datetime import datetime
 import functools
 from importlib import metadata
 import math
-from typing import Any, TypeVar
+from typing import Any
 import urllib.parse
 import weakref
 
@@ -20,11 +20,7 @@ del metadata
 type Uuid = str
 
 
-_V = TypeVar("_V", contravariant=True)
-_R = TypeVar("_R", covariant=True)
-
-
-def if_present(arg: _V | None, fn: Callable[[_V], _R]) -> _R | None:
+def if_present[V, R](arg: V | None, fn: Callable[[V], R]) -> R | None:
     return None if arg is None else fn(arg)
 
 

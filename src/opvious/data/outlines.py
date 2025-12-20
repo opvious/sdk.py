@@ -9,7 +9,7 @@ from .tensors import Value, is_value
 
 
 #: Model name
-Label = str
+type Label = str
 """Model component name"""
 
 
@@ -31,7 +31,7 @@ def _source_binding_from_json(data: Json) -> SourceBinding:
     )
 
 
-ObjectiveSense = Literal[
+type ObjectiveSense = Literal[
     "MAXIMIZE",
     "MINIMIZE",
 ]

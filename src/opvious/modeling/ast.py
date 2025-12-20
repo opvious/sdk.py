@@ -5,13 +5,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 import dataclasses
 import itertools
 import math
-from typing import (
-    Any,
-    Protocol,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Any, Protocol, cast, overload
 
 from ..common import untuple
 from .identifiers import (
@@ -420,10 +414,7 @@ class Quantifier(Expression):
         return self.identifier.format()
 
 
-_Q = TypeVar("_Q", bound=Quantifier | Sequence[Quantifier], covariant=True)
-
-
-class IterableSpace(Protocol[_Q]):
+class IterableSpace[Q: Quantifier | Sequence[Quantifier]](Protocol):
     """Base protocol for spaces which can also be directly iterated on
 
     It is exposed mostly as a typing convenience for typing model fragments.
@@ -437,7 +428,7 @@ class IterableSpace(Protocol[_Q]):
     def __rmul__(self, other: Quantifiable) -> Quantification:
         raise NotImplementedError()
 
-    def __iter__(self) -> Iterator[_Q]:
+    def __iter__(self) -> Iterator[Q]:
         raise NotImplementedError()
 
 
@@ -550,10 +541,7 @@ type Quantifiable = (
 )
 
 
-_V = TypeVar("_V")
-
-
-def within_domain(quantified: Quantified[_V]) -> tuple[_V, Domain]:
+def within_domain[V](quantified: Quantified[V]) -> tuple[V, Domain]:
     value, declarations = unquantify(quantified)
     quantifiers: list[QuantifierIdentifier] = []
     mask: Predicate | None = None
@@ -600,7 +588,7 @@ def _isomorphic(
     return collections.Counter(qs1) == collections.Counter(qs2)
 
 
-Projection = int
+type Projection = int
 
 
 @dataclasses.dataclass(frozen=True)

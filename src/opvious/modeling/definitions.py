@@ -10,7 +10,6 @@ import math
 from typing import (
     Any,
     Literal,
-    TypeVar,
     overload,
 )
 
@@ -193,9 +192,6 @@ class Image:
 type TensorLike = Callable[..., Expression]
 
 
-_T = TypeVar("_T", bound="Tensor")
-
-
 class Tensor(Definition):
     """Base tensor class
 
@@ -240,56 +236,56 @@ class Tensor(Definition):
         self.qualifiers = qualifiers
 
     @classmethod
-    def continuous(
-        cls: type[_T],
+    def continuous[T: Tensor](
+        cls: type[T],
         *quantifiables,
         lower_bound: ExpressionLike = -math.inf,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with real image"""
         image = Image(lower_bound=lower_bound, upper_bound=upper_bound)
         return cls(image, *quantifiables, **kwargs)
 
     @classmethod
-    def non_negative(
-        cls: type[_T],
+    def non_negative[T: Tensor](
+        cls: type[T],
         *quantifiables,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with non-negative real image"""
         return cls.continuous(
             *quantifiables, lower_bound=0, upper_bound=upper_bound, **kwargs
         )
 
     @classmethod
-    def non_positive(
-        cls: type[_T],
+    def non_positive[T: Tensor](
+        cls: type[T],
         *quantifiables,
         lower_bound: ExpressionLike = -math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with non-positive real image"""
         return cls.continuous(
             *quantifiables, lower_bound=lower_bound, upper_bound=0, **kwargs
         )
 
     @classmethod
-    def unit(cls: type[_T], *quantifiables, **kwargs) -> _T:
+    def unit[T: Tensor](cls: type[T], *quantifiables, **kwargs) -> T:
         """Returns a tensor with `[0, 1]` real image"""
         return cls.continuous(
             *quantifiables, lower_bound=0, upper_bound=1, **kwargs
         )
 
     @classmethod
-    def discrete(
-        cls: type[_T],
+    def discrete[T: Tensor](
+        cls: type[T],
         *quantifiables,
         lower_bound: ExpressionLike = -math.inf,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with integral image"""
         image = Image(
             is_integral=True, lower_bound=lower_bound, upper_bound=upper_bound
@@ -297,19 +293,19 @@ class Tensor(Definition):
         return cls(image, *quantifiables, **kwargs)
 
     @classmethod
-    def natural(
-        cls: type[_T],
+    def natural[T: Tensor](
+        cls: type[T],
         *quantifiables,
         upper_bound: ExpressionLike = math.inf,
         **kwargs,
-    ) -> _T:
+    ) -> T:
         """Returns a tensor with non-negative integral image"""
         return cls.discrete(
             *quantifiables, lower_bound=0, upper_bound=upper_bound, **kwargs
         )
 
     @classmethod
-    def indicator(cls: type[_T], *quantifiables, **kwargs) -> _T:
+    def indicator[T: Tensor](cls: type[T], *quantifiables, **kwargs) -> T:
         """Returns a tensor with `{0, 1}` integral image"""
         return cls.discrete(
             *quantifiables, lower_bound=0, upper_bound=1, **kwargs
@@ -556,18 +552,12 @@ def _quantifier_identifier(arg: Any) -> QuantifierIdentifier:
     return arg.identifier
 
 
-_M = TypeVar("_M", bound=Model | ModelFragment, contravariant=True)
-
-
-_F = TypeVar("_F", bound=Callable[..., Expression | Quantifiable])
-
-
 @method_decorator()
-def alias(
+def alias[F: Callable[..., Expression | Quantifiable]](
     name: Name | None,
     *quantifiables: Quantifiable,
     quantifier_names: Iterable[Name] | None = None,
-) -> Callable[[_F], _F]:  # TODO: Tighten argument type
+) -> Callable[[F], F]:  # TODO: Tighten argument type
     """Decorator promoting a :class:`.Model` method to a named alias
 
     Args:
@@ -609,7 +599,9 @@ def alias(
     return wrapper
 
 
-type ConstraintMethod = Callable[[_M], Quantified[Predicate]]
+type ConstraintMethod[M: Model | ModelFragment] = Callable[
+    [M], Quantified[Predicate]
+]
 
 
 class Constraint(Definition):
@@ -727,7 +719,7 @@ type ObjectiveSense = Literal["max", "min"]
 """Optimization direction"""
 
 
-type ObjectiveMethod = Callable[[_M], Expression]
+type ObjectiveMethod[M: Model | ModelFragment] = Callable[[M], Expression]
 """Optimization target expression"""
 
 
