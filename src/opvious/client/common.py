@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, MutableMapping
 import dataclasses
 import enum
 import json
 import logging
 import os
-from typing import Any, Dict, Mapping, MutableMapping, Optional, cast
+from typing import Any, Dict, Optional, cast
 
 from ..common import Json, Uuid, format_percent, json_dict
 from ..data.outcomes import FeasibleOutcome

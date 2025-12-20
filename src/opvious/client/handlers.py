@@ -1,32 +1,24 @@
 from __future__ import annotations
 
-import backoff
+from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
 import json
 import logging
 from typing import (
-    AsyncIterator,
     BinaryIO,
-    Iterable,
-    Mapping,
     Optional,
-    Sequence,
     Union,
 )
+
+import backoff
 
 from ..common import (
     Annotation,
     Json,
-    encode_annotations,
     Uuid,
+    encode_annotations,
     format_percent,
     gather,
     json_dict,
-)
-from ..data.queued_solves import (
-    QueuedSolve,
-    queued_solve_from_graphql,
-    SolveNotification,
-    solve_notification_from_graphql,
 )
 from ..data.outcomes import (
     FailedOutcome,
@@ -38,14 +30,20 @@ from ..data.outcomes import (
     solve_outcome_status,
 )
 from ..data.outlines import ProblemOutline
+from ..data.queued_solves import (
+    QueuedSolve,
+    SolveNotification,
+    queued_solve_from_graphql,
+    solve_notification_from_graphql,
+)
 from ..data.solves import (
     ProblemSummary,
+    Solution,
     SolveInputs,
     SolveOutputs,
-    Solution,
     problem_summary_from_json,
-    solve_options_to_json,
     solution_from_json,
+    solve_options_to_json,
     solve_strategy_to_json,
 )
 from ..executors import (
@@ -101,8 +99,7 @@ class Client:
         endpoint: str,
         token: Optional[str] = None,
     ) -> Client:
-        """
-        Creates a client using the best :class:`.Executor` for the environment
+        """Creates a client using the best available :class:`.Executor`
 
         Args:
             endpoint: API endpoint.
@@ -122,8 +119,7 @@ class Client:
         env: Optional[Mapping[str, str]] = None,
         default_endpoint: Optional[str] = None,
     ) -> Optional[Client]:
-        """
-        Creates a client configured via environment variables
+        """Creates a client configured via environment variables
 
         Args:
             env: Environment, defaults to `os.environ`. The following keys
@@ -192,7 +188,7 @@ class Client:
             issues = [
                 local_specification_issue_from_json(e)
                 for e in data["errors"]
-                if not e["code"] in codes
+                if e["code"] not in codes
             ]
         return specification.annotated(issues)
 

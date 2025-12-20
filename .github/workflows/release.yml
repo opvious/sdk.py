@@ -11,14 +11,8 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Setup poetry
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: '1.2.2'
+      - name: Set up mise
+        uses: jdx/mise-action@v3
       - name: Extract version
         id: extract-version
         run: |
@@ -28,10 +22,7 @@ jobs:
       - name: Install dependencies
         run: poetry install --all-extras
       - name: Lint
-        run: |
-          poetry run black . --check
-          poetry run flake8
-          poetry run mypy .
+        run: poetry run poe lint
       - name: Set up API server
         uses: opvious/api-server-action@v0.2.0
         with:

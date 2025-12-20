@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Iterable, Mapping, Sequence
 import dataclasses
 import enum
 import glob
 import logging
 import os
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Optional
 
 from ..common import Json
 
@@ -88,8 +89,7 @@ _SUMMARY_STYLE = " ".join(
 
 @dataclasses.dataclass(frozen=True)
 class LocalSpecification:
-    """
-    A local model specification
+    """A local model specification
 
     Instances of this class are integrated with IPython's `rich display
     capabilities`_ and will automatically render their LaTeX sources when
@@ -97,8 +97,8 @@ class LocalSpecification:
 
     Note that this type of specification cannot be used to queue solves.
 
-    .. _rich display capabilities: https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display  # noqa
-    """
+    .. _rich display capabilities: https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
+    """  # noqa
 
     sources: Sequence[LocalSpecificationSource]
     """The model's mathematical source definitions"""
@@ -152,7 +152,7 @@ class LocalSpecification:
             for path in glob.iglob(like, root_dir=root, recursive=True):
                 if root:
                     path = os.path.join(root, path)
-                with open(path, "r", encoding="utf-8") as reader:
+                with open(path, encoding="utf-8") as reader:
                     sources.append(
                         LocalSpecificationSource(
                             text=reader.read(),
@@ -165,9 +165,9 @@ class LocalSpecification:
         self, issues: Iterable[LocalSpecificationIssue]
     ) -> LocalSpecification:
         count = 0
-        grouped: dict[
-            int, list[LocalSpecificationIssue]
-        ] = collections.defaultdict(list)
+        grouped: dict[int, list[LocalSpecificationIssue]] = (
+            collections.defaultdict(list)
+        )
         for issue in issues:
             count += 1
             grouped[issue.source_index].append(issue)
@@ -188,7 +188,7 @@ class _Renderer:
     def render_source(
         self,
         source: LocalSpecificationSource,
-        issues: Sequence[LocalSpecificationIssue] = (),
+        _issues: Sequence[LocalSpecificationIssue] = (),
         collapse=False,
     ) -> str:
         raise NotImplementedError()
@@ -201,8 +201,8 @@ class _MarkdownParagraphsRenderer(_Renderer):
     def render_source(
         self,
         source: LocalSpecificationSource,
-        issues: Sequence[LocalSpecificationIssue] = (),
-        collapse=False,
+        _issues: Sequence[LocalSpecificationIssue] = (),
+        _collapse: bool = False,
     ) -> str:
         return source.text
 
@@ -264,13 +264,13 @@ class LocalSpecificationStyle(enum.Enum):
 
     def enable(self) -> None:
         """Use this rendering style for all specifications"""
-        global _default_renderer
+        global _default_renderer  # noqa
         _default_renderer = self._renderer
 
     @staticmethod
-    def reset(cls):
+    def reset():
         """Clear any rendering style override"""
-        global _default_renderer
+        global _default_renderer  # noqa
         _default_renderer = None
 
 

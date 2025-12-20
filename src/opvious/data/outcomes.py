@@ -82,20 +82,21 @@ SolveOutcome = Union[
 
 
 def solve_outcome_from_graphql(data: Any) -> SolveOutcome:
-    status = data["status"]
-    if status == "ABORTED":
-        return cast(SolveOutcome, AbortedOutcome())
-    if status == "INFEASIBLE":
-        return InfeasibleOutcome()
-    if status == "UNBOUNDED":
-        return UnboundedOutcome()
-    if status == "FEASIBLE" or status == "OPTIMAL":
-        return FeasibleOutcome(
-            optimal=data["status"] == "OPTIMAL",
-            objective_value=data.get("objectiveValue"),
-            relative_gap=data.get("relativeGap"),
-        )
-    raise ValueError(f"Unexpected status: {status}")
+    match status := data["status"]:
+        case "ABORTED":
+            return cast(SolveOutcome, AbortedOutcome())
+        case "INFEASIBLE":
+            return InfeasibleOutcome()
+        case "UNBOUNDED":
+            return UnboundedOutcome()
+        case "FEASIBLE" | "OPTIMAL":
+            return FeasibleOutcome(
+                optimal=data["status"] == "OPTIMAL",
+                objective_value=data.get("objectiveValue"),
+                relative_gap=data.get("relativeGap"),
+            )
+        case _:
+            raise ValueError(f"Unexpected status: {status}")
 
 
 def solve_outcome_status(outcome: SolveOutcome) -> SolveStatus:

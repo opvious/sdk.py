@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator, Mapping
 import contextlib
 import dataclasses
 import json
@@ -5,10 +6,8 @@ import logging
 from typing import (
     Any,
     AsyncContextManager,
-    AsyncIterator,
-    Type,
-    Mapping,
     Optional,
+    Type,
     TypeVar,
 )
 import urllib.parse

@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Generator, Iterable, KeysView, Mapping, Sequence
 import contextlib
 import contextvars
 import dataclasses
 from typing import (
     Any,
-    Generator,
-    Iterable,
-    KeysView,
-    Mapping,
     Optional,
-    Sequence,
 )
 
 from ..common import Label

@@ -1,5 +1,6 @@
-import opvious
 import pytest
+
+import opvious
 
 
 om = opvious.modeling
@@ -278,9 +279,10 @@ class JobShopScheduling(om.Model):
     @om.constraint
     def one_active_task_per_machine(self):
         for t1, t2 in self.competing_tasks:
-            yield self.must_end_before(t1, t2) + self.must_start_after(
-                t1, t2
-            ) >= 1
+            yield (
+                self.must_end_before(t1, t2) + self.must_start_after(t1, t2)
+                >= 1
+            )
 
     @om.objective
     def minimize_horizon(self):
@@ -638,9 +640,13 @@ class TestModeling:
             def at_most_five_shifts_per_week(self):
                 for d in self.days:
                     if d < self.horizon() - 5:
-                        yield om.total(
-                            self.unscheduled(f) for f in om.interval(d, d + 6)
-                        ) >= 2
+                        yield (
+                            om.total(
+                                self.unscheduled(f)
+                                for f in om.interval(d, d + 6)
+                            )
+                            >= 2
+                        )
 
         model = _Model()
         spec = await client.annotate_specification(model.specification())

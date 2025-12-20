@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 import dataclasses
 import math
+from typing import Any, Tuple, Union
+
 import pandas as pd
-from typing import Any, Iterable, Mapping, Tuple, Union
 
 from ..common import ExtendedFloat, encode_extended_float
 
@@ -112,17 +114,16 @@ class Tensor:
             entries = [
                 {"key": keyifier.keyify(key), "value": 1} for key in data
             ]
+        elif is_value(data):
+            entries = [{"key": (), "value": encode_extended_float(data)}]
         else:
-            if is_value(data):
-                entries = [{"key": (), "value": encode_extended_float(data)}]
-            else:
-                entries = [
-                    {
-                        "key": keyifier.keyify(key),
-                        "value": encode_extended_float(value),
-                    }
-                    for key, value in data.items()
-                ]
+            entries = [
+                {
+                    "key": keyifier.keyify(key),
+                    "value": encode_extended_float(value),
+                }
+                for key, value in data.items()
+            ]
         return Tensor(entries, encode_extended_float(default_value))
 
 

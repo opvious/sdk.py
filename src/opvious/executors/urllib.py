@@ -1,19 +1,20 @@
+from collections.abc import AsyncIterator
 import contextlib
 import logging
+from typing import Optional
 import urllib.error
 import urllib.request
-from typing import AsyncIterator, Optional
 
 from .common import (
-    BinaryExecutorResult,
     CONTENT_TYPE_HEADER,
-    Headers,
+    TRACE_HEADER,
+    BinaryExecutorResult,
     Executor,
     ExecutorError,
     ExecutorResult,
+    Headers,
     JsonExecutorResult,
     PlainTextExecutorResult,
-    TRACE_HEADER,
 )
 
 
@@ -21,8 +22,7 @@ _logger = logging.getLogger(__name__)
 
 
 class UrllibExecutor(Executor):
-    """
-    `urllib`-powered executor, used as fallback. When possible, prefer using
+    """`urllib`-powered executor, used as fallback. When possible, prefer using
     the `aiohttp` equivalent.
     """
 

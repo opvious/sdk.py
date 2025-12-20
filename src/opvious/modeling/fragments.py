@@ -6,10 +6,11 @@ common use-cases.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Union
+from collections.abc import Iterable
+from typing import Any, Callable, Optional, Union
 
 from ..common import method_decorator, untuple
-from .ast import cross, domain, lift, Projection, Quantifiable, total
+from .ast import Projection, Quantifiable, cross, domain, lift, total
 from .definitions import (
     Constraint,
     Expression,

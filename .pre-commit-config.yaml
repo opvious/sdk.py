@@ -1,0 +1,21 @@
+repos:
+  - repo: local
+    hooks:
+      - id: poetry-lock
+        name: poetry lock
+        entry: poetry lock
+        language: system
+        pass_filenames: false
+        files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
+      - id: poetry-fix
+        name: poetry fix
+        entry: poetry run poe fix
+        language: system
+        require_serial: true
+        types: [python]
+      - id: shellcheck
+        name: Lint shell scripts
+        language: system
+        entry: shellcheck
+        types: [file, shell]
+        pass_filenames: true

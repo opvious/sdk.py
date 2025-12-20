@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 import dataclasses
 import itertools
 import math
 from typing import (
     Any,
-    Iterable,
-    Iterator,
-    Mapping,
     Optional,
     Protocol,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -23,11 +20,11 @@ from .identifiers import (
     AliasIdentifier,
     Identifier,
     Name,
-    local_formatting_scope,
     QuantifierGroup,
     QuantifierIdentifier,
+    local_formatting_scope,
 )
-from .quantified import Quantified, unquantify, declare
+from .quantified import Quantified, declare, unquantify
 
 
 def render_identifier(iden: Identifier, *subscripts: Expression) -> str:
@@ -354,7 +351,7 @@ class _SwitchCase:
 class _SwitchExpression(Expression):
     cases: Sequence[_SwitchCase]
 
-    def render(self, precedence=0) -> str:
+    def render(self, _precedence=0) -> str:
         cs: list[str] = []
         for c in self.cases:
             s = c.expression.render()
@@ -367,7 +364,6 @@ class _SwitchExpression(Expression):
 
 class Space:
     """Base quantification
-
 
     This class provides support for generating cross-products with the `*`
     operator (see :func:`~opvious.modeling.cross`):
@@ -575,7 +571,7 @@ def domain(
 
 
 def _domain_from_quantified(
-    quantified: Quantified[Union[Quantifier, Iterable[Quantifier]]]
+    quantified: Quantified[Union[Quantifier, Iterable[Quantifier]]],
 ) -> Domain:
     qs, domain = within_domain(quantified)
     if isinstance(qs, Quantifier):
@@ -615,12 +611,10 @@ class Cross(Sequence[Quantifier]):
         return len(self._quantifiers)
 
     @overload
-    def __getitem__(self, ix: int) -> Quantifier:
-        ...
+    def __getitem__(self, ix: int) -> Quantifier: ...
 
     @overload
-    def __getitem__(self, sl: slice) -> Sequence[Quantifier]:
-        ...
+    def __getitem__(self, sl: slice) -> Sequence[Quantifier]: ...
 
     def __getitem__(self, arg: Any) -> Any:
         return self._quantifiers[arg]
@@ -747,7 +741,7 @@ def size(quantifiable: Quantifiable) -> Expression:
 
 
 def switch(
-    *cases: Union[tuple[Predicate, ExpressionLike], ExpressionLike]
+    *cases: Union[tuple[Predicate, ExpressionLike], ExpressionLike],
 ) -> Expression:
     """Returns an expression allowing branching between different values
 

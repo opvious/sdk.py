@@ -1,11 +1,12 @@
+from collections.abc import Sequence
 import logging
 import os
 import threading
 import types
-from typing import Optional, Sequence
+from typing import Optional
 import warnings
 
-from ..modeling import Model
+from .modeling import Model
 
 
 _logger = logging.getLogger(__name__)

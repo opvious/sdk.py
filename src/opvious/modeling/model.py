@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Iterable, Mapping, Sequence
 import dataclasses
 import logging
 import os
+from typing import Any, Literal, Optional, Union
+
 import pandas as pd
-from typing import Any, Iterable, Literal, Mapping, Optional, Sequence, Union
 
 from ..common import Bindable, Label, to_camel_case
 from ..specifications.local import LocalSpecification, LocalSpecificationSource

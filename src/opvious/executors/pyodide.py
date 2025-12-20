@@ -1,18 +1,20 @@
+from collections.abc import AsyncIterator
 import contextlib
 import logging
+from typing import Optional
+
 from pyodide.http import pyfetch  # type: ignore
-from typing import AsyncIterator, Optional
 
 from .common import (
-    BinaryExecutorResult,
     CONTENT_TYPE_HEADER,
+    TRACE_HEADER,
+    BinaryExecutorResult,
     Executor,
     ExecutorError,
     ExecutorResult,
-    JsonExecutorResult,
     Headers,
+    JsonExecutorResult,
     PlainTextExecutorResult,
-    TRACE_HEADER,
 )
 
 
