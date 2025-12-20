@@ -14,7 +14,7 @@ requires = ['poetry-core']
 build-backend = 'poetry.core.masonry.api'
 
 [tool.poetry]
-version = '0.23.3rc1'
+version = '0.23.3rc2'
 packages = [{include = 'opvious', from = 'src'}]
 
 [tool.poetry.dependencies]
@@ -107,11 +107,11 @@ select = [
   "LOG",
   "N",
   "PL",
-  # "RUF",
+  "RUF",
   "SIM",
   "SLF",
   "T20",
-  # "TD",
+  "TD",
   # "UP",
   "W"
 ]
@@ -139,4 +139,4 @@ max-returns = 20
 
 [tool.ruff.lint.per-file-ignores]
 "__main__.py" = ["T20"]
-"tests/**" = ["ANN", "D", "SLF"]
+"tests/**" = ["ANN", "D", "RUF012", "SLF"]
