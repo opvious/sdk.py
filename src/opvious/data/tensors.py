@@ -68,6 +68,9 @@ class Tensor:
                 match the tensor's shape, see below for details.
             rank: The expected rank of the tensor
             is_indicator: Whether the tensor holds indicator values
+            is_pin: Whether the tensor corresponds to a pinned variable's
+                parameter. This changes the default value from zero to minus
+                infinity (unpinned).
 
         The accepted arguments depend on the tensor's domain rank (the length
         of its keys) and image (does it hold arbitrary numbers or only 0s/1s).

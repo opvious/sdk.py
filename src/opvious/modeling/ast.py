@@ -202,6 +202,8 @@ def to_expression(val: ExpressionLike) -> Expression:
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class ExpressionReference(Expression):
+    """A reference containing a (potentially subscripted) expression"""
+
     identifier: Identifier
     subscripts: tuple[Expression, ...]
 
@@ -268,6 +270,8 @@ class _BinaryExpression(Expression):
 
 @dataclasses.dataclass(frozen=True)
 class Domain:
+    """Quantification source"""
+
     quantifiers: tuple[QuantifierIdentifier, ...]
     mask: Optional[Predicate] = None
 
@@ -381,6 +385,8 @@ class Space:
 
 
 class ScalarSpace(Space):
+    """Space which can be iterated over"""
+
     def __iter__(self) -> Quantified[Quantifier]:
         return (untuple(t) for t in cross(self))
 
@@ -390,6 +396,8 @@ class ScalarSpace(Space):
 
 @dataclasses.dataclass(frozen=True)
 class QuantifiableReference(ScalarSpace):
+    """Reference to a quantification"""
+
     identifier: AliasIdentifier
     subscripts: tuple[Expression, ...]
     quantifiers: tuple[QuantifierIdentifier, ...]
@@ -438,7 +446,12 @@ class IterableSpace(Protocol[_Q]):
 
 
 def expression_space(expr: Expression) -> Optional[ScalarSpace]:
-    """Returns the underlying scalar quantifiable for an expression if any"""
+    """Returns the underlying scalar quantifiable for an expression if any
+
+    Args:
+        expr: Expression to extract the space for. Only :class:`Quantifier`
+            instances will have a non-`None` return value
+    """
     if isinstance(expr, Quantifier):
         return expr.identifier.space
     return None

@@ -21,39 +21,57 @@ Environment = KeysView[Name]
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class Identifier:
+    """A named entity"""
+
     def format(self) -> Name:
         """Generates the final name"""
         return _active_scope.get().format(self)
 
 
 class GlobalIdentifier(Identifier):
+    """Base class for non-local identifiers"""
+
     name: Optional[Name]
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class DimensionIdentifier(GlobalIdentifier):
+    """Identifier pointing to a dimension"""
+
     name: Optional[Name]
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class TensorIdentifier(GlobalIdentifier):
+    """Identifier pointing to a tensor"""
+
     name: Optional[Name]
     is_parameter: bool
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class AliasIdentifier(GlobalIdentifier):
+    """Identifier pointing to an alias"""
+
     name: Name
 
 
 @dataclasses.dataclass(eq=False, frozen=True)
 class QuantifierGroup:
+    """A group of quantifiers
+
+    This is used to support space aliases: the underlying identifiers will be
+    associated with groups for each alias they are derived from.
+    """
+
     alias: AliasIdentifier
     subscripts: tuple[Any, ...]
     rank: int
 
 
 class QuantifierIdentifier(Identifier):
+    """Identifier pointing to a quantifier"""
+
     space: Any  # ScalarSpace
     groups: Sequence[QuantifierGroup]
     name: Optional[Name]
@@ -99,6 +117,8 @@ class _NamedQuantifierIdentifier(QuantifierIdentifier):
 
 
 class IdentifierFormatter:
+    """Base class used to generate names for a model's identifiers"""
+
     def __init__(self, labels: Mapping[GlobalIdentifier, Label]) -> None:
         self._formatted: dict[GlobalIdentifier, bool] = {}
         self._labels = labels
@@ -231,6 +251,13 @@ def local_formatting_scope(
 
 
 class DefaultIdentifierFormatter(IdentifierFormatter):
+    """Default :class:`IdentifierFormatter` implementation
+
+    This class attempts to automatically generate unique names for all
+    identifiers by deriving them from their label and suffixing them with `'`
+    as needed to disambiguate.
+    """
+
     def __init__(self, labels: Mapping[GlobalIdentifier, Label]) -> None:
         super().__init__(labels)
 
