@@ -101,10 +101,12 @@ class DerivedVariable(ModelFragment):
 
     @property
     def value(self) -> Variable:
+        """The underlying :class:`~opvious.modeling.Variable`"""
         return self._value
 
     @constraint
     def is_defined(self) -> Quantified:
+        """Constraint enforcing equality with the underlying expression"""
         for t in self._value.space():
             yield self._value(*t) == self._body(*t)
 
@@ -180,7 +182,7 @@ class MagnitudeVariable(ModelFragment):
 
     @property
     def value(self) -> Variable:
-        """The magnitude variable"""
+        """The underlying :class:`~opvious.modeling.Variable`"""
         return self._value
 
     @constraint(lambda init, self: init(disabled=not self._lower_bound))
@@ -269,7 +271,7 @@ class ActivationVariable(ModelFragment):
         domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(
-            lift: bool=False, projection: Projection = projection
+            lift: bool = False, projection: Projection = projection
         ) -> Quantification:
             return cross(*domains, projection=projection, lift=lift)
 
@@ -360,7 +362,7 @@ def activation_variable(
     upper_bound: ExpressionLike | TensorLike | bool = True,
     lower_bound: ExpressionLike | TensorLike | bool = False,
     name: Name | None = None,
-    negate: bool=False,
+    negate: bool = False,
     projection: Projection = -1,
 ) -> Callable[[TensorLike], ActivationVariable]:
     """Transforms a method into an :class:`ActivationVariable` fragment
@@ -403,7 +405,7 @@ class PiecewiseLinear(ModelFragment):
         self,
         tensor: TensorLike,
         *quantifiables: Quantifiable,
-        assume_convex: bool=False,
+        assume_convex: bool = False,
         pieces_name: str | None = None,
         piece_count_name: str | None = None,
         component_name: str | None = None,
@@ -483,7 +485,7 @@ class PiecewiseLinear(ModelFragment):
 @method_decorator(require_call=True)
 def piecewise_linear(
     *quantifiables: Quantifiable,
-    assume_convex: bool=False,
+    assume_convex: bool = False,
     pieces_name: str | None = None,
     piece_count_name: str | None = None,
     component_name: str | None = None,
@@ -579,11 +581,16 @@ class ActivatedVariable(ModelFragment):
 
     @constraint
     def is_at_most_tensor(self) -> Quantified:
+        """Ensures that the derived variable does not exceed the input"""
         for cp in self._quantification():
             yield self.value(*cp.lifted) <= self._tensor(*cp.lifted)
 
     @constraint(lambda init, self: init(disabled=not self._force_deactivation))
     def deactivates(self) -> Quantified:
+        """Ensures that the derived variable is zero if the indicator is zero
+
+        This constraint will be omitted if `force_deactivation` is false.
+        """
         for cp in self._quantification():
             toggle = (
                 1 - self._indicator(*cp)
@@ -594,6 +601,10 @@ class ActivatedVariable(ModelFragment):
 
     @constraint(lambda init, self: init(disabled=not self._force_activation))
     def activates(self) -> Quantified:
+        """Ensures that the derived variable is equal to the tensor
+
+        This constraint will be omitted if `force_activation` is false.
+        """
         for cp in self._quantification():
             toggle = (
                 self._indicator(*cp)

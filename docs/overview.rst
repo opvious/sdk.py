@@ -89,15 +89,13 @@ For example the above specification will be displayed as:
 
 .. math::
 
-  \begin{align*}
-    \S^d_\mathrm{sets}&: S \\
-    \S^d_\mathrm{vertices}&: V \\
-    \S^p_\mathrm{covers}&: c \in \{0, 1\}^{S \times V} \\
-    \S^v_\mathrm{used}&: \psi \in \{0, 1\}^{S} \\
-    \S^c_\mathrm{allCovered}&:
-      \forall v \in V, \sum_{s \in S} \psi_{s} c_{s,v} \geq 1 \\
-    \S^o_\mathrm{minimizeUsed}&: \min \sum_{s \in S} \psi_{s} \\
-  \end{align*}
+  \S^d_\mathrm{sets}&: S \\
+  \S^d_\mathrm{vertices}&: V \\
+  \S^p_\mathrm{covers}&: c \in \{0, 1\}^{S \times V} \\
+  \S^v_\mathrm{used}&: \psi \in \{0, 1\}^{S} \\
+  \S^c_\mathrm{allCovered}&:
+    \forall v \in V, \sum_{s \in S} \psi_{s} c_{s,v} \geq 1 \\
+  \S^o_\mathrm{minimizeUsed}&: \min \sum_{s \in S} \psi_{s} \\
 
 We recommend also using the client's 
 :meth:`~opvious.Client.annotate_specification` method to validate specifications 
