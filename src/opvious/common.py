@@ -222,7 +222,8 @@ class Bindable:
         wrap = self._wrap(owner) if self._lazy else self._wrap
         body = functools.partial(self._body, owner) if bind else self._body
         wrapper = wrap(body)
-        functools.update_wrapper(wrapper, self._body)
+        if wrapper is not None:
+            functools.update_wrapper(wrapper, self._body)
         return wrapper
 
     def bound_to(self, owner: Any) -> Any:

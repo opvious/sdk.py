@@ -437,6 +437,7 @@ class PiecewiseLinear(ModelFragment):
 
     @property
     def pieces(self) -> IterableSpace[Quantifier]:
+        """The underlying pieces"""
         return self._pieces
 
     @property
