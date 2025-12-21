@@ -218,6 +218,10 @@ class Bindable:
         self._lazy = lazy
         self._bindings: Any = weakref.WeakKeyDictionary()
 
+    @property
+    def __doc__(self) -> str | None:
+        return self._body.__doc__
+
     def _apply(self, owner: Any, bind: bool = True) -> Any:
         wrap = self._wrap(owner) if self._lazy else self._wrap
         body = functools.partial(self._body, owner) if bind else self._body
