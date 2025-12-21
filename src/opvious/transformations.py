@@ -183,7 +183,7 @@ class DensifyVariables(ProblemTransformation):
         labels = self.labels
         if not labels:
             outline = await context.fetch_outline()
-            labels = list(outline.variables)
+            labels = [n for n, o in outline.variables.items() if o.is_integral]
         for label in labels:
             context.add("densifyVariable", label=label)
 
