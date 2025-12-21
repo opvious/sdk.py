@@ -150,7 +150,7 @@ _lambda = lambda: 0  # noqa
 
 
 def _is_lambda(fn: Callable[..., Any]) -> bool:
-    return fn.__name__ == _lambda.__name__
+    return getattr(fn, "__name__", None) == _lambda.__name__
 
 
 def capturing_instance(wrapper: Callable[..., Any]) -> Any:
@@ -167,10 +167,13 @@ def with_instance(consumer: Callable[..., Any]) -> Any:
     return wrap
 
 
-def method_decorator(require_call: bool = False) -> Any:
+def method_decorator[F: Callable[..., Any]](
+    require_call: bool = False,
+) -> Callable[[F], Any]:
     """Transforms a decorator into a method-friendly equivalent"""
 
-    def wrap_decorator(decorator: Callable[..., Any]) -> Any:
+    def wrap_decorator(decorator: F) -> Any:
+        @functools.wraps(decorator)
         def wrapped_decorator(*args: Any, **kwargs: Any) -> Any:
             arg = args[0] if args else None
             if callable(arg):
@@ -189,12 +192,13 @@ def method_decorator(require_call: bool = False) -> Any:
                     # No argument decorator
                     return Bindable(arg, decorator())
             else:
-            # Standard decorator creation
+                # Standard decorator creation
 
                 def wrap_method(meth: Any) -> Bindable:
                     return Bindable(meth, decorator(*args, **kwargs))
 
                 return wrap_method
+
         return wrapped_decorator
 
     return wrap_decorator
@@ -206,18 +210,21 @@ class Bindable:
     def __init__(
         self,
         body: Callable[..., Any],
-        wrapper: Callable[..., Any],
+        wrap: Callable[..., Any],
         lazy: bool = False,
     ) -> None:
         self._body = body
-        self._wrapper = wrapper
+        self._wrap = wrap
         self._lazy = lazy
         self._bindings: Any = weakref.WeakKeyDictionary()
 
     def _apply(self, owner: Any, bind: bool = True) -> Any:
-        wrapper = self._wrapper(owner) if self._lazy else self._wrapper
+        wrap = self._wrap(owner) if self._lazy else self._wrap
         body = functools.partial(self._body, owner) if bind else self._body
-        return wrapper(body)
+        wrapper = wrap(body)
+        if wrapper is not None:
+            functools.update_wrapper(wrapper, self._body)
+        return wrapper
 
     def bound_to(self, owner: Any) -> Any:
         binding = self._bindings.get(owner)
@@ -229,6 +236,8 @@ class Bindable:
         return binding
 
     def __get__(self, owner: Any, _objtype: Any = None) -> Any:
+        if owner is None:  # Accessed via the class
+            return self._body
         return self.bound_to(owner)
 
     def __call__(self, owner: Any, *args: Any, **kwargs: Any) -> Any:
