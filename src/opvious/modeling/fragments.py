@@ -524,7 +524,7 @@ class ActivatedVariable(ModelFragment):
         indicator_projection: Projection used to compute `indicator`'s
             subscripts
         upper_bound: Tensor upper bound, can be omitted if `tensor` is a
-            :class:`Tensor` instance
+            :class:`~opvious.modeling.Tensor` instance
         negate: Negate the input indicator
         force_activation: Add constraint to ensure that the derived variable is
             at least equal to `tensor` when `indicator` is non-zero. You may
