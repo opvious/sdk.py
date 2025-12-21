@@ -179,8 +179,13 @@ class DensifyVariables(ProblemTransformation):
     If empty, all integral variables will be densified.
     """
 
-    async def register(self, _context: ProblemTransformationContext) -> None:
-        raise NotImplementedError()  # TODO: Implement
+    async def register(self, context: ProblemTransformationContext) -> None:
+        labels = self.labels
+        if not labels:
+            outline = await context.fetch_outline()
+            labels = list(outline.variables)
+        for label in labels:
+            context.add("densifyVariable", label=label)
 
 
 @dataclasses.dataclass(frozen=True)

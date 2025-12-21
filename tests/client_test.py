@@ -188,6 +188,25 @@ class TestClient:
         assert isinstance(res.outcome, opvious.InfeasibleOutcome)
 
     @pytest.mark.asyncio
+    async def test_solve_densified_variables(self):
+        spec = opvious.LocalSpecification.inline(
+            r"""
+            $\S^{v}_{target}: \alpha \in \{0,1\}$
+            $\S^{c}_{greaterThanHalf}: \alpha \geq 0.5$
+            $\S^o_{minimize}: \min \alpha$
+            """
+        )
+        res = await client.solve(
+            opvious.Problem(
+                specification=spec,
+                transformations=[opvious.transformations.DensifyVariables()],
+            )
+        )
+        assert isinstance(res.outcome, opvious.FeasibleOutcome)
+        assert res.outcome.optimal
+        assert res.outcome.objective_value == pytest.approx(0.5)
+
+    @pytest.mark.asyncio
     async def test_solve_portfolio_selection(self):
         spec = opvious.LocalSpecification.inline(
             r"""
