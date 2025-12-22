@@ -14,7 +14,7 @@ requires = ['poetry-core']
 build-backend = 'poetry.core.masonry.api'
 
 [tool.poetry]
-version = '0.23.4rc2'
+version = '0.23.4rc3'
 packages = [{include = 'opvious', from = 'src'}]
 
 [tool.poetry.dependencies]
@@ -42,7 +42,7 @@ sphinx-rtd-theme = '^3.0.2'
 types-docopt = '^0.6.11.3'
 
 [tool.poetry.extras]
-aio = ['aiohttp', 'Brotli', 'lru-dict']
+aio = ['aiohttp', 'brotli', 'lru-dict']
 cli = ['docopt-ng']
 
 # Poe

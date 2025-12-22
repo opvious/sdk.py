@@ -216,18 +216,26 @@ class SolveOutputs:
     raw_constraints: list[Any]
     """All constraints in raw format"""
 
-    def variable(self, label: Label) -> pd.DataFrame:
+    def variable(self, label: Label, coerce: bool = True) -> pd.DataFrame:
         """Returns variable results for a given label
 
         The returned dataframe always has a `value` column with the variable's
         values (0 values may be omitted). If applicable, it will also have a
-        `dual_value` column.
+        `reduced_cost` column.
+
+        Args:
+            label: Variable label to retrieve
+            coerce: Round integral variables
         """
         for res in self.raw_variables:
             if res["label"] == label:
+                outline = self.problem_outline.variables[label]
                 return _output_dataframe(
                     res["entries"],
-                    self.problem_outline.variables[label].bindings,
+                    outline.bindings,
+                    value_name="value",
+                    dual_value_name="reduced_cost",
+                    round_values=coerce and outline.is_integral,
                 )
         raise Exception(f"Unknown variable {label}")
 
@@ -236,7 +244,7 @@ class SolveOutputs:
 
         The returned dataframe always has a `slack` column with the
         constraint's slack (0 values may be omitted). If applicable, it will
-        also have a `dual_value` column.
+        also have a `shadow_price` column.
         """
         for res in self.raw_constraints:
             if res["label"] == label:
@@ -244,6 +252,7 @@ class SolveOutputs:
                     res["entries"],
                     self.problem_outline.constraints[label].bindings,
                     value_name="slack",
+                    dual_value_name="shadow_price",
                 )
         raise Exception(f"Unknown constraint {label}")
 
@@ -251,18 +260,23 @@ class SolveOutputs:
 def _output_dataframe(
     entries: Sequence[Json],
     bindings: Sequence[SourceBinding],
-    value_name: str = "value",
+    *,
+    value_name: str,
+    dual_value_name: str,
+    round_values: bool = False,
 ) -> pd.DataFrame:
     df = pd.DataFrame(
         data=(
             (decode_extended_float(e["value"]), e.get("dualValue"))
             for e in entries
         ),
-        columns=[value_name, "dual_value"],
+        columns=[value_name, dual_value_name],
         index=_entry_index(entries, bindings),
     )
-    if df["dual_value"].isnull().all():
-        df.drop("dual_value", axis=1, inplace=True)
+    if df[dual_value_name].isnull().all():
+        df.drop(dual_value_name, axis=1, inplace=True)
+    if round_values:
+        df[value_name] = df[value_name].round(0).astype(np.int64)
     df.fillna(0, inplace=True)
     return df
 
