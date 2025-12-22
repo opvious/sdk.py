@@ -217,6 +217,7 @@ class Bindable:
         self._wrap = wrap
         self._lazy = lazy
         self._bindings: Any = weakref.WeakKeyDictionary()
+        self.__doc__ = self._body.__doc__
 
     def _apply(self, owner: Any, bind: bool = True) -> Any:
         wrap = self._wrap(owner) if self._lazy else self._wrap
