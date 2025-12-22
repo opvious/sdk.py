@@ -3848,4 +3848,4 @@ cli = ["docopt-ng"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4"
-content-hash = "db14845138286d0ef8c17df6e5423b4d8ad8cd55577e37dfac1836b7c876e769"
+content-hash = "4d32bca5d0d275540f6621a7c93e303e7454130f2f857f69d2eced3f34400c22"

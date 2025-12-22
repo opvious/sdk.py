@@ -89,7 +89,7 @@ class PinVariables(ProblemTransformation):
             context.add("pinVariable", label=label)
 
 
-RelaxationPenalty = Literal[
+type RelaxationPenalty = Literal[
     "TOTAL_DEVIATION",
     "MAX_DEVIATION",
     "DEVIATION_CARDINALITY",
