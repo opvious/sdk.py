@@ -6,6 +6,7 @@ instances.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 import dataclasses
 import math
 from typing import Literal
@@ -74,7 +75,7 @@ class PinVariables(ProblemTransformation):
     :class:`.RelaxConstraints`.
     """
 
-    labels: list[Label] = dataclasses.field(default_factory=lambda: [])
+    labels: Sequence[Label] = dataclasses.field(default_factory=lambda: [])
     """The labels of the variables to pin
 
     If empty, all variables will be pinned.
@@ -125,7 +126,7 @@ class RelaxConstraints(ProblemTransformation):
     aggregate slack violation (see :ref:`Detecting infeasibilities`).
     """
 
-    labels: list[Label] = dataclasses.field(default_factory=lambda: [])
+    labels: Sequence[Label] = dataclasses.field(default_factory=lambda: [])
     """The labels of the constraints to relax
 
     If empty, all constraints will be relaxed.
@@ -173,7 +174,7 @@ class RelaxConstraints(ProblemTransformation):
 class DensifyVariables(ProblemTransformation):
     """A transformation which updates one or more variables to be continuous"""
 
-    labels: list[Label] = dataclasses.field(default_factory=lambda: [])
+    labels: Sequence[Label] = dataclasses.field(default_factory=lambda: [])
     """The labels of the variables to densify
 
     If empty, all integral variables will be densified.
@@ -196,7 +197,7 @@ class OmitConstraints(ProblemTransformation):
     constraint or objective will automatically be dropped.
     """
 
-    labels: list[Label] = dataclasses.field(default_factory=lambda: [])
+    labels: Sequence[Label] = dataclasses.field(default_factory=lambda: [])
     """The labels of the constraints to drop
 
     If empty, all constraints will be dropped.
@@ -220,7 +221,7 @@ class OmitObjectives(ProblemTransformation):
     be dropped.
     """
 
-    labels: list[Label] = dataclasses.field(default_factory=lambda: [])
+    labels: Sequence[Label] = dataclasses.field(default_factory=lambda: [])
     """The labels of the objectives to drop
 
     If empty, all objectives will be dropped.

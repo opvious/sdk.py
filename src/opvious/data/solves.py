@@ -335,19 +335,19 @@ def solution_from_json(
     problem_summary: ProblemSummary | None = None,
 ) -> Solution:
     outcome_json = response_json["outcome"]
-    status = outcome_json["status"]
-    if status == "INFEASIBLE":
-        outcome = cast(SolveOutcome, InfeasibleOutcome())
-    elif status == "UNBOUNDED":
-        outcome = UnboundedOutcome()
-    elif status == "ABORTED":
-        outcome = AbortedOutcome()
-    else:
-        outcome = FeasibleOutcome(
-            optimal=status == "OPTIMAL",
-            objective_value=outcome_json.get("objectiveValue"),
-            relative_gap=outcome_json.get("relativeGap"),
-        )
+    match outcome_json["status"]:
+        case "INFEASIBLE":
+            outcome = cast(SolveOutcome, InfeasibleOutcome())
+        case "UNBOUNDED":
+            outcome = UnboundedOutcome()
+        case "ABORTED":
+            outcome = AbortedOutcome()
+        case status:
+            outcome = FeasibleOutcome(
+                is_optimal=status == "OPTIMAL",
+                objective_value=outcome_json.get("objectiveValue"),
+                relative_gap=outcome_json.get("relativeGap"),
+            )
     outputs = None
     if isinstance(outcome, FeasibleOutcome):
         outputs = _outputs_from_json(

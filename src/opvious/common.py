@@ -77,11 +77,13 @@ def encode_extended_float(val: ExtendedFloat) -> Json:
 
 
 def decode_extended_float(val: ExtendedFloat) -> Json:
-    if val == "Infinity":
-        return math.inf
-    elif val == "-Infinity":
-        return -math.inf
-    return val
+    match val:
+        case "Infinity":
+            return math.inf
+        case "-Infinity":
+            return -math.inf
+        case _:
+            return val
 
 
 def json_dict(**kwargs) -> Json:

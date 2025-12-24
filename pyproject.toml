@@ -14,7 +14,7 @@ requires = ['poetry-core']
 build-backend = 'poetry.core.masonry.api'
 
 [tool.poetry]
-version = '0.23.5rc1'
+version = '0.23.5rc2'
 packages = [{include = 'opvious', from = 'src'}]
 
 [tool.poetry.dependencies]
@@ -118,11 +118,7 @@ select = [
 ignore = [
   "ANN003", "ANN401",
   "D100", "D102", "D103", "D104", "D105", "D107", "D415",
-  "PLC0105",
-  "PLR2004",
-  "PLR0912",
-  "PLR0913",
-  "PLW2901",
+  "PLC0105", "PLR2004", "PLR0912", "PLR0913", "PLW2901",
   "RUF022",
   "TD002", "TD003",
 ]
