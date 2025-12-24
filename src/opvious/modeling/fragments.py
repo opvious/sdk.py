@@ -553,7 +553,11 @@ class ActivatedVariable(ModelFragment):
         self._force_deactivation = force_deactivation
 
         if upper_bound is None:
-            assert isinstance(tensor, Tensor)
+            if not isinstance(tensor, Tensor):
+                raise ValueError(
+                    f"Unable to infer activated variable upper bound: {tensor}"
+                    " is not a tensor. Please specify an explicit bound."
+                )
             upper_bound = tensor.image.upper_bound
         self._upper_bound = upper_bound
 

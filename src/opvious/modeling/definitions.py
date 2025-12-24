@@ -385,6 +385,7 @@ class Tensor(Definition):
 
 
 type ComposeFunction = Callable[[*tuple[Expression, ...]], Expression]
+"""Mapper function for use with :func:`compose`"""
 
 
 def compose(fn: ComposeFunction, *tensors: TensorLike) -> TensorLike:
@@ -393,9 +394,13 @@ def compose(fn: ComposeFunction, *tensors: TensorLike) -> TensorLike:
     This is particularly useful when creating model fragments which use
     tensor-likes as arguments. For example it can be used to flip the indicator
     in an :class:`~opvious.modeling.fragments.ActivatedVariable`.
+
+    Args:
+        fn: Function applied to the tensors' resulting epxressions'
+        tensors: Input tensors, they must all accept the same quantifiers
     """
     if not tensors:
-        raise ValueError("No tensors")
+        raise ValueError("No tensors to compose")
     return _Composed(fn, tensors)
 
 

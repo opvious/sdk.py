@@ -262,8 +262,6 @@ class JobShopScheduling(om.Model):
             upper_bound=self.duration.total(),
         )
     )
-    # t2 ends after t1 starts => 1
-    # 0 => t2 ends before t1 starts
     def may_start_before_end(self, t1, t2):
         return self.task_end(t2) - self.task_start(t1)
 
@@ -752,4 +750,37 @@ class TestModeling:
         spec = await client.annotate_specification(model.specification())
         text = spec.sources[0].text
         assert r"\alpha \in [0, 100]^{C \times P} " in text
+        assert spec.annotation.issue_count == 0
+
+    @pytest.mark.asyncio
+    async def test_compose(self):
+        class _Model(om.Model):
+            colors = om.Dimension()
+            disabled = om.Variable.indicator(colors)
+            count = om.Variable.natural(upper_bound=10)
+            value = om.Parameter.natural(colors)
+
+            @om.fragments.activated_variable(
+                colors,
+                indicator=om.compose(lambda x: 1-x, disabled),
+                upper_bound=count.image.upper_bound,
+            )
+            def enabled_count(self, _c):
+                return self.count()
+
+            @om.constraint
+            def exactly_one_disabled(self):
+                yield self.disabled.total() == 1
+
+            @om.objective
+            def maximize_value(self):
+                return om.total(
+                    self.enabled_count(c) * self.value(c)
+                    for c in self.colors
+                )
+
+        model = _Model()
+        spec = await client.annotate_specification(model.specification())
+        text = spec.sources[0].text
+        assert r"\left(1 - \delta_{c}\right)" in text
         assert spec.annotation.issue_count == 0
