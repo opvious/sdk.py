@@ -344,7 +344,7 @@ class Client:
             return problem_summary_from_json(res.json_data())
 
     async def format_problem(
-        self, problem: Problem, include_line_comments: bool=False
+        self, problem: Problem, include_line_comments: bool = False
     ) -> str:
         r"""Returns the problem's annotated representation in `LP format`_
 
@@ -397,8 +397,8 @@ class Client:
     async def solve(
         self,
         problem: Problem,
-        assert_feasible: bool=False,
-        prefer_streaming: bool=True,
+        assert_feasible: bool = False,
+        prefer_streaming: bool = True,
     ) -> Solution:
         """Solves an optimization problem remotely
 
@@ -632,7 +632,7 @@ class Client:
     async def wait_for_solve_outcome(
         self,
         uuid: Uuid,
-        assert_feasible: bool=False,
+        assert_feasible: bool = False,
     ) -> SolveOutcome:
         """Waits for the solve to complete and returns its outcome
 
@@ -839,12 +839,13 @@ class _SolveStreamSink:
                         summary["rowCount"],
                     )
             case "reified":
-                problem_summary = problem_summary_from_json(data["summary"])
+                summary = problem_summary_from_json(data["summary"])
                 _logger.info(
                     "Solving problem... [columns=%s, rows=%s]",
-                    problem_summary.column_count,
-                    problem_summary.row_count,
+                    summary.column_count,
+                    summary.row_count,
                 )
+                self.problem_summary = summary
             case "solving":
                 log_progress(_logger, data["progress"])
             case "denormalized":
