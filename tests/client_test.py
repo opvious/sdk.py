@@ -79,7 +79,7 @@ class TestClient:
         assert outcome.objective_value == 33
 
         input_data = await client.fetch_solve_inputs(uuid)
-        costs = input_data.parameter("costPerRecipe")
+        costs = input_data.parameter("costPerRecipe")["value"]
         assert costs.to_dict() == {
             "lasagna": 12,
             "pizza": 15,
@@ -171,6 +171,8 @@ class TestClient:
         assert solution.feasible
         assert solution.outcome.optimal
         assert solution.outcome.objective_value == 2
+        assert len(solution.inputs.parameter("bound")) == 1
+        assert len(solution.outputs.variable("target")) == 1
 
     @pytest.mark.asyncio
     async def test_solve_bounded_infeasible(self):
