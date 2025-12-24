@@ -625,6 +625,8 @@ def activated_variable(
     indicator_projection: Projection = -1,
     upper_bound: ExpressionLike | None = None,
     negate: bool = False,
+    force_activation: bool = True,
+    force_deactivation: bool = True,
     name: Name | None = None,
 ) -> Callable[[TensorLike], ActivatedVariable]:
     """Wraps a method into an :class:`ActivatedVariable` fragment
@@ -640,6 +642,8 @@ def activated_variable(
             indicator_projection=indicator_projection,
             upper_bound=upper_bound,
             negate=negate,
+            force_activation=force_activation,
+            force_deactivation=force_deactivation,
             name=name,
         )
 

@@ -19,6 +19,7 @@ from .outcomes import (
     UnboundedOutcome,
 )
 from .outlines import Label, ObjectiveSense, ProblemOutline, SourceBinding
+from .tensors import KeyItem
 
 
 @dataclasses.dataclass(frozen=True)
@@ -177,14 +178,19 @@ class SolveInputs:
     problem_outline: ProblemOutline
     """Target model metadata"""
 
-    raw_parameters: list[Json] = dataclasses.field(repr=False)
+    raw_parameters: Sequence[Json] = dataclasses.field(repr=False)
     """All parameters in raw format"""
 
-    raw_dimensions: list[Json] | None = dataclasses.field(repr=False)
+    raw_dimensions: Sequence[Json] | None = dataclasses.field(repr=False)
     """All dimensions in raw format"""
 
-    def parameter(self, label: Label, coerce: bool = True) -> pd.DataFrame:
-        """Returns the parameter for a given label as a pandas DataFrame
+    def parameter(
+        self,
+        label: Label,
+        coerce: bool = True,
+        index: pd.Index | Sequence[KeyItem] | None = None,
+    ) -> pd.DataFrame:
+        """Returns the parameter for a given label as a pandas dataframe
 
         The returned dataframe has a `value` column with the parameter's values
         (0 values may be omitted).
@@ -192,22 +198,38 @@ class SolveInputs:
         Args:
             label: Parameter label to retrieve
             coerce: Round integral parameters
+            index: Returned dataframe index
         """
         for param in self.raw_parameters:
             if param["label"] == label:
                 outline = self.problem_outline.parameters[label]
-                return _entries_dataframe(
+                return _tensor_dataframe(
                     param["entries"],
                     outline.bindings,
+                    index=index,
                     round_values=coerce and outline.is_integral,
                 )
         raise Exception(f"Unknown parameter: {label}")
 
     def dimension(self, label: Label) -> pd.Index:
         """Returns the dimension for a given label as a pandas Index"""
-        for dim in self.raw_dimensions or []:
-            if dim["label"] == label:
-                return pd.Index(dim["items"])
+        if self.raw_dimensions is not None:
+            for dim in self.raw_dimensions:
+                if dim["label"] == label:
+                    return pd.Index(dim["items"])
+        else:
+            items = set()
+            has_binding = False
+            for param in self.raw_parameters:
+                outline = self.problem_outline.parameters[param["label"]]
+                for i, binding in enumerate(outline.bindings):
+                    if binding.dimension_label != label:
+                        continue
+                    has_binding = True
+                    for entry in param["entries"]:
+                        items.add(entry["key"][i])
+            if has_binding:
+                return pd.Index(items).sort_values()
         raise Exception(f"Unknown dimension: {label}")
 
 
@@ -218,13 +240,18 @@ class SolveOutputs:
     problem_outline: ProblemOutline
     """Solved model metadata"""
 
-    raw_variables: list[Json] = dataclasses.field(repr=False)
+    raw_variables: Sequence[Json] = dataclasses.field(repr=False)
     """All variables in raw format"""
 
-    raw_constraints: list[Json] = dataclasses.field(repr=False)
+    raw_constraints: Sequence[Json] = dataclasses.field(repr=False)
     """All constraints in raw format"""
 
-    def variable(self, label: Label, coerce: bool = True) -> pd.DataFrame:
+    def variable(
+        self,
+        label: Label,
+        coerce: bool = True,
+        index: pd.Index | Sequence[KeyItem] | None = None,
+    ) -> pd.DataFrame:
         """Returns variable results for a given label
 
         The returned dataframe always has a `value` column with the variable's
@@ -234,14 +261,16 @@ class SolveOutputs:
         Args:
             label: Variable label to retrieve
             coerce: Round integral variables
+            index: Returned dataframe index
         """
         for res in self.raw_variables:
             if res["label"] == label:
                 outline = self.problem_outline.variables[label]
-                return _entries_dataframe(
+                return _tensor_dataframe(
                     res["entries"],
                     outline.bindings,
                     dual_value_name="reduced_cost",
+                    index=index,
                     round_values=coerce and outline.is_integral,
                 )
         raise Exception(f"Unknown variable {label}")
@@ -255,7 +284,7 @@ class SolveOutputs:
         """
         for res in self.raw_constraints:
             if res["label"] == label:
-                return _entries_dataframe(
+                return _tensor_dataframe(
                     res["entries"],
                     self.problem_outline.constraints[label].bindings,
                     value_name="slack",
@@ -264,20 +293,26 @@ class SolveOutputs:
         raise Exception(f"Unknown constraint {label}")
 
 
-def _entries_dataframe(
-    entries: Sequence[Json],
+def _tensor_dataframe(
+    tensor_json: Json,
     bindings: Sequence[SourceBinding],
     *,
     value_name: str = "value",
     dual_value_name: str | None = None,
+    index: pd.Index | Sequence[KeyItem] | None = None,
     round_values: bool = False,
 ) -> pd.DataFrame:
+    entries = tensor_json["entries"]
+    default_values = {
+        value_name: decode_extended_float(tensor_json["default_value"]),
+    }
     if dual_value_name:
         data = (
             (decode_extended_float(e["value"]), e.get("dualValue"))
             for e in entries
         )
         columns = [value_name, dual_value_name]
+        default_values[dual_value_name] = 0
     else:
         data = (decode_extended_float(e["value"]) for e in entries)
         columns = [value_name]
@@ -287,11 +322,11 @@ def _entries_dataframe(
         index=_entry_index(entries, bindings),
     )
     if dual_value_name and df[dual_value_name].isnull().all():
-        df.drop(dual_value_name, axis=1, inplace=True)
+        df = df.drop(dual_value_name, axis=1)
+    df = df.sort_index() if index is None else df.reindex(cast(Any, index))
+    df = df.fillna(default_values)
     if round_values:
         df[value_name] = df[value_name].round(0).astype(np.int64)
-    df.fillna(0, inplace=True)
-    df.sort_index(inplace=True)
     return df
 
 
@@ -463,7 +498,7 @@ class SolveStrategy:
     sense: ObjectiveSense | None = None
     """Optimization sense"""
 
-    epsilon_constraints: list[EpsilonConstraint] = dataclasses.field(
+    epsilon_constraints: Sequence[EpsilonConstraint] = dataclasses.field(
         default_factory=lambda: []
     )
     """All epsilon-constraints to apply"""

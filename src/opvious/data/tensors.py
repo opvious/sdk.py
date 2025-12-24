@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 import dataclasses
 import math
 from typing import Any, Self
@@ -40,12 +40,12 @@ type TensorArgument = (
 )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class Tensor:
     """An n-dimensional matrix"""
 
-    entries: list[Any]
-    """Raw list of matrix entries"""
+    entries: Sequence[Any]
+    """Raw matrix entries"""
 
     default_value: ExtendedFloat = 0
     """Value to use for missing key"""
