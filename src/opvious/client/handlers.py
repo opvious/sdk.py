@@ -511,6 +511,7 @@ class Client:
             ) as res:
                 solution = solution_from_json(
                     outline=prepared.outline,
+                    inputs=prepared.inputs,
                     response_json=res.json_data(),
                 )
 

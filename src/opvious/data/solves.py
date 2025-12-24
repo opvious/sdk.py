@@ -177,21 +177,29 @@ class SolveInputs:
     problem_outline: ProblemOutline
     """Target model metadata"""
 
-    raw_parameters: list[Any]
+    raw_parameters: list[Json]
     """All parameters in raw format"""
 
-    raw_dimensions: list[Any] | None
+    raw_dimensions: list[Json] | None
     """All dimensions in raw format"""
 
-    def parameter(self, label: Label) -> pd.Series:
-        """Returns the parameter for a given label as a pandas Series"""
+    def parameter(self, label: Label, coerce: bool = True) -> pd.DataFrame:
+        """Returns the parameter for a given label as a pandas DataFrame
+
+        The returned dataframe has a `value` column with the parameter's values
+        (0 values may be omitted).
+
+        Args:
+            label: Parameter label to retrieve
+            coerce: Round integral parameters
+        """
         for param in self.raw_parameters:
             if param["label"] == label:
-                entries = param["entries"]
                 outline = self.problem_outline.parameters[label]
-                return pd.Series(
-                    data=(e["value"] for e in entries),
-                    index=_entry_index(entries, outline.bindings),
+                return _entries_dataframe(
+                    param["entries"],
+                    outline.bindings,
+                    round_values=coerce and outline.is_integral,
                 )
         raise Exception(f"Unknown parameter: {label}")
 
@@ -210,10 +218,10 @@ class SolveOutputs:
     problem_outline: ProblemOutline
     """Solved model metadata"""
 
-    raw_variables: list[Any]
+    raw_variables: list[Json]
     """All variables in raw format"""
 
-    raw_constraints: list[Any]
+    raw_constraints: list[Json]
     """All constraints in raw format"""
 
     def variable(self, label: Label, coerce: bool = True) -> pd.DataFrame:
@@ -230,10 +238,9 @@ class SolveOutputs:
         for res in self.raw_variables:
             if res["label"] == label:
                 outline = self.problem_outline.variables[label]
-                return _output_dataframe(
+                return _entries_dataframe(
                     res["entries"],
                     outline.bindings,
-                    value_name="value",
                     dual_value_name="reduced_cost",
                     round_values=coerce and outline.is_integral,
                 )
@@ -248,7 +255,7 @@ class SolveOutputs:
         """
         for res in self.raw_constraints:
             if res["label"] == label:
-                return _output_dataframe(
+                return _entries_dataframe(
                     res["entries"],
                     self.problem_outline.constraints[label].bindings,
                     value_name="slack",
@@ -257,27 +264,34 @@ class SolveOutputs:
         raise Exception(f"Unknown constraint {label}")
 
 
-def _output_dataframe(
+def _entries_dataframe(
     entries: Sequence[Json],
     bindings: Sequence[SourceBinding],
     *,
-    value_name: str,
-    dual_value_name: str,
+    value_name: str = "value",
+    dual_value_name: str | None = None,
     round_values: bool = False,
 ) -> pd.DataFrame:
-    df = pd.DataFrame(
-        data=(
+    if dual_value_name:
+        data = (
             (decode_extended_float(e["value"]), e.get("dualValue"))
             for e in entries
-        ),
-        columns=[value_name, dual_value_name],
+        )
+        columns = [value_name, dual_value_name]
+    else:
+        data = (decode_extended_float(e["value"]) for e in entries)
+        columns = [value_name]
+    df = pd.DataFrame(
+        data=data,
+        columns=columns,
         index=_entry_index(entries, bindings),
     )
-    if df[dual_value_name].isnull().all():
+    if dual_value_name and df[dual_value_name].isnull().all():
         df.drop(dual_value_name, axis=1, inplace=True)
     if round_values:
         df[value_name] = df[value_name].round(0).astype(np.int64)
     df.fillna(0, inplace=True)
+    df.sort_index(inplace=True)
     return df
 
 
@@ -457,9 +471,7 @@ class SolveStrategy:
     @classmethod
     def equally_weighted_sum(cls, sense: ObjectiveSense | None = None) -> Self:
         """Returns a strategy optimizing the sum of all objectives"""
-        return cls(
-            target=collections.defaultdict(lambda: 1), sense=sense
-        )
+        return cls(target=collections.defaultdict(lambda: 1), sense=sense)
 
 
 def solve_strategy_to_json(
