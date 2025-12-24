@@ -20,7 +20,7 @@ class TestClient:
             uuid, assert_feasible=True
         )
         assert isinstance(outcome, opvious.FeasibleOutcome)
-        assert outcome.optimal
+        assert outcome.is_optimal
         assert outcome.objective_value == 2
 
     @pytest.mark.asyncio
@@ -75,7 +75,7 @@ class TestClient:
             ),
         )
         outcome = await client.wait_for_solve_outcome(uuid)
-        assert outcome.optimal
+        assert outcome.is_optimal
         assert outcome.objective_value == 33
 
         input_data = await client.fetch_solve_inputs(uuid)
@@ -169,7 +169,7 @@ class TestClient:
             opvious.Problem(specification=spec, parameters={"bound": 0.1})
         )
         assert solution.feasible
-        assert solution.outcome.optimal
+        assert solution.outcome.is_optimal
         assert solution.outcome.objective_value == 2
         assert len(solution.inputs.parameter("bound")) == 1
         assert len(solution.outputs.variable("target")) == 1
@@ -205,7 +205,7 @@ class TestClient:
             )
         )
         assert isinstance(res.outcome, opvious.FeasibleOutcome)
-        assert res.outcome.optimal
+        assert res.outcome.is_optimal
         assert res.outcome.objective_value == pytest.approx(0.5)
 
     @pytest.mark.asyncio
