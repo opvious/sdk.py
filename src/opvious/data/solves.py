@@ -304,7 +304,7 @@ def _tensor_json_dataframe(
 ) -> pd.DataFrame:
     entries = tensor_json["entries"]
     default_values = {
-        value_name: decode_extended_float(tensor_json["default_value"]),
+        value_name: decode_extended_float(tensor_json.get("default_value", 0)),
     }
     if dual_value_name:
         data = (

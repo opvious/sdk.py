@@ -86,6 +86,8 @@ class TestClient:
             "salad": 9,
             "caviar": 23,
         }
+        nutrients = input_data.dimension("nutrients")
+        assert list(nutrients) == ["carbs", "fibers", "vitamins"]
 
         output_data = await client.fetch_solve_outputs(uuid)
         quantities = output_data.variable("quantityOfRecipe")
