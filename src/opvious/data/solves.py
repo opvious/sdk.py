@@ -335,14 +335,14 @@ def solution_from_json(
     problem_summary: ProblemSummary | None = None,
 ) -> Solution:
     outcome_json = response_json["outcome"]
-    match outcome_json["status"]:
+    match status := outcome_json["status"]:
         case "INFEASIBLE":
             outcome = cast(SolveOutcome, InfeasibleOutcome())
         case "UNBOUNDED":
             outcome = UnboundedOutcome()
         case "ABORTED":
             outcome = AbortedOutcome()
-        case status:
+        case _:
             outcome = FeasibleOutcome(
                 is_optimal=status == "OPTIMAL",
                 objective_value=outcome_json.get("objectiveValue"),
