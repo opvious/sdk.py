@@ -216,7 +216,7 @@ class SolveInputs:
         if self.raw_dimensions is not None:
             for dim in self.raw_dimensions:
                 if dim["label"] == label:
-                    return pd.Index(dim["items"])
+                    return pd.Index(dim["items"], name=label)
         else:
             items = set()
             has_binding = False
@@ -229,7 +229,7 @@ class SolveInputs:
                     for entry in param["entries"]:
                         items.add(entry["key"][i])
             if has_binding:
-                return pd.Index(items).sort_values()
+                return pd.Index(items, name=label).sort_values()
         raise Exception(f"Unknown dimension: {label}")
 
 
@@ -304,7 +304,7 @@ def _tensor_json_dataframe(
 ) -> pd.DataFrame:
     entries = tensor_json["entries"]
     default_values = {
-        value_name: decode_extended_float(tensor_json.get("default_value", 0)),
+        value_name: decode_extended_float(tensor_json.get("defaultValue", 0)),
     }
     if dual_value_name:
         data = (
