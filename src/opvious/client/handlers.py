@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
+import dataclasses
 import json
 import logging
 from typing import Any, BinaryIO
@@ -259,9 +260,7 @@ class Client:
             tag_name=tag_names[0] if tag_names else None,
         )
 
-    async def _prepare_problem(
-        self, problem: Problem
-    ) -> tuple[Json, ProblemOutline]:
+    async def _prepare_problem(self, problem: Problem) -> _PreparedProblem:
         """Generates solve problem and final outline."""
         # First we fetch the outline to validate/coerce inputs later on
         if isinstance(problem.specification, FormulationSpecification):
@@ -315,7 +314,7 @@ class Client:
             strategy=solve_strategy_to_json(problem.strategy, outline),
             options=solve_options_to_json(problem.options),
         )
-        return (problem, outline)
+        return _PreparedProblem(problem, outline, inputs)
 
     async def serialize_problem(self, problem: Problem) -> Json:
         """Returns a serialized representation of the problem
@@ -326,8 +325,8 @@ class Client:
         Args:
             problem: :class:`.Problem` instance to serialize
         """
-        problem, _outline = await self._prepare_problem(problem)
-        return problem
+        prepared = await self._prepare_problem(problem)
+        return prepared.data
 
     async def summarize_problem(self, problem: Problem) -> ProblemSummary:
         """Returns summary statistics about a problem without solving it
@@ -335,12 +334,12 @@ class Client:
         Args:
             problem: :class:`.Problem` instance to summarize
         """
-        problem, _outline = await self._prepare_problem(problem)
+        prepared = await self._prepare_problem(problem)
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url="/summarize-problem",
             method="POST",
-            json_data=json_dict(problem=problem),
+            json_data=json_dict(problem=prepared.data),
         ) as res:
             return problem_summary_from_json(res.json_data())
 
@@ -379,12 +378,12 @@ class Client:
 
         .. _LP format: https://web.mit.edu/lpsolve/doc/CPLEX-format.htm
         """
-        problem, _outline = await self._prepare_problem(problem)
+        prepared = await self._prepare_problem(problem)
         async with self._executor.execute(
             result_type=PlainTextExecutorResult,
             url="/format-problem",
             method="POST",
-            json_data=json_dict(problem=problem),
+            json_data=json_dict(problem=prepared.data),
         ) as res:
             lines = []
             async for line in res.lines():
@@ -447,7 +446,7 @@ class Client:
         See also :meth:`.Client.queue_solve` for an alternative for
         long-running solves.
         """
-        problem, outline = await self._prepare_problem(problem)
+        prepared = await self._prepare_problem(problem)
         if prefer_streaming and self._executor.supports_streaming:
             problem_summary = None
             response_json = None
@@ -455,7 +454,7 @@ class Client:
                 result_type=JsonSeqExecutorResult,
                 url="/solve",
                 method="POST",
-                json_data=json_dict(problem=problem),
+                json_data=json_dict(problem=prepared.data),
             ) as res:
                 async for data in res.json_seq_data():
                     kind = data["kind"]
@@ -498,7 +497,8 @@ class Client:
             if not problem_summary or not response_json:
                 raise Exception("Streaming solve terminated early")
             solution = solution_from_json(
-                outline=outline,
+                outline=prepared.outline,
+                inputs=prepared.inputs,
                 response_json=response_json,
                 problem_summary=problem_summary,
             )
@@ -510,7 +510,7 @@ class Client:
                 json_data=json_dict(problem=problem),
             ) as res:
                 solution = solution_from_json(
-                    outline=outline,
+                    outline=prepared.outline,
                     response_json=res.json_data(),
                 )
 
@@ -579,13 +579,13 @@ class Client:
             raise Exception(
                 "Queued solves must have a formulation as specification"
             )
-        problem, _outline = await self._prepare_problem(problem)
+        prepared = await self._prepare_problem(problem)
         async with self._executor.execute(
             result_type=JsonExecutorResult,
             url="/queue-solve",
             method="POST",
             json_data=json_dict(
-                problem=problem,
+                problem=prepared.data,
                 annotations=encode_annotations(annotations or []),
             ),
         ) as res:
@@ -849,3 +849,10 @@ class Client:
             for solve in solves:
                 yield solve
             limit -= len(solves)
+
+
+@dataclasses.dataclass(frozen=True)
+class _PreparedProblem:
+    data: Json
+    outline: ProblemOutline
+    inputs: SolveInputs

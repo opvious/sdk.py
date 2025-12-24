@@ -302,6 +302,9 @@ class Solution:
     problem_summary: ProblemSummary
     """Problem summary statistics"""
 
+    inputs: SolveInputs
+    """Problem inputs"""
+
     outputs: SolveOutputs | None = dataclasses.field(default=None, repr=False)
     """Solution data, present iff the solution is feasible"""
 
@@ -313,6 +316,7 @@ class Solution:
 
 def solution_from_json(
     outline: ProblemOutline,
+    inputs: SolveInputs,
     response_json: Any,
     problem_summary: ProblemSummary | None = None,
 ) -> Solution:
@@ -341,6 +345,7 @@ def solution_from_json(
         outcome=outcome,
         problem_summary=problem_summary
         or problem_summary_from_json(response_json["summaries"]["problem"]),
+        inputs=inputs,
         outputs=outputs,
     )
 
