@@ -214,9 +214,6 @@ class Tensor(Definition):
     The number of arguments must match the tensor's quantification.
     """
 
-    # TODO: Add map method, which appends to _mappers array of transformations.
-    # Once implemented, remove the negate arguments to transformations.
-
     def __init__(
         self,
         image: Image,
@@ -385,6 +382,46 @@ class Tensor(Definition):
                     sup = f"\\{{ {d.render()} \\}}"
                 s += f"^{{{sup}}}"
         return s
+
+
+type ComposeFunction = Callable[[*tuple[Expression, ...]], Expression]
+
+
+def compose(fn: ComposeFunction, *tensors: TensorLike) -> TensorLike:
+    """Maps a function over one or more tensors
+
+    This is particularly useful when creating model fragments which use
+    tensor-likes as arguments. For example it can be used to flip the indicator
+    in an :class:`~opvious.modeling.fragments.ActivatedVariable`.
+    """
+    if not tensors:
+        raise ValueError("No tensors")
+    return _Composed(fn, tensors)
+
+
+@dataclasses.dataclass(frozen=True)
+class _Composed:
+    function: ComposeFunction
+    tensors: Sequence[TensorLike]
+
+    def __call__(self, *subscripts: ExpressionLike) -> Expression:
+        exprs = [tensor(*subscripts) for tensor in self.tensors]
+        return self.function(*exprs)
+
+
+def infer_quantifiables(tensor: TensorLike) -> tuple[Quantifiable, ...]:
+    """Infers a tensor-like's underlying quantification
+
+    Args:
+        tensor: A tensor or composed tensor with only unary functions
+    """
+    match tensor:
+        case Tensor():
+            return tensor.quantifiables()
+        case _Composed(_, tensors) if len(tensors) == 1:
+            return infer_quantifiables(tensors[0])
+        case _:
+            raise Exception(f"Unable to infer quantifiables from {tensor}")
 
 
 def _is_simple_domain(d: Domain) -> bool:

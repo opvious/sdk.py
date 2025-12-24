@@ -259,29 +259,21 @@ class JobShopScheduling(om.Model):
     @om.fragments.activation_variable(
         lambda init, self: init(
             self.competing_tasks,
-            negate=True,
             upper_bound=self.duration.total(),
         )
     )
-    def must_start_after(self, t1, t2):
+    # t2 ends after t1 starts => 1
+    # 0 => t2 ends before t1 starts
+    def may_start_before_end(self, t1, t2):
         return self.task_end(t2) - self.task_start(t1)
-
-    @om.fragments.activation_variable(
-        lambda init, self: init(
-            self.competing_tasks,
-            negate=True,
-            upper_bound=self.duration.total(),
-        )
-    )
-    def must_end_before(self, t1, t2):
-        return self.task_end(t1) - self.task_start(t2)
 
     @om.constraint
     def one_active_task_per_machine(self):
         for t1, t2 in self.competing_tasks:
             yield (
-                self.must_end_before(t1, t2) + self.must_start_after(t1, t2)
-                >= 1
+                self.may_start_before_end(t1, t2) +
+                self.may_start_before_end(t2, t1)
+                <= 1
             )
 
     @om.objective
