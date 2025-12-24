@@ -171,6 +171,8 @@ class TestClient:
         assert solution.feasible
         assert solution.outcome.optimal
         assert solution.outcome.objective_value == 2
+        assert len(solution.inputs.parameter("bound")) == 1
+        assert len(solution.outputs.variable("target")) == 1
 
     @pytest.mark.asyncio
     async def test_solve_bounded_infeasible(self):
