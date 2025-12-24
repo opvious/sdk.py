@@ -236,25 +236,26 @@ class _BinaryExpression(Expression):
         left_inner, right_inner, outer = _binary_operator_precedences[op]
         left = self.left_expression.render(left_inner)
         right = self.right_expression.render(right_inner)
-        if op == "mul":
-            if is_literal(self.left_expression, -1):
-                rendered = f"{{-{right}}}"
-            elif is_literal(self.right_expression, -1):
-                rendered = f"{{-{left}}}"
-            else:
-                rendered = f"{left} {right}"
-        elif op == "add":
-            rendered = f"{left} + {right}"
-        elif op == "mod":
-            rendered = f"{left} \\bmod {right}"
-        elif op == "sub":
-            rendered = f"{left} - {right}"
-        elif op == "div":
-            rendered = f"\\frac{{{left}}}{{{right}}}"
-        elif op == "pow":
-            rendered = f"\\left({left}\\right)^{{{right}}}"
-        else:
-            raise Exception(f"Unexpected operator: {op}")
+        match op:
+            case "mul":
+                if is_literal(self.left_expression, -1):
+                    rendered = f"{{-{right}}}"
+                elif is_literal(self.right_expression, -1):
+                    rendered = f"{{-{left}}}"
+                else:
+                    rendered = f"{left} {right}"
+            case "add":
+                rendered = f"{left} + {right}"
+            case "mod":
+                rendered = f"{left} \\bmod {right}"
+            case "sub":
+                rendered = f"{left} - {right}"
+            case "div":
+                rendered = f"\\frac{{{left}}}{{{right}}}"
+            case "pow":
+                rendered = f"\\left({left}\\right)^{{{right}}}"
+            case _:
+                raise Exception(f"Unexpected operator: {op}")
         if outer < precedence:
             rendered = f"\\left({rendered}\\right)"
         return rendered

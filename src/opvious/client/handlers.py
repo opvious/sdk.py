@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
 import dataclasses
 import json
 import logging
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Self
 
 import backoff
 
@@ -136,17 +136,17 @@ class Client:
 
         token = ClientSetting.TOKEN.read(env).strip()
         authorization = authorization_header(token) if token else None
-        executor_key = ClientSetting.EXECUTOR.read(env)
-        if not executor_key:
-            executor = default_executor(endpoint, authorization)
-        elif executor_key == "aiohttp":
-            executor = aiohttp_executor(endpoint, authorization)
-        elif executor_key == "pyodide":
-            executor = pyodide_executor(endpoint, authorization)
-        elif executor_key == "urllib":
-            executor = urllib_executor(endpoint, authorization)
-        else:
-            raise ValueError(f"Unknown executor: {executor_key}")
+        match ClientSetting.EXECUTOR.read(env):
+            case "":
+                executor = default_executor(endpoint, authorization)
+            case "aiohttp":
+                executor = aiohttp_executor(endpoint, authorization)
+            case "pyodide":
+                executor = pyodide_executor(endpoint, authorization)
+            case "urllib":
+                executor = urllib_executor(endpoint, authorization)
+            case key:
+                raise ValueError(f"Unknown executor: {key}")
         return Client(executor)
 
     @property
@@ -344,7 +344,7 @@ class Client:
             return problem_summary_from_json(res.json_data())
 
     async def format_problem(
-        self, problem: Problem, include_line_comments: bool=False
+        self, problem: Problem, include_line_comments: bool = False
     ) -> str:
         r"""Returns the problem's annotated representation in `LP format`_
 
@@ -397,8 +397,8 @@ class Client:
     async def solve(
         self,
         problem: Problem,
-        assert_feasible: bool=False,
-        prefer_streaming: bool=True,
+        assert_feasible: bool = False,
+        prefer_streaming: bool = True,
     ) -> Solution:
         """Solves an optimization problem remotely
 
@@ -448,59 +448,20 @@ class Client:
         """
         prepared = await self._prepare_problem(problem)
         if prefer_streaming and self._executor.supports_streaming:
-            problem_summary = None
-            response_json = None
             async with self._executor.execute(
                 result_type=JsonSeqExecutorResult,
                 url="/solve",
                 method="POST",
                 json_data=json_dict(problem=prepared.data),
             ) as res:
-                async for data in res.json_seq_data():
-                    kind = data["kind"]
-                    if kind == "reifying":
-                        progress = data["progress"]
-                        if progress["kind"] == "constraint":
-                            summary = progress["summary"]
-                            _logger.debug(
-                                "Reified constraint %r. [columns=%s, rows=%s]",
-                                summary["label"],
-                                summary["columnCount"],
-                                summary["rowCount"],
-                            )
-                    elif kind == "reified":
-                        problem_summary = problem_summary_from_json(
-                            data["summary"]
-                        )
-                        _logger.info(
-                            "Solving problem... [columns=%s, rows=%s]",
-                            problem_summary.column_count,
-                            problem_summary.row_count,
-                        )
-                    elif kind == "solving":
-                        log_progress(_logger, data["progress"])
-                    elif kind == "denormalized":
-                        pass  # TODO: Output solution summary
-                    elif kind == "solved":
-                        _logger.debug("Downloaded outputs.")
-                        response_json = data
-                    elif kind == "error":
-                        message = "Solve failed"
-                        if res.trace:
-                            message += f" ({res.trace})"
-                        message += f": {data['error']['message']}"
-                        raise Exception(message)
-                    else:
-                        raise Exception(
-                            f"Unexpected response: {json.dumps(data)}"
-                        )
-            if not problem_summary or not response_json:
+                sink = await _SolveStreamSink.consume(res)
+            if not sink.problem_summary or not sink.response_json:
                 raise Exception("Streaming solve terminated early")
             solution = solution_from_json(
                 outline=prepared.outline,
                 inputs=prepared.inputs,
-                response_json=response_json,
-                problem_summary=problem_summary,
+                response_json=sink.response_json,
+                problem_summary=sink.problem_summary,
             )
         else:
             async with self._executor.execute(
@@ -671,7 +632,7 @@ class Client:
     async def wait_for_solve_outcome(
         self,
         uuid: Uuid,
-        assert_feasible: bool=False,
+        assert_feasible: bool = False,
     ) -> SolveOutcome:
         """Waits for the solve to complete and returns its outcome
 
@@ -850,6 +811,56 @@ class Client:
             for solve in solves:
                 yield solve
             limit -= len(solves)
+
+
+class _SolveStreamSink:
+    def __init__(self, result: JsonSeqExecutorResult) -> None:
+        self._result = result
+        self.response_json: Json = None
+        self.problem_summary: ProblemSummary | None = None
+
+    @classmethod
+    async def consume(cls, result: JsonSeqExecutorResult) -> Self:
+        sink = cls(result)
+        async for data in result.json_seq_data():
+            sink._on_data(data)
+        return sink
+
+    def _on_data(self, data: Json) -> None:
+        match data["kind"]:
+            case "reifying":
+                progress = data["progress"]
+                if progress["kind"] == "constraint":
+                    summary = progress["summary"]
+                    _logger.debug(
+                        "Reified constraint %r. [columns=%s, rows=%s]",
+                        summary["label"],
+                        summary["columnCount"],
+                        summary["rowCount"],
+                    )
+            case "reified":
+                summary = problem_summary_from_json(data["summary"])
+                _logger.info(
+                    "Solving problem... [columns=%s, rows=%s]",
+                    summary.column_count,
+                    summary.row_count,
+                )
+                self.problem_summary = summary
+            case "solving":
+                log_progress(_logger, data["progress"])
+            case "denormalized":
+                pass  # TODO: Output solution summary
+            case "solved":
+                _logger.debug("Downloaded outputs.")
+                self.response_json = data
+            case "error":
+                message = "Solve failed"
+                if trace := self._result.trace:
+                    message += f" ({trace})"
+                message += f": {data['error']['message']}"
+                raise Exception(message)
+            case _:
+                raise Exception(f"Unexpected response: {json.dumps(data)}")
 
 
 @dataclasses.dataclass(frozen=True)
