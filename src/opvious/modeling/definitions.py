@@ -214,6 +214,9 @@ class Tensor(Definition):
     The number of arguments must match the tensor's quantification.
     """
 
+    # TODO: Add map method, which appends to _mappers array of transformations.
+    # Once implemented, remove the negate arguments to transformations.
+
     def __init__(
         self,
         image: Image,
