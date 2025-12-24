@@ -203,8 +203,8 @@ class SolveInputs:
         for param in self.raw_parameters:
             if param["label"] == label:
                 outline = self.problem_outline.parameters[label]
-                return _tensor_dataframe(
-                    param["entries"],
+                return _tensor_json_dataframe(
+                    param,
                     outline.bindings,
                     index=index,
                     round_values=coerce and outline.is_integral,
@@ -266,8 +266,8 @@ class SolveOutputs:
         for res in self.raw_variables:
             if res["label"] == label:
                 outline = self.problem_outline.variables[label]
-                return _tensor_dataframe(
-                    res["entries"],
+                return _tensor_json_dataframe(
+                    res,
                     outline.bindings,
                     dual_value_name="reduced_cost",
                     index=index,
@@ -284,8 +284,8 @@ class SolveOutputs:
         """
         for res in self.raw_constraints:
             if res["label"] == label:
-                return _tensor_dataframe(
-                    res["entries"],
+                return _tensor_json_dataframe(
+                    res,
                     self.problem_outline.constraints[label].bindings,
                     value_name="slack",
                     dual_value_name="shadow_price",
@@ -293,7 +293,7 @@ class SolveOutputs:
         raise Exception(f"Unknown constraint {label}")
 
 
-def _tensor_dataframe(
+def _tensor_json_dataframe(
     tensor_json: Json,
     bindings: Sequence[SourceBinding],
     *,
