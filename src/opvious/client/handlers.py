@@ -507,7 +507,7 @@ class Client:
                 result_type=JsonExecutorResult,
                 url="/solve",
                 method="POST",
-                json_data=json_dict(problem=problem),
+                json_data=json_dict(problem=prepared.data),
             ) as res:
                 solution = solution_from_json(
                     outline=prepared.outline,

@@ -177,10 +177,10 @@ class SolveInputs:
     problem_outline: ProblemOutline
     """Target model metadata"""
 
-    raw_parameters: list[Json]
+    raw_parameters: list[Json] = dataclasses.field(repr=False)
     """All parameters in raw format"""
 
-    raw_dimensions: list[Json] | None
+    raw_dimensions: list[Json] | None = dataclasses.field(repr=False)
     """All dimensions in raw format"""
 
     def parameter(self, label: Label, coerce: bool = True) -> pd.DataFrame:
@@ -218,10 +218,10 @@ class SolveOutputs:
     problem_outline: ProblemOutline
     """Solved model metadata"""
 
-    raw_variables: list[Json]
+    raw_variables: list[Json] = dataclasses.field(repr=False)
     """All variables in raw format"""
 
-    raw_constraints: list[Json]
+    raw_constraints: list[Json] = dataclasses.field(repr=False)
     """All constraints in raw format"""
 
     def variable(self, label: Label, coerce: bool = True) -> pd.DataFrame:
@@ -316,7 +316,7 @@ class Solution:
     problem_summary: ProblemSummary
     """Problem summary statistics"""
 
-    inputs: SolveInputs
+    inputs: SolveInputs = dataclasses.field(repr=False)
     """Problem inputs"""
 
     outputs: SolveOutputs | None = dataclasses.field(default=None, repr=False)

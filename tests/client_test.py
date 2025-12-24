@@ -79,7 +79,7 @@ class TestClient:
         assert outcome.objective_value == 33
 
         input_data = await client.fetch_solve_inputs(uuid)
-        costs = input_data.parameter("costPerRecipe")
+        costs = input_data.parameter("costPerRecipe")["value"]
         assert costs.to_dict() == {
             "lasagna": 12,
             "pizza": 15,
