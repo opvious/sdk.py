@@ -1,0 +1,90 @@
+# Survey: Opvious Python SDK
+
+_Scope: 67 files, ~14.7k lines, Python 3.12+_  
+_18 unique findings proposed · 17 retained · 1 refuted and dropped · 3 cross-dimension duplicates merged_
+
+## Highlights
+
+The library has two well-separated halves:
+
+- A sophisticated declarative optimization DSL that builds symbolic expressions, discovers model fragments, assigns scoped identifiers, and generates mathematical specifications.
+- An asynchronous API client that prepares problems, validates tensor-shaped inputs, applies transformations, and executes live or queued solves through interchangeable HTTP transports.
+
+The core is compact, strongly typed, and comparatively clean. Ruff, mypy, and a warnings-as-errors Sphinx build all pass. The main concerns are one credential-leak vulnerability, several stale public examples/exports, and transport/test infrastructure gaps.
+
+## Issues
+
+- `src/opvious/executors/common.py:266` — **Authorization headers can leak to lookalike origins** (security, high). Same-origin detection uses `full_url.startswith(endpoint)`, so an arbitrary `RemoteSpecification` URL such as `https://api.example.com.attacker.test/...` receives credentials for `https://api.example.com`. This was reproduced with a capturing executor. Confidence: high.
+
+- `.github/workflows/ci.yml:15` — **Credential-bearing workflows execute actions referenced by mutable tags** (security, medium). Third-party actions receiving the license key or `GITHUB_TOKEN` use tags such as `@v0.2.0` and `@v2`, not immutable commit SHAs. Confidence: high.
+
+- `src/opvious/executors/urllib.py:47` — **The urllib fallback blocks the event loop** (performance). Its async context directly performs synchronous `urlopen`, response reads, and iteration. A controlled 200 ms request delayed an unrelated coroutine until the request completed. Confidence: high.
+
+- `src/opvious/executors/aiohttp.py:67` — **Every request creates a new `ClientSession`** (performance). A persistent `Client` reuses its executor, but no session or connector is retained, preventing HTTP/TLS connection pooling across requests. Confidence: high.
+
+- `src/opvious/specifications/__init__.py:24` — **The subpackage advertises an unbound export** (correctness). `load_notebook_models` remains in `__all__` after moving to `opvious.notebooks`; explicit and wildcard imports from `opvious.specifications` fail. Confidence: high.
+
+- `docs/overview.rst:63` — **Primary documentation examples have drifted** (correctness). The modeling example imports `opvious.modeling as om` but uses its symbols unqualified, while all three transformation recipes call nonexistent `Client.run_solve` instead of the current `Client.solve(Problem(...))` interface. Confidence: high.
+
+- `src/opvious/client/handlers.py:507` — **Queued-solve documentation describes the wrong API** (correctness). `queue_solve` returns a UUID, not `QueuedSolve`, and links to nonexistent `Client.fetch_solve`; the real method is `fetch_solve_inputs`. Confidence: high.
+
+- `src/opvious/transformations.py:67` — **The `PinVariables` reference example passes a string instead of a sequence** (correctness). Registration iterates `"production"` into one-character labels. Confidence: high.
+
+- `pyproject.toml:71` — **The configured coverage task is not runnable** (test gap). `poe test` invokes `coverage`, but that package is absent from the dependencies and lock; CI invokes pytest directly, bypassing the branch-coverage configuration. Confidence: high.
+
+- `tests/executors_test.py:17` — **Executor tests instantiate aiohttp twice and never test urllib** (test gap). Because CI installs all extras, even indirect default-executor tests always select aiohttp. Confidence: high.
+
+- `.github/workflows/pr.yml:6` — **Markdown specification fixtures bypass PR and main CI** (test gap). Both workflows ignore `**.md`, but `tests/sources/*.md` are executable fixtures registered and consumed by integration tests. Confidence: high.
+
+## Strengths
+
+- `src/opvious/modeling/model.py:141` — The modeling DSL has strong layering: fragment discovery, symbolic ASTs, dependency ordering, and identifier scoping are separated cleanly and tested through complex composed models.
+
+- `src/opvious/executors/__init__.py:37` — Optional transports are isolated behind a common executor contract and imported lazily, keeping aiohttp, urllib, and Pyodide concerns out of the client layer.
+
+- `src/opvious/data/tensors.py:44` — Solver data is represented through typed dataclasses with focused pandas/tensor conversion boundaries rather than leaking wire JSON throughout the public API.
+
+- `src/opvious/executors/aiohttp.py:54` — The primary transport compresses large bodies and incrementally consumes text, binary, and JSON-sequence responses.
+
+- `pyproject.toml:60` — Static quality gates are broad: Poetry validation, a substantial Ruff rule set, and mypy cover both source and tests. All currently pass.
+
+- `poetry.lock:1` — Dependency resolution is reproducible: the lock validates successfully, all inspected artifacts carry SHA-256 hashes, and no git/path development dependencies were found.
+
+## Verification status
+
+- Ruff: passed.
+- Mypy: passed across 37 source files.
+- Sphinx with warnings treated as errors: passed.
+- Local pytest: 11 passed, 60 skipped.
+- The skips require a configured API client/access token, so most end-to-end client, executor, and modeling integration behavior was not exercised locally.
+- No tracked files were changed during the review.
+
+## Insights by dimension
+
+### Structure & organization
+
+Clean `src/` layout and transport boundaries; one stale subpackage export.
+
+### Design & architecture
+
+The modeling DSL is the standout design. Transport lifecycle behavior is the main architectural weakness.
+
+### Documentation
+
+Sphinx builds cleanly, but executable examples and several API docstrings have semantic drift that syntax/reference checks do not detect.
+
+### Tests & CI
+
+Strong end-to-end intent and static gates, weakened by integration-heavy skips, a broken coverage task, accidental executor parametrization, and overly broad Markdown path exclusions.
+
+### Dependencies & security
+
+The lock is well-formed and no embedded credentials were found. Authorization origin checking and mutable CI action references are the important risks.
+
+### Code quality & smells
+
+No additional high-confidence smells survived beyond the executor-test duplication. Ruff and mypy found no issues.
+
+### Performance hot spots
+
+The aiohttp path streams efficiently but forfeits connection pooling; the urllib fallback blocks asynchronous callers.
