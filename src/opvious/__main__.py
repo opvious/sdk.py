@@ -49,7 +49,7 @@ Options:
 
 class _SpecificationHandler:
     def __init__(
-        self, client: Client, tags: str | None = None, dry_run: bool=False
+        self, client: Client, tags: str | None = None, dry_run: bool = False
     ) -> None:
         self._client = client
         self._tags = tags.split() if tags else None

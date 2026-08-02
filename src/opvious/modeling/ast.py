@@ -144,7 +144,7 @@ class Expression:
     def __bool__(self) -> bool:
         return bool(self != 0)
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         raise NotImplementedError()
 
 
@@ -155,7 +155,7 @@ type ExpressionLike = Expression | float | int
 class _LiteralExpression(Expression):
     value: float
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         if self.value == math.inf:
             return "\\infty"
         elif self.value == -math.inf:
@@ -199,7 +199,7 @@ class ExpressionReference(Expression):
     identifier: Identifier
     subscripts: tuple[Expression, ...]
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         return render_identifier(self.identifier, *self.subscripts)
 
 
@@ -208,7 +208,7 @@ class _UnaryExpression(Expression):
     operator: str
     expression: Expression
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         op = self.operator
         if op == "abs":
             return f"\\lvert {self.expression.render()} \\rvert"
@@ -231,7 +231,7 @@ class _BinaryExpression(Expression):
     left_expression: Expression
     right_expression: Expression
 
-    def render(self, precedence: int=0) -> str:
+    def render(self, precedence: int = 0) -> str:
         op = self.operator
         left_inner, right_inner, outer = _binary_operator_precedences[op]
         left = self.left_expression.render(left_inner)
@@ -312,7 +312,7 @@ class _SummationExpression(Expression):
     summand: Expression
     domain: Domain
 
-    def render(self, precedence: int=0) -> str:
+    def render(self, precedence: int = 0) -> str:
         inner = max(3, precedence)
         with local_formatting_scope(self.domain.quantifiers):
             rendered = f"\\sum_{{{self.domain.render()}}} "
@@ -324,7 +324,7 @@ class _SummationExpression(Expression):
 class _CardinalityExpression(Expression):
     domain: Domain
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         qs = self.domain.quantifiers
         with local_formatting_scope(qs):
             if len(qs) == 1 and self.domain.mask is None:
@@ -348,7 +348,7 @@ class _SwitchCase:
 class _SwitchExpression(Expression):
     cases: Sequence[_SwitchCase]
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         cs: list[str] = []
         for c in self.cases:
             s = c.expression.render()
@@ -411,7 +411,7 @@ class Quantifier(Expression):
 
     identifier: QuantifierIdentifier
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         return self.identifier.format()
 
 
@@ -495,7 +495,7 @@ class Predicate:
         declare(self)
         return True
 
-    def render(self, precedence: int=0) -> str:
+    def render(self, precedence: int = 0) -> str:
         raise NotImplementedError()
 
 
@@ -505,7 +505,7 @@ class _ComparisonPredicate(Predicate):
     left_expression: Expression
     right_expression: Expression
 
-    def render(self, _precedence: int=0) -> str:
+    def render(self, _precedence: int = 0) -> str:
         left = self.left_expression.render()
         right = self.right_expression.render()
         return f"{left} {self.command} {right}"
@@ -523,7 +523,7 @@ class _BinaryPredicate(Predicate):
     left_predicate: Predicate
     right_predicate: Predicate
 
-    def render(self, precedence: int=0) -> str:
+    def render(self, precedence: int = 0) -> str:
         cond = self.condition
         inner = _binary_condition_precedences[cond]
         left = self.left_predicate.render(inner)
@@ -675,7 +675,7 @@ def cross(
     *quantifiables: Quantifiable,
     names: Iterable[Name] | None = None,
     projection: Projection = -1,
-    lift: bool=False,
+    lift: bool = False,
 ) -> Quantification:
     """Generates the cross-product of multiple quantifiables
 

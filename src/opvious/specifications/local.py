@@ -187,7 +187,7 @@ class _Renderer:
         self,
         source: LocalSpecificationSource,
         _issues: Sequence[LocalSpecificationIssue] = (),
-        collapse: bool=False,
+        collapse: bool = False,
     ) -> str:
         raise NotImplementedError()
 
@@ -229,7 +229,7 @@ class _HtmlDetailsRenderer(_Renderer):
         self,
         source: LocalSpecificationSource,
         issues: Sequence[LocalSpecificationIssue] = (),
-        collapse: bool=False,
+        collapse: bool = False,
     ) -> str:
         summary = source.title
         if issues:

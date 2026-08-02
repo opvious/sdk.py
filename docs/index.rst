@@ -57,8 +57,8 @@ External resources
 + `PyPI entry`_
 
 
-.. _Opvious platform: https://www.opvious.io
-.. _API access token: https://hub.cloud.opvious.io/authorizations
+.. _Opvious platform: https://www.opvious.dev
+.. _API access token: https://hub.cloud.opvious.dev/authorizations
 .. _pandas: https://pandas.pydata.org
 .. _Pyodide: https://pyodide.org
 .. _JupyterLite: https://jupyterlite.readthedocs.io

@@ -29,7 +29,7 @@ class FormulationSpecification:
     production use as it provides history and reproducibility when combined
     with tag names.
 
-    .. _Optimization Hub: https://hub.cloud.opvious.io
+    .. _Optimization Hub: https://hub.cloud.opvious.dev
     """
 
     formulation_name: str

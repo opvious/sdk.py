@@ -32,12 +32,13 @@ show_version() {
 		esac
 	done
 
-	local version="$(poetry version -s)"
+	local version
+	version="$(poetry version -s)"
 	if ! [[ $version =~ (.+)rc.+ ]]; then
 		fail "unexpected version: $version"
 	fi
 
-	if (( $trim == 0 )); then
+	if (( trim == 0 )); then
 		echo "$version"
 	else
 		echo "${BASH_REMATCH[1]}"

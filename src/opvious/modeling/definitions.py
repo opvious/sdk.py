@@ -311,9 +311,7 @@ class Tensor(Definition):
 
     @classmethod
     def indicator[T: Tensor](
-        cls: type[T],
-        *quantifiables: Quantifiable,
-        **kwargs: Any
+        cls: type[T], *quantifiables: Quantifiable, **kwargs: Any
     ) -> T:
         """Returns a tensor with `{0, 1}` integral image"""
         return cls.discrete(
@@ -351,7 +349,7 @@ class Tensor(Definition):
             self._identifier, tuple(to_expression(s) for s in subscripts)
         )
 
-    def total(self, absolute: bool=False) -> Expression:
+    def total(self, absolute: bool = False) -> Expression:
         """The tensor's total summed value
 
         Args:
@@ -669,7 +667,7 @@ def constraint(
     *,
     label: Label | None = None,
     qualifiers: Sequence[Label] | None = None,
-    disabled: bool=False,
+    disabled: bool = False,
 ) -> Callable[[ConstraintMethod], Constraint | None]: ...
 
 
@@ -793,7 +791,7 @@ def objective(
     *,
     sense: ObjectiveSense | None = None,
     label: Label | None = None,
-    disabled: bool=False,
+    disabled: bool = False,
 ) -> Callable[[ObjectiveMethod], Objective]: ...
 
 

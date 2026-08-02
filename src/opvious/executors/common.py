@@ -228,7 +228,7 @@ class Executor:
         variant: str,
         endpoint: str,
         authorization: str | None = None,
-        supports_streaming: bool=False,
+        supports_streaming: bool = False,
     ) -> None:
         self._variant = variant
         self._endpoint = endpoint

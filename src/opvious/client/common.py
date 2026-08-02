@@ -21,7 +21,7 @@ from ..transformations import (
 )
 
 
-DEMO_ENDPOINT = "https://api.try.opvious.io"
+DEMO_ENDPOINT = "https://api.try.opvious.dev"
 
 
 class ClientSetting(enum.Enum):

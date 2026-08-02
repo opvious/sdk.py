@@ -18,4 +18,5 @@ repos:
         language: system
         entry: shellcheck
         types: [file, shell]
+        exclude: ^\.envrc$
         pass_filenames: true

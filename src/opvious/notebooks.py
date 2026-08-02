@@ -15,8 +15,8 @@ _logger = logging.getLogger(__name__)
 def load_notebook_models(
     path: str,
     root: str | None = None,
-    allow_empty: bool=False,
-    include_classes: bool=False,
+    allow_empty: bool = False,
+    include_classes: bool = False,
     include_symbols: Sequence[str] = (),
 ) -> types.SimpleNamespace:
     """Loads all models from a notebook

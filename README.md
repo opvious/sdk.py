@@ -2,11 +2,11 @@
 
 <div align="center">
   <p>
-    Define and deploy optimization models in minutes with <a href="https://www.opvious.io">Opvious</a>.
+    Define and deploy optimization models in minutes with <a href="https://www.opvious.dev">Opvious</a>.
   </p>
-  <a href="https://www.opvious.io/notebooks/retro/notebooks/?path=guides/welcome.ipynb"><img src="https://www.opvious.io/opvious-steps.png" style="height: 600px;"/></a>
+  <a href="https://www.opvious.dev/notebooks/retro/notebooks/?path=guides/welcome.ipynb"><img src="https://www.opvious.dev/opvious-steps.png" style="height: 600px;"/></a>
     <p>
-    <a href="https://www.opvious.io/notebooks/retro/notebooks/?path=guides/welcome.ipynb">Try it out!</a>
+    <a href="https://www.opvious.dev/notebooks/retro/notebooks/?path=guides/welcome.ipynb">Try it out!</a>
   </p>
 </div>
 
@@ -22,11 +22,11 @@
 
 ## Documentation
 
-+ [Getting started guide](https://www.opvious.io/notebooks/retro/notebooks/?path=guides/welcome.ipynb)
++ [Getting started guide](https://www.opvious.dev/notebooks/retro/notebooks/?path=guides/welcome.ipynb)
 + [SDK API reference](https://opvious.readthedocs.io)
 + [Interactive optimization notebooks](https://github.com/opvious/notebooks)
 
 
 ## Licensing
 
-The SDK is licensed under Apache 2.0. The Opvious platform is available as a self-hosted service, free for small projects. See our [plans page](https://www.opvious.io/plans) for more information.
+The SDK is licensed under Apache 2.0. The Opvious platform is available as a self-hosted service, free for small projects. See our [plans page](https://www.opvious.dev/plans) for more information.
