@@ -22,6 +22,7 @@ from .ast import (
     total,
 )
 from .definitions import (
+    ComposeFunction,
     Constraint,
     Dimension,
     Image,
@@ -31,7 +32,9 @@ from .definitions import (
     TensorLike,
     Variable,
     alias,
+    compose,
     constraint,
+    infer_quantifiables,
     interval,
     objective,
 )
@@ -81,5 +84,8 @@ __all__ = [
     # Fragments
     "fragments",
     # Utilities
+    "ComposeFunction",
+    "compose",
+    "infer_quantifiables",
     "method_decorator",
 ]

@@ -32,6 +32,7 @@ from .definitions import (
     Variable,
     alias,
     constraint,
+    infer_quantifiables,
     interval,
 )
 from .identifiers import Name
@@ -157,9 +158,9 @@ class MagnitudeVariable(ModelFragment):
         lower_bound: bool = True,
         upper_bound: bool = True,
     ) -> None:
+        if not quantifiables:
+            quantifiables = infer_quantifiables(tensor)
         if isinstance(tensor, Tensor):
-            if not quantifiables:
-                quantifiables = tensor.quantifiables()
             if not image:
                 image = tensor.image
             if lower_bound and tensor.image.lower_bound == 0:
@@ -246,9 +247,9 @@ class ActivationVariable(ModelFragment):
             used, if `False` no activation constraint will be added.
         lower_bound: Value of the lower bound used in the deactivation
             constraint. If `True` the variable's image's lower bound will be
-            used, if `False` no deactivation constraint will be added.
+            used, if `False` no deactivation constraint will be added. Can only
+            be used if the tensor is non-negative.
         name: Name of the generated activation variable
-        negate: Negate the returned indicator variable.
         projection: Mask used to project the variable's quantification. When
             this is set, the indicator variable will be set to 1 iff at least
             one of the projected tensor values is positive.
@@ -263,11 +264,10 @@ class ActivationVariable(ModelFragment):
         upper_bound: ExpressionLike | TensorLike | bool = True,
         lower_bound: ExpressionLike | TensorLike | bool = False,
         name: Name | None = None,
-        negate: bool = False,
         projection: Projection = -1,
     ) -> ActivationVariable:
-        if not quantifiables and isinstance(tensor, Tensor):
-            quantifiables = tensor.quantifiables()
+        if not quantifiables:
+            quantifiables = infer_quantifiables(tensor)
         domains = tuple(domain(q) for q in quantifiables)
 
         def quantification(
@@ -299,8 +299,7 @@ class ActivationVariable(ModelFragment):
                         bound = bound(*cp.lifted)
                     elif bound is True:
                         bound = tensor_image().upper_bound
-                    value = 1 - self.value(*cp) if negate else self.value(*cp)
-                    yield bound * value >= tensor(*cp.lifted)
+                    yield bound * self.value(*cp) >= tensor(*cp.lifted)
 
             @constraint(disabled=lower_bound is False)
             def deactivates(self) -> Quantified:
@@ -317,8 +316,7 @@ class ActivationVariable(ModelFragment):
                         bound = bound(*cp)
                     elif bound is True:
                         bound = tensor_image().lower_bound
-                    value = 1 - self.value(*cp) if negate else self.value(*cp)
-                    yield bound * value <= term
+                    yield bound * self.value(*cp) <= term
 
         return _Fragment()
 
@@ -362,7 +360,6 @@ def activation_variable(
     upper_bound: ExpressionLike | TensorLike | bool = True,
     lower_bound: ExpressionLike | TensorLike | bool = False,
     name: Name | None = None,
-    negate: bool = False,
     projection: Projection = -1,
 ) -> Callable[[TensorLike], ActivationVariable]:
     """Transforms a method into an :class:`ActivationVariable` fragment
@@ -379,7 +376,6 @@ def activation_variable(
             lower_bound=lower_bound,
             upper_bound=upper_bound,
             name=name,
-            negate=negate,
             projection=projection,
         )
 
@@ -416,8 +412,8 @@ class PiecewiseLinear(ModelFragment):
             raise NotImplementedError()  # TODO: Implement.
 
         self._tensor = tensor
-        if not quantifiables and isinstance(tensor, Tensor):
-            quantifiables = tensor.quantifiables()
+        if not quantifiables:
+            quantifiables = infer_quantifiables(tensor)
         self._domains = tuple(domain(q) for q in quantifiables)
 
         self._piece_count = Parameter.discrete(
@@ -528,7 +524,6 @@ class ActivatedVariable(ModelFragment):
             subscripts
         upper_bound: Tensor upper bound, can be omitted if `tensor` is a
             :class:`~opvious.modeling.Tensor` instance
-        negate: Negate the input indicator
         force_activation: Add constraint to ensure that the derived variable is
             at least equal to `tensor` when `indicator` is non-zero. You may
             choose to omit this if the variable is already pushed up via other
@@ -549,18 +544,20 @@ class ActivatedVariable(ModelFragment):
         upper_bound: ExpressionLike | None = None,
         force_activation: bool = True,
         force_deactivation: bool = True,
-        negate: bool = False,
         name: Name | None = None,
     ) -> None:
         self._tensor = tensor
         self._indicator = indicator
         self._indicator_projection = indicator_projection
-        self._negate = negate
         self._force_activation = force_activation
         self._force_deactivation = force_deactivation
 
         if upper_bound is None:
-            assert isinstance(tensor, Tensor)
+            if not isinstance(tensor, Tensor):
+                raise ValueError(
+                    f"Unable to infer activated variable upper bound: {tensor}"
+                    " is not a tensor. Please specify an explicit bound."
+                )
             upper_bound = tensor.image.upper_bound
         self._upper_bound = upper_bound
 
@@ -593,12 +590,9 @@ class ActivatedVariable(ModelFragment):
         This constraint will be omitted if `force_deactivation` is false.
         """
         for cp in self._quantification():
-            toggle = (
-                1 - self._indicator(*cp)
-                if self._negate
-                else self._indicator(*cp)
-            )
-            yield self.value(*cp.lifted) <= self._upper_bound * toggle
+            yield self.value(
+                *cp.lifted
+            ) <= self._upper_bound * self._indicator(*cp)
 
     @constraint(lambda init, self: init(disabled=not self._force_activation))
     def activates(self) -> Quantified:
@@ -607,14 +601,10 @@ class ActivatedVariable(ModelFragment):
         This constraint will be omitted if `force_activation` is false.
         """
         for cp in self._quantification():
-            toggle = (
-                self._indicator(*cp)
-                if self._negate
-                else 1 - self._indicator(*cp)
-            )
             yield (
                 self.value(*cp.lifted)
-                >= self._tensor(*cp.lifted) - self._upper_bound * toggle
+                >= self._tensor(*cp.lifted)
+                - self._upper_bound * (1 - self._indicator(*cp))
             )
 
 
@@ -624,7 +614,6 @@ def activated_variable(
     indicator: Tensor,
     indicator_projection: Projection = -1,
     upper_bound: ExpressionLike | None = None,
-    negate: bool = False,
     force_activation: bool = True,
     force_deactivation: bool = True,
     name: Name | None = None,
@@ -641,7 +630,6 @@ def activated_variable(
             indicator=indicator,
             indicator_projection=indicator_projection,
             upper_bound=upper_bound,
-            negate=negate,
             force_activation=force_activation,
             force_deactivation=force_deactivation,
             name=name,
